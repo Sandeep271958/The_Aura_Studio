@@ -287,6 +287,7 @@ const DOM = {
 
   // Focus Rhythm (Pomodoro)
   btnTogglePomodoro: document.getElementById('btn-toggle-pomodoro'),
+  btnResetPomodoro: document.getElementById('btn-reset-pomodoro'),
   pomoTimeLeft: document.getElementById('pomo-time-left'),
   pomoStatusLabel: document.getElementById('pomo-status-label'),
 
@@ -549,11 +550,46 @@ function syncAllInputs() {
   DOM.btnSyncCorners.classList.toggle('active', appState.syncCorners);
   DOM.toggleCircadianAuto.checked = appState.circadian.autoEnabled;
 
-  if (DOM.sliderCircadianTime) syncRangeProgress(DOM.sliderCircadianTime);
-  if (DOM.sliderAmbiSmoothing) syncRangeProgress(DOM.sliderAmbiSmoothing);
-  if (DOM.sliderAmbiBoost) syncRangeProgress(DOM.sliderAmbiBoost);
-  if (DOM.sliderAmbiBlackfloor) syncRangeProgress(DOM.sliderAmbiBlackfloor);
-  if (DOM.sliderAudioSens) syncRangeProgress(DOM.sliderAudioSens);
+  if (DOM.sliderCircadianTime) {
+    DOM.sliderCircadianTime.value = appState.circadian.simulatedMinutes;
+    syncRangeProgress(DOM.sliderCircadianTime);
+  }
+  if (DOM.sliderAmbiSmoothing) {
+    DOM.sliderAmbiSmoothing.value = appState.ambilight.smoothing;
+    syncRangeProgress(DOM.sliderAmbiSmoothing);
+  }
+  if (DOM.sliderAmbiBoost) {
+    DOM.sliderAmbiBoost.value = appState.ambilight.saturationBoost;
+    syncRangeProgress(DOM.sliderAmbiBoost);
+  }
+  if (DOM.sliderAmbiBlackfloor) {
+    DOM.sliderAmbiBlackfloor.value = appState.ambilight.blackFloor;
+    syncRangeProgress(DOM.sliderAmbiBlackfloor);
+  }
+  if (DOM.sliderAudioSens) {
+    DOM.sliderAudioSens.value = appState.soundsync.sensitivity;
+    syncRangeProgress(DOM.sliderAudioSens);
+  }
+  if (DOM.sliderGradientSpeed) {
+    DOM.sliderGradientSpeed.value = appState.gradient.speed;
+    syncRangeProgress(DOM.sliderGradientSpeed);
+  }
+  if (DOM.sliderGradientTurbulence) {
+    DOM.sliderGradientTurbulence.value = appState.gradient.turbulence;
+    syncRangeProgress(DOM.sliderGradientTurbulence);
+  }
+  if (DOM.selectTransitionSpeed) {
+    DOM.selectTransitionSpeed.value = appState.transitionDuration;
+  }
+  if (DOM.toggleGamma) {
+    DOM.toggleGamma.checked = appState.useGammaCorrection;
+  }
+  if (DOM.selectGradientWarmCct) {
+    DOM.selectGradientWarmCct.value = appState.gradient.warmWhiteKelvin;
+  }
+  if (DOM.pickerGradientBulbColor) {
+    DOM.pickerGradientBulbColor.value = appState.gradient.bulbCustomColor;
+  }
 }
 
 function renderDeviceCards() {
@@ -1259,6 +1295,24 @@ function updatePomodoroDisplay() {
   DOM.pomoTimeLeft.textContent = `${m}:${s}`;
 }
 
+function resetPomodoro() {
+  if (appState.pomodoro.timerInterval) {
+    clearInterval(appState.pomodoro.timerInterval);
+    appState.pomodoro.timerInterval = null;
+  }
+  appState.pomodoro.active = false;
+  appState.pomodoro.phase = 'focus';
+  appState.pomodoro.secondsRemaining = 25 * 60;
+  if (DOM.btnTogglePomodoro) {
+    DOM.btnTogglePomodoro.textContent = 'Start 25m Focus Sprint';
+    DOM.btnTogglePomodoro.classList.remove('active');
+  }
+  if (DOM.pomoStatusLabel) DOM.pomoStatusLabel.textContent = 'READY FOR FOCUS SPRINT';
+  if (DOM.pomoTimeLeft) DOM.pomoTimeLeft.textContent = '25:00';
+  renderAll();
+  showToast('Focus Interval reset.');
+}
+
 // ============================================================================
 // 10. EVENT BINDING & INTERACTIVITY (With Haptic Tactile Feedback)
 // ============================================================================
@@ -1820,14 +1874,18 @@ function bindEvents() {
   }
 
   // Focus Rhythm (Pomodoro)
-  DOM.btnTogglePomodoro.addEventListener('click', () => {
-    triggerHaptic('medium');
-    togglePomodoro();
-  });
-  DOM.btnResetPomodoro.addEventListener('click', () => {
-    triggerHaptic('light');
-    resetPomodoro();
-  });
+  if (DOM.btnTogglePomodoro) {
+    DOM.btnTogglePomodoro.addEventListener('click', () => {
+      triggerHaptic('medium');
+      togglePomodoro();
+    });
+  }
+  if (DOM.btnResetPomodoro) {
+    DOM.btnResetPomodoro.addEventListener('click', () => {
+      triggerHaptic('light');
+      resetPomodoro();
+    });
+  }
 
   // Settings Dialog
   DOM.btnOpenSettings.addEventListener('click', () => {

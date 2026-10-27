@@ -872,6 +872,27 @@ body {
   background: linear-gradient(to right, #ff8a12 0%, #ffc078 30%, #fff2e0 60%, #c4e4ff 100%) !important;
 }
 
+/* Bipolar Contrast Balance Slider (Ambient Fill vs Bias Contrast) */
+.range-bipolar::-webkit-slider-runnable-track {
+  background: linear-gradient(to right,
+    var(--accent-purple) 0%,
+    rgba(255, 255, 255, 0.15) 48%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 52%,
+    var(--accent-cyan) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.range-bipolar::-moz-range-track {
+  background: linear-gradient(to right,
+    var(--accent-purple) 0%,
+    rgba(255, 255, 255, 0.15) 48%,
+    rgba(255, 255, 255, 0.3) 50%,
+    rgba(255, 255, 255, 0.15) 52%,
+    var(--accent-cyan) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 /* ==========================================================================
    SCENES DECK (Curated Aesthetic Mood Presets)
    ========================================================================== */
