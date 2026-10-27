@@ -54,6 +54,15 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             wiz.broadcastDiscovery();
         } else if (msgType == "update") {
             JsonObject payload = doc["payload"];
+            if (payload.containsKey("state")) {
+                payload = payload["state"];
+            }
+
+            if (payload.containsKey("network")) {
+                JsonObject net = payload["network"];
+                if (net.containsKey("wizLeftIp")) state.wizLeftIp = net["wizLeftIp"].as<String>();
+                if (net.containsKey("wizRightIp")) state.wizRightIp = net["wizRightIp"].as<String>();
+            }
 
             if (payload.containsKey("isMasterOn")) {
                 state.isMasterOn = payload["isMasterOn"];
@@ -134,8 +143,8 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             uint8_t leftEffectiveDim = constrain((int)(state.wizLeft.brightness * masterFactor * cornerFactor), 10, 100);
             uint8_t rightEffectiveDim = constrain((int)(state.wizRight.brightness * masterFactor * cornerFactor), 10, 100);
 
-            bool leftPower = state.isMasterOn && state.wizLeft.power;
-            bool rightPower = state.isMasterOn && state.wizRight.power;
+            bool leftPower = state.isMasterOn && state.wizLeft.power && (state.masterBrightness > 0) && (state.wizLeft.brightness > 0);
+            bool rightPower = state.isMasterOn && state.wizRight.power && (state.masterBrightness > 0) && (state.wizRight.brightness > 0);
 
             if (state.wizLeft.mode == "rgb") {
                 wiz.sendPilotRGB(state.wizLeftIp, leftPower, state.wizLeft.r, state.wizLeft.g, state.wizLeft.b, leftEffectiveDim);

@@ -1102,9 +1102,16 @@ function bindEvents() {
     appState.devices.desk.speed = parseInt(e.target.value, 10);
     renderAll();
   });
+  DOM.sliderDeskSpeed.addEventListener('change', () => {
+    dispatchStateChange({ desk: { speed: appState.devices.desk.speed } });
+  });
+
   DOM.sliderDeskIntensity.addEventListener('input', (e) => {
     appState.devices.desk.intensity = parseInt(e.target.value, 10);
     renderAll();
+  });
+  DOM.sliderDeskIntensity.addEventListener('change', () => {
+    dispatchStateChange({ desk: { intensity: appState.devices.desk.intensity } });
   });
 
   // WiZ Left Controls
@@ -1123,11 +1130,23 @@ function bindEvents() {
     if (appState.syncCorners) appState.devices.wizRight.brightness = appState.devices.wizLeft.brightness;
     renderAll();
   });
+  DOM.sliderWizLeftBrightness.addEventListener('change', () => {
+    dispatchStateChange({
+      wizLeft: { brightness: appState.devices.wizLeft.brightness },
+      ...(appState.syncCorners ? { wizRight: { brightness: appState.devices.wizRight.brightness } } : {})
+    });
+  });
 
   DOM.pickerWizLeftColor.addEventListener('input', (e) => {
     appState.devices.wizLeft.color = e.target.value;
     if (appState.syncCorners) appState.devices.wizRight.color = e.target.value;
     renderAll();
+  });
+  DOM.pickerWizLeftColor.addEventListener('change', () => {
+    dispatchStateChange({
+      wizLeft: { color: appState.devices.wizLeft.color },
+      ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color } } : {})
+    });
   });
 
   DOM.sliderWizLeftKelvin.addEventListener('input', (e) => {
@@ -1135,30 +1154,61 @@ function bindEvents() {
     if (appState.syncCorners) appState.devices.wizRight.kelvin = appState.devices.wizLeft.kelvin;
     renderAll();
   });
+  DOM.sliderWizLeftKelvin.addEventListener('change', () => {
+    dispatchStateChange({
+      wizLeft: { kelvin: appState.devices.wizLeft.kelvin },
+      ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin } } : {})
+    });
+  });
 
   // WiZ Right Controls
   DOM.toggleWizRightPower.addEventListener('change', (e) => {
     appState.devices.wizRight.power = e.target.checked;
+    if (appState.syncCorners) appState.devices.wizLeft.power = e.target.checked;
     renderAll();
-    dispatchStateChange({ wizRight: { power: appState.devices.wizRight.power } });
+    dispatchStateChange({
+      wizRight: { power: appState.devices.wizRight.power },
+      ...(appState.syncCorners ? { wizLeft: { power: appState.devices.wizLeft.power } } : {})
+    });
   });
 
   DOM.sliderWizRightBrightness.addEventListener('input', (e) => {
     appState.devices.wizRight.brightness = parseInt(e.target.value, 10);
+    if (appState.syncCorners) appState.devices.wizLeft.brightness = appState.devices.wizRight.brightness;
     renderAll();
+  });
+  DOM.sliderWizRightBrightness.addEventListener('change', () => {
+    dispatchStateChange({
+      wizRight: { brightness: appState.devices.wizRight.brightness },
+      ...(appState.syncCorners ? { wizLeft: { brightness: appState.devices.wizLeft.brightness } } : {})
+    });
   });
 
   DOM.pickerWizRightColor.addEventListener('input', (e) => {
     appState.devices.wizRight.color = e.target.value;
+    if (appState.syncCorners) appState.devices.wizLeft.color = e.target.value;
     renderAll();
+  });
+  DOM.pickerWizRightColor.addEventListener('change', () => {
+    dispatchStateChange({
+      wizRight: { color: appState.devices.wizRight.color },
+      ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color } } : {})
+    });
   });
 
   DOM.sliderWizRightKelvin.addEventListener('input', (e) => {
     appState.devices.wizRight.kelvin = parseInt(e.target.value, 10);
+    if (appState.syncCorners) appState.devices.wizLeft.kelvin = appState.devices.wizRight.kelvin;
     renderAll();
   });
+  DOM.sliderWizRightKelvin.addEventListener('change', () => {
+    dispatchStateChange({
+      wizRight: { kelvin: appState.devices.wizRight.kelvin },
+      ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin } } : {})
+    });
+  });
 
-  // Mode Tabs
+  // Mode Tabs (RGB vs White Kelvin)
   document.querySelectorAll('.mode-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       const dev = tab.dataset.device;
@@ -1168,8 +1218,13 @@ function bindEvents() {
         if (appState.syncCorners) appState.devices.wizRight.mode = mode;
       } else {
         appState.devices.wizRight.mode = mode;
+        if (appState.syncCorners) appState.devices.wizLeft.mode = mode;
       }
       renderAll();
+      dispatchStateChange({
+        wizLeft: { mode: appState.devices.wizLeft.mode },
+        wizRight: { mode: appState.devices.wizRight.mode }
+      });
     });
   });
 
@@ -1177,11 +1232,15 @@ function bindEvents() {
     appState.syncCorners = !appState.syncCorners;
     if (appState.syncCorners) {
       Object.assign(appState.devices.wizRight, JSON.parse(JSON.stringify(appState.devices.wizLeft)));
-      showToast('Corner bulbs linked.');
+      showToast('Corner bulbs linked. Right mirrors Left.');
     } else {
-      showToast('Corner bulbs unlinked.');
+      showToast('Corner bulbs unlinked. Independent control active.');
     }
     renderAll();
+    dispatchStateChange({
+      syncCorners: appState.syncCorners,
+      ...(appState.syncCorners ? { wizRight: appState.devices.wizRight } : {})
+    });
   });
 
   // Circadian Controls
@@ -1201,9 +1260,7 @@ function bindEvents() {
   DOM.sliderCircadianTime.addEventListener('input', (e) => {
     appState.circadian.simulatedMinutes = parseInt(e.target.value, 10);
     updateCircadianSolarDisplay();
-    if (appState.circadian.autoEnabled) {
-      applyCircadianToRoom();
-    }
+    applyCircadianToRoom();
   });
 
   DOM.btnCircadianNow.addEventListener('click', () => {
@@ -1236,6 +1293,10 @@ function bindEvents() {
     appState.ambilight.saturationBoost = parseInt(e.target.value, 10) / 10;
     DOM.valAmbiBoost.textContent = `${appState.ambilight.saturationBoost}× Vibrant`;
   });
+  DOM.sliderAmbiBlackfloor.addEventListener('input', (e) => {
+    appState.ambilight.blackFloor = parseInt(e.target.value, 10);
+    DOM.valAmbiBlackfloor.textContent = `${e.target.value}% Brightness`;
+  });
 
   // SoundSync
   DOM.btnToggleSoundSync.addEventListener('click', toggleSoundSync);
@@ -1243,6 +1304,17 @@ function bindEvents() {
     appState.soundsync.sensitivity = parseInt(e.target.value, 10);
     DOM.valAudioSens.textContent = `${e.target.value}%`;
   });
+
+  if (DOM.audioModesSelector) {
+    DOM.audioModesSelector.addEventListener('click', (e) => {
+      const chip = e.target.closest('.effect-chip');
+      if (chip && chip.dataset.audiomode) {
+        appState.soundsync.mode = chip.dataset.audiomode;
+        DOM.audioModesSelector.querySelectorAll('.effect-chip').forEach(c => c.classList.toggle('active', c === chip));
+        showToast(`SoundSync profile: ${chip.textContent}`);
+      }
+    });
+  }
 
   // Gradient Lab
   [DOM.gradColor1, DOM.gradColor2, DOM.gradColor3].forEach(picker => {
@@ -1289,6 +1361,7 @@ function bindEvents() {
     DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
     DOM.modalSettings.close();
     showToast('Network settings saved.');
+    dispatchStateChange({ network: appState.network });
   });
 
   DOM.toggleGamma.addEventListener('change', (e) => {
@@ -1296,6 +1369,46 @@ function bindEvents() {
     renderAll();
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
   });
+
+  // Interactive 2.5D Room Viewport Fixture Click Toggles
+  const fixtureLeft = document.getElementById('fixture-wiz-left');
+  const fixtureRight = document.getElementById('fixture-wiz-right');
+  const fixtureDesk = document.getElementById('fixture-desk');
+
+  if (fixtureLeft) {
+    fixtureLeft.addEventListener('click', () => {
+      appState.devices.wizLeft.power = !appState.devices.wizLeft.power;
+      if (appState.syncCorners) appState.devices.wizRight.power = appState.devices.wizLeft.power;
+      renderAll();
+      dispatchStateChange({
+        wizLeft: { power: appState.devices.wizLeft.power },
+        ...(appState.syncCorners ? { wizRight: { power: appState.devices.wizRight.power } } : {})
+      });
+      showToast(`Left Corner WiZ: ${appState.devices.wizLeft.power ? 'ON' : 'OFF'}`);
+    });
+  }
+
+  if (fixtureRight) {
+    fixtureRight.addEventListener('click', () => {
+      appState.devices.wizRight.power = !appState.devices.wizRight.power;
+      if (appState.syncCorners) appState.devices.wizLeft.power = appState.devices.wizRight.power;
+      renderAll();
+      dispatchStateChange({
+        wizRight: { power: appState.devices.wizRight.power },
+        ...(appState.syncCorners ? { wizLeft: { power: appState.devices.wizLeft.power } } : {})
+      });
+      showToast(`Right Corner WiZ: ${appState.devices.wizRight.power ? 'ON' : 'OFF'}`);
+    });
+  }
+
+  if (fixtureDesk) {
+    fixtureDesk.addEventListener('click', () => {
+      appState.devices.desk.power = !appState.devices.desk.power;
+      renderAll();
+      dispatchStateChange({ desk: { power: appState.devices.desk.power } });
+      showToast(`Desk WS2812B Strip: ${appState.devices.desk.power ? 'ON' : 'OFF'}`);
+    });
+  }
 
   setupBulbSwatches('wiz-left-swatches', 'wizLeft');
   setupBulbSwatches('wiz-right-swatches', 'wizRight');
@@ -1307,13 +1420,19 @@ function setupBulbSwatches(containerId, deviceKey) {
   container.addEventListener('click', (e) => {
     const dot = e.target.closest('.swatch-dot');
     if (dot) {
-      appState.devices[deviceKey].color = dot.dataset.color;
+      const color = dot.dataset.color;
+      appState.devices[deviceKey].color = color;
       appState.devices[deviceKey].mode = 'rgb';
       if (appState.syncCorners) {
-        appState.devices.wizRight.color = dot.dataset.color;
-        appState.devices.wizRight.mode = 'rgb';
+        const otherKey = deviceKey === 'wizLeft' ? 'wizRight' : 'wizLeft';
+        appState.devices[otherKey].color = color;
+        appState.devices[otherKey].mode = 'rgb';
       }
       renderAll();
+      dispatchStateChange({
+        wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+        wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' }
+      });
     }
   });
 }
