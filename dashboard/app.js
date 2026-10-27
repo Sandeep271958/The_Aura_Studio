@@ -101,8 +101,15 @@ const appState = {
 
   // Gradient Lab
   gradient: {
-    stops: ['#00f2fe', '#ec4899', '#8a2be2'],
-    speed: 50
+    stops: ['#a5f3fc', '#f472b6', '#c084fc', '#fef08a'],
+    motionMode: 'soap-bubble', // 'soap-bubble', 'wave', 'breathe', 'shimmer'
+    speed: 45,
+    turbulence: 50,
+    bulbSyncMode: 'spatial-sync', // 'spatial-sync', 'warm-white', 'custom'
+    warmWhiteKelvin: 2400,
+    bulbCustomColor: '#ffa757',
+    phase: 0,
+    animFrameId: null
   },
 
   // Focus Rhythm (Pomodoro)
@@ -260,10 +267,22 @@ const DOM = {
   audioModesSelector: document.getElementById('audio-modes-selector'),
 
   // Gradient Lab
+  gradientFluidCanvas: document.getElementById('gradient-fluid-canvas'),
   gradientPreviewBar: document.getElementById('gradient-preview-bar'),
   gradColor1: document.getElementById('grad-color-1'),
   gradColor2: document.getElementById('grad-color-2'),
   gradColor3: document.getElementById('grad-color-3'),
+  gradColor4: document.getElementById('grad-color-4'),
+  gradientMotionSelector: document.getElementById('gradient-motion-selector'),
+  sliderGradientSpeed: document.getElementById('slider-gradient-speed'),
+  valGradientSpeed: document.getElementById('val-gradient-speed'),
+  sliderGradientTurbulence: document.getElementById('slider-gradient-turbulence'),
+  valGradientTurbulence: document.getElementById('val-gradient-turbulence'),
+  gradientBulbSyncModes: document.getElementById('gradient-bulb-sync-modes'),
+  wrapWarmWhiteCct: document.getElementById('wrap-warm-white-cct'),
+  selectGradientWarmCct: document.getElementById('select-gradient-warm-cct'),
+  wrapCustomBulbColor: document.getElementById('wrap-custom-bulb-color'),
+  pickerGradientBulbColor: document.getElementById('picker-gradient-bulb-color'),
   btnApplyGradient: document.getElementById('btn-apply-gradient'),
 
   // Focus Rhythm (Pomodoro)
@@ -909,30 +928,241 @@ function stopSoundSync() {
 }
 
 // ============================================================================
-// 8. FEATURE SUITE 4: GRADIENT LAB (Multi-Stop WS2812B Palette Designer)
+// 8. FEATURE SUITE 4: GRADIENT LAB (Dynamic Fluid Waves, Soap Bubble Iridescence & WiZ Ambient Integration)
 // ============================================================================
 
+function hexToRgb(hex) {
+  if (!hex || hex.length < 7) return { r: 255, g: 255, b: 255 };
+  return {
+    r: parseInt(hex.slice(1, 3), 16),
+    g: parseInt(hex.slice(3, 5), 16),
+    b: parseInt(hex.slice(5, 7), 16)
+  };
+}
+
+function interpolate4Stops(stops, t) {
+  const clampedT = Math.max(0, Math.min(1, t));
+  if (clampedT <= 0.333333) {
+    const f = clampedT / 0.333333;
+    return {
+      r: stops[0].r + (stops[1].r - stops[0].r) * f,
+      g: stops[0].g + (stops[1].g - stops[0].g) * f,
+      b: stops[0].b + (stops[1].b - stops[0].b) * f
+    };
+  } else if (clampedT <= 0.666667) {
+    const f = (clampedT - 0.333333) / 0.333334;
+    return {
+      r: stops[1].r + (stops[2].r - stops[1].r) * f,
+      g: stops[1].g + (stops[2].g - stops[1].g) * f,
+      b: stops[1].b + (stops[2].b - stops[1].b) * f
+    };
+  } else {
+    const f = (clampedT - 0.666667) / 0.333333;
+    return {
+      r: stops[2].r + (stops[3].r - stops[2].r) * f,
+      g: stops[2].g + (stops[3].g - stops[2].g) * f,
+      b: stops[2].b + (stops[3].b - stops[2].b) * f
+    };
+  }
+}
+
 function updateGradientPreviewBar() {
-  const c1 = DOM.gradColor1.value;
-  const c2 = DOM.gradColor2.value;
-  const c3 = DOM.gradColor3.value;
-  DOM.gradientPreviewBar.style.background = `linear-gradient(90deg, ${c1} 0%, ${c2} 50%, ${c3} 100%)`;
-  appState.gradient.stops = [c1, c2, c3];
+  const c1 = DOM.gradColor1 ? DOM.gradColor1.value : '#a5f3fc';
+  const c2 = DOM.gradColor2 ? DOM.gradColor2.value : '#f472b6';
+  const c3 = DOM.gradColor3 ? DOM.gradColor3.value : '#c084fc';
+  const c4 = DOM.gradColor4 ? DOM.gradColor4.value : '#fef08a';
+
+  if (DOM.gradientPreviewBar) {
+    DOM.gradientPreviewBar.style.background = `linear-gradient(90deg, ${c1} 0%, ${c2} 33%, ${c3} 67%, ${c4} 100%)`;
+  }
+  appState.gradient.stops = [c1, c2, c3, c4];
+}
+
+function startGradientFluidSimulation() {
+  if (!DOM.gradientFluidCanvas) return;
+  const canvas = DOM.gradientFluidCanvas;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  let lastTime = performance.now();
+
+  function renderLoop(now) {
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    const speedNorm = (appState.gradient.speed || 45) / 100;
+    const turbNorm = (appState.gradient.turbulence || 50) / 100;
+    appState.gradient.phase = (appState.gradient.phase + dt * speedNorm * 2.2) % (Math.PI * 20);
+
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    const stops = appState.gradient.stops || ['#a5f3fc', '#f472b6', '#c084fc', '#fef08a'];
+    const rgbStops = stops.map(hexToRgb);
+    const motion = appState.gradient.motionMode || 'soap-bubble';
+    const phase = appState.gradient.phase;
+
+    const ribbonHeight = height * 0.62;
+    const colStep = 4;
+
+    // 1. Draw ultra-smooth fluid plasma wave ribbon
+    for (let x = 0; x < width; x += colStep) {
+      const normX = x / width;
+      let sampleT = normX;
+
+      if (motion === 'soap-bubble') {
+        // Real-world thin-film interference: film thickness varies with multi-harmonic waves
+        const wave = Math.sin(normX * 6.28 * 2 - phase) * 0.5 + Math.sin(normX * 6.28 * 4.5 + phase * 0.8) * turbNorm * 0.4;
+        sampleT = (normX + wave * 0.25 + 10) % 1;
+        const baseColor = interpolate4Stops(rgbStops, sampleT);
+
+        const r = Math.min(255, Math.max(0, baseColor.r + Math.cos(wave * 3 * Math.PI) * 45 * turbNorm));
+        const g = Math.min(255, Math.max(0, baseColor.g + Math.cos(wave * 3 * Math.PI - 2.09) * 45 * turbNorm));
+        const b = Math.min(255, Math.max(0, baseColor.b + Math.cos(wave * 3 * Math.PI - 4.18) * 45 * turbNorm));
+        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      } else if (motion === 'wave') {
+        // Directional fluid wave displacement
+        const wave = Math.sin(normX * 6.28 * 1.8 - phase) * 0.15 * (0.5 + turbNorm);
+        sampleT = (normX - (phase * 0.2) + wave + 10) % 1;
+        const color = interpolate4Stops(rgbStops, sampleT);
+        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
+      } else if (motion === 'breathe') {
+        // Harmonic expansion and contraction
+        const pulse = Math.sin(phase * 1.5) * 0.35;
+        sampleT = Math.max(0, Math.min(1, 0.5 + (normX - 0.5) * (1 + pulse)));
+        const color = interpolate4Stops(rgbStops, sampleT);
+        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
+      } else {
+        // Prismatic Shimmer: chromatic micro-dispersion
+        const sparkle = Math.sin(normX * 60 + phase * 8) * turbNorm * 35;
+        sampleT = (normX - (phase * 0.15) + 10) % 1;
+        const color = interpolate4Stops(rgbStops, sampleT);
+        const r = Math.min(255, Math.max(0, color.r + sparkle));
+        const g = Math.min(255, Math.max(0, color.g + sparkle * 0.8));
+        const b = Math.min(255, Math.max(0, color.b + sparkle * 1.2));
+        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      }
+
+      ctx.fillRect(x, 0, colStep, ribbonHeight);
+    }
+
+    // 2. Subtle glass divider
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(0, ribbonHeight, width, 1);
+
+    // 3. 120 discrete WS2812B LED beads (1:1 physical desk fixture visualizer)
+    const numLeds = 120;
+    const ledStep = width / numLeds;
+    const ledY = ribbonHeight + (height - ribbonHeight) / 2;
+
+    for (let i = 0; i < numLeds; i++) {
+      const ledX = (i + 0.5) * ledStep;
+      const normX = i / (numLeds - 1);
+      let sampleT = normX;
+
+      if (motion === 'soap-bubble') {
+        const wave = Math.sin(normX * 6.28 * 2 - phase) * 0.5 + Math.sin(normX * 6.28 * 4.5 + phase * 0.8) * turbNorm * 0.4;
+        sampleT = (normX + wave * 0.25 + 10) % 1;
+        const baseColor = interpolate4Stops(rgbStops, sampleT);
+        const r = Math.min(255, Math.max(0, baseColor.r + Math.cos(wave * 3 * Math.PI) * 45 * turbNorm));
+        const g = Math.min(255, Math.max(0, baseColor.g + Math.cos(wave * 3 * Math.PI - 2.09) * 45 * turbNorm));
+        const b = Math.min(255, Math.max(0, baseColor.b + Math.cos(wave * 3 * Math.PI - 4.18) * 45 * turbNorm));
+        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      } else if (motion === 'wave') {
+        const wave = Math.sin(normX * 6.28 * 1.8 - phase) * 0.15 * (0.5 + turbNorm);
+        sampleT = (normX - (phase * 0.2) + wave + 10) % 1;
+        const color = interpolate4Stops(rgbStops, sampleT);
+        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
+      } else if (motion === 'breathe') {
+        const pulse = Math.sin(phase * 1.5) * 0.35;
+        sampleT = Math.max(0, Math.min(1, 0.5 + (normX - 0.5) * (1 + pulse)));
+        const color = interpolate4Stops(rgbStops, sampleT);
+        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
+      } else {
+        const sparkle = Math.sin(normX * 60 + phase * 8) * turbNorm * 35;
+        sampleT = (normX - (phase * 0.15) + 10) % 1;
+        const color = interpolate4Stops(rgbStops, sampleT);
+        const r = Math.min(255, Math.max(0, color.r + sparkle));
+        const g = Math.min(255, Math.max(0, color.g + sparkle * 0.8));
+        const b = Math.min(255, Math.max(0, color.b + sparkle * 1.2));
+        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+      }
+
+      ctx.beginPath();
+      ctx.arc(ledX, ledY, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    appState.gradient.animFrameId = requestAnimationFrame(renderLoop);
+  }
+
+  if (appState.gradient.animFrameId) {
+    cancelAnimationFrame(appState.gradient.animFrameId);
+  }
+  appState.gradient.animFrameId = requestAnimationFrame(renderLoop);
 }
 
 function applyCustomGradientToDesk() {
-  const [c1, c2, c3] = appState.gradient.stops;
-  appState.devices.desk.color = c2; // Center dominant
-  appState.devices.desk.effect = 'sunset-wave';
-  renderAll();
-  showToast('Custom multi-stop gradient streaming to WS2812B desk strip.');
-  dispatchStateChange({
+  const [c1, c2, c3, c4] = appState.gradient.stops;
+
+  // 1. Desk WS2812B Strip configuration
+  appState.devices.desk.color = c2;
+  appState.devices.desk.effect = appState.gradient.motionMode;
+  appState.devices.desk.gradientStops = [c1, c2, c3, c4];
+
+  const payload = {
     desk: {
       color: c2,
-      effect: 'sunset-wave',
-      gradientStops: [c1, c2, c3]
+      effect: appState.gradient.motionMode,
+      speed: appState.gradient.speed,
+      turbulence: appState.gradient.turbulence,
+      gradientStops: [c1, c2, c3, c4]
     }
-  });
+  };
+
+  // 2. Corner WiZ Bulbs Integration Architecture
+  const syncMode = appState.gradient.bulbSyncMode || 'spatial-sync';
+
+  if (syncMode === 'spatial-sync') {
+    // Spatial Sync: Left bulb mirrors left edge (Stop 1), Right bulb mirrors right edge (Stop 4)
+    appState.devices.wizLeft.mode = 'rgb';
+    appState.devices.wizLeft.color = c1;
+    appState.devices.wizRight.mode = 'rgb';
+    appState.devices.wizRight.color = c4;
+
+    payload.wizLeft = { mode: 'rgb', color: c1 };
+    payload.wizRight = { mode: 'rgb', color: c4 };
+
+    showToast(`Streaming ${appState.gradient.motionMode} gradient with spatial corner sync (L: ${c1}, R: ${c4}).`);
+  } else if (syncMode === 'warm-white') {
+    // Architectural Gallery Contrast: WiZ bulbs cast pure warm white CCT
+    const kelvin = appState.gradient.warmWhiteKelvin || 2400;
+    appState.devices.wizLeft.mode = 'cct';
+    appState.devices.wizLeft.kelvin = kelvin;
+    appState.devices.wizRight.mode = 'cct';
+    appState.devices.wizRight.kelvin = kelvin;
+
+    payload.wizLeft = { mode: 'cct', kelvin: kelvin };
+    payload.wizRight = { mode: 'cct', kelvin: kelvin };
+
+    showToast(`Streaming gradient to desk strip with ${kelvin}K gallery warm white ambient.`);
+  } else if (syncMode === 'custom') {
+    // Custom Ambient Bulbs: User picked custom wash
+    const customColor = appState.gradient.bulbCustomColor || '#ffa757';
+    appState.devices.wizLeft.mode = 'rgb';
+    appState.devices.wizLeft.color = customColor;
+    appState.devices.wizRight.mode = 'rgb';
+    appState.devices.wizRight.color = customColor;
+
+    payload.wizLeft = { mode: 'rgb', color: customColor };
+    payload.wizRight = { mode: 'rgb', color: customColor };
+
+    showToast(`Streaming gradient to desk strip with custom corner ambient wash (${customColor}).`);
+  }
+
+  renderAll();
+  dispatchStateChange(payload);
 }
 
 // ============================================================================
@@ -1450,26 +1680,144 @@ function bindEvents() {
     });
   }
 
-  // Gradient Lab
-  [DOM.gradColor1, DOM.gradColor2, DOM.gradColor3].forEach(picker => {
-    picker.addEventListener('input', updateGradientPreviewBar);
-  });
-  DOM.btnApplyGradient.addEventListener('click', () => {
-    triggerHaptic('medium');
-    applyCustomGradientToDesk();
+  // Gradient Lab Color Stops
+  [DOM.gradColor1, DOM.gradColor2, DOM.gradColor3, DOM.gradColor4].forEach(picker => {
+    if (picker) {
+      picker.addEventListener('input', () => {
+        updateGradientPreviewBar();
+      });
+      picker.addEventListener('change', () => {
+        triggerHaptic('light');
+        updateGradientPreviewBar();
+      });
+    }
   });
 
+  // Motion physics selector chips
+  if (DOM.gradientMotionSelector) {
+    DOM.gradientMotionSelector.querySelectorAll('.effect-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        triggerHaptic('light');
+        DOM.gradientMotionSelector.querySelectorAll('.effect-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        appState.gradient.motionMode = btn.dataset.motion;
+      });
+    });
+  }
+
+  // Flow velocity slider
+  if (DOM.sliderGradientSpeed) {
+    DOM.sliderGradientSpeed.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      appState.gradient.speed = val;
+      let label = `${val}% (Gentle Fluid)`;
+      if (val < 30) label = `${val}% (Deep Calm)`;
+      else if (val > 65) label = `${val}% (High Flow)`;
+      if (DOM.valGradientSpeed) DOM.valGradientSpeed.textContent = label;
+      syncRangeProgress(DOM.sliderGradientSpeed);
+    });
+    DOM.sliderGradientSpeed.addEventListener('change', () => {
+      triggerHaptic('light');
+    });
+  }
+
+  // Wave turbulence slider
+  if (DOM.sliderGradientTurbulence) {
+    DOM.sliderGradientTurbulence.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      appState.gradient.turbulence = val;
+      let label = `${val}% (Organic Flow)`;
+      if (val < 30) label = `${val}% (Laminar Smooth)`;
+      else if (val > 70) label = `${val}% (Vortex Plasma)`;
+      if (DOM.valGradientTurbulence) DOM.valGradientTurbulence.textContent = label;
+      syncRangeProgress(DOM.sliderGradientTurbulence);
+    });
+    DOM.sliderGradientTurbulence.addEventListener('change', () => {
+      triggerHaptic('light');
+    });
+  }
+
+  // Apply Gradient Button
+  if (DOM.btnApplyGradient) {
+    DOM.btnApplyGradient.addEventListener('click', () => {
+      triggerHaptic('medium');
+      applyCustomGradientToDesk();
+    });
+  }
+
+  // Curated Luxury Designer Palettes (10 Palettes)
   document.querySelectorAll('.palette-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       triggerHaptic('light');
-      const stops = chip.dataset.stops.split(',');
-      DOM.gradColor1.value = stops[0];
-      DOM.gradColor2.value = stops[1];
-      DOM.gradColor3.value = stops[2];
+      document.querySelectorAll('.palette-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+
+      const stops = (chip.dataset.stops || '').split(',');
+      if (stops.length >= 4) {
+        if (DOM.gradColor1) DOM.gradColor1.value = stops[0];
+        if (DOM.gradColor2) DOM.gradColor2.value = stops[1];
+        if (DOM.gradColor3) DOM.gradColor3.value = stops[2];
+        if (DOM.gradColor4) DOM.gradColor4.value = stops[3];
+      }
+
+      if (chip.dataset.motion) {
+        appState.gradient.motionMode = chip.dataset.motion;
+        if (DOM.gradientMotionSelector) {
+          DOM.gradientMotionSelector.querySelectorAll('.effect-chip').forEach(b => {
+            b.classList.toggle('active', b.dataset.motion === chip.dataset.motion);
+          });
+        }
+      }
+
       updateGradientPreviewBar();
       applyCustomGradientToDesk();
     });
   });
+
+  // Corner WiZ Bulbs Integration Mode Switching
+  if (DOM.gradientBulbSyncModes) {
+    DOM.gradientBulbSyncModes.querySelectorAll('.effect-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        triggerHaptic('light');
+        DOM.gradientBulbSyncModes.querySelectorAll('.effect-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const mode = btn.dataset.bulbsync;
+        appState.gradient.bulbSyncMode = mode;
+
+        if (DOM.wrapWarmWhiteCct) {
+          DOM.wrapWarmWhiteCct.classList.toggle('hidden', mode !== 'warm-white');
+        }
+        if (DOM.wrapCustomBulbColor) {
+          DOM.wrapCustomBulbColor.classList.toggle('hidden', mode !== 'custom');
+        }
+      });
+    });
+  }
+
+  // Warm White CCT select
+  if (DOM.selectGradientWarmCct) {
+    DOM.selectGradientWarmCct.addEventListener('change', (e) => {
+      triggerHaptic('light');
+      appState.gradient.warmWhiteKelvin = parseInt(e.target.value, 10);
+      if (appState.gradient.bulbSyncMode === 'warm-white') {
+        applyCustomGradientToDesk();
+      }
+    });
+  }
+
+  // Custom Bulb Color picker
+  if (DOM.pickerGradientBulbColor) {
+    DOM.pickerGradientBulbColor.addEventListener('input', (e) => {
+      appState.gradient.bulbCustomColor = e.target.value;
+    });
+    DOM.pickerGradientBulbColor.addEventListener('change', (e) => {
+      triggerHaptic('light');
+      appState.gradient.bulbCustomColor = e.target.value;
+      if (appState.gradient.bulbSyncMode === 'custom') {
+        applyCustomGradientToDesk();
+      }
+    });
+  }
 
   // Focus Rhythm (Pomodoro)
   DOM.btnTogglePomodoro.addEventListener('click', () => {
@@ -1781,6 +2129,7 @@ window.addEventListener('DOMContentLoaded', () => {
   bindEvents();
   initCommunications();
   renderAll();
+  startGradientFluidSimulation();
 
   // Background ticker for Circadian HCL auto-update
   setInterval(() => {

@@ -56,9 +56,35 @@ AURA incorporates the most advanced capabilities found across luxury lighting ec
 - Hardware FFT frequency analysis powered by the **Web Audio API**.
 - Sub-bass frequencies (20–150 Hz) drive rhythmic room pulses across corner WiZ bulbs, while vocal mids and percussion ripple fluid waves across the desk strip.
 
-### 4. 🎨 Gradient Colorway Studio
-- Multi-stop linear colorway designer for the 120 addressable WS2812B LEDs.
-- Create custom 3-stop fluid gradients or pick from luxury curated palettes (*Miami Vice*, *Solar Flare*, *Emerald Tide*, *Tokyo Twilight*, *Nordic Deep*).
+### 4. 🎨 Gradient Colorway & Dynamic Fluid Lab (Real Wave Physics)
+- **Real-World Fluid Wave Physics & Thin-Film Soap Bubble Interference:**
+  - Models physical light interference on microscopic fluid films ($\delta = \frac{4\pi}{\lambda} d \cos\theta$), generating organic, pearlescent cyan-magenta-lavender-gold swirls.
+  - **Live 60 FPS HTML5 Canvas Fluid Simulation:** Dual-zone visualizer rendering both the continuous multi-harmonic wave ribbon and the 120 individual physical WS2812B LED beads in real time.
+- **4-Stop Linear Colorway Designer:**
+  - Precision color stops at 0%, 33%, 67%, and 100% with real-time linear CSS preview bar and canvas synchronization.
+- **4 Fluid Dynamics & Motion Physics Profiles:**
+  - 🫧 **Soap Bubble (Interference):** Multi-harmonic wave displacement with chromatic phase shifting.
+  - 🌊 **Directional Wave:** Smooth laminar fluid flow with sinusoidal turbulence dispersion.
+  - 💨 **Harmonic Breathing:** Symmetric lung-like expansion and contraction from center bias.
+  - ✨ **Prismatic Shimmer:** Micro-refraction dispersion sparkle overlaid on flowing color gradients.
+- **Physics Controls:**
+  - **Flow Velocity Slider (10–100%):** From gentle deep calm to rapid fluid river flows.
+  - **Wave Turbulence Slider (10–100%):** Smooth laminar flow to organic vortex plasma dispersion.
+- **10 Luxury Curated Designer Palettes:**
+  1. 🫧 *Soap Bubble Iridescence* (`#a5f3fc`, `#f472b6`, `#c084fc`, `#fef08a`)
+  2. 🌊 *Bioluminescent Deep Sea* (`#00f2fe`, `#1d4ed8`, `#0b0f19`, `#0d9488`)
+  3. 💎 *Opal Prism* (`#ffffff`, `#fde047`, `#22d3ee`, `#e879f9`)
+  4. 🌌 *Northern Lights (Aurora)* (`#10b981`, `#06b6d4`, `#8b5cf6`, `#0f172a`)
+  5. 🔥 *Solar Flare & Plasma* (`#fef9c3`, `#f59e0b`, `#dc2626`, `#4c1d95`)
+  6. 🌸 *Kyoto Cherry Blossom* (`#fbcfe8`, `#a78bfa`, `#fbbf24`, `#1e1b4b`)
+  7. ⚡ *Cyberpunk Synthwave* (`#ff007f`, `#7928ca`, `#00f2fe`, `#0a0a14`)
+  8. 🏜️ *Mojave Sunset* (`#f59e0b`, `#f43f5e`, `#6b21a8`, `#1e1b4b`)
+  9. ☕ *Amber Candle & Hearth* (`#ea580c`, `#f97316`, `#fbbf24`, `#292524`)
+  10. 🌴 *Miami Sunset Vice* (`#ff1493`, `#00e5ff`, `#4a00e0`, `#ff007f`)
+- **Corner WiZ Bulbs Integration Architecture:**
+  - **Dynamic Spatial Sync:** Left and Right WiZ bulbs sample the fluid wave boundary edges, expanding the desk strip across the room.
+  - **Architectural Warm White (Gallery Contrast):** WiZ bulbs cast pure CCT white (*2000K Candlelight*, *2400K Warm Minimalist*, *2700K Soft Living*, or *4000K Studio Focus Neutral*), framing the dynamic desk strip with high-end museum gallery ambiance.
+  - **Custom Ambient Bulbs:** Independent color picker for personalized corner bulb wash.
 
 ### 5. ⏳ Focus & Rest Rhythm (Smart Pomodoro Lighting)
 - **Focus Interval (25 min):** 4500K crisp neutral white task bias; corner WiZ bulbs dim to 15% to eliminate room distractions.

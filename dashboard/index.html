@@ -872,52 +872,134 @@
     </div>
 
     <!-- ====================================================================
-         VIEW 5: GRADIENT STUDIO (Multi-Stop Dynamic Color Palette)
+         VIEW 5: GRADIENT STUDIO (Multi-Stop Dynamic Color Palette & Real Physics)
          ==================================================================== -->
     <div id="view-gradients" class="tab-view">
       <section class="suite-feature-panel glass-panel">
         <div class="feature-panel-header">
           <div class="header-text">
-            <span class="feature-badge">MULTI-ZONE ADDRESSABLE MATRIX</span>
-            <h2 class="suite-title">Gradient Colorway Studio</h2>
-            <p class="suite-subtitle">Design multi-stop, fluid linear color transitions that dynamically stream across the 120 addressable WS2812B LEDs on your desk.</p>
+            <span class="feature-badge">MULTI-ZONE ADDRESSABLE MATRIX &bull; REAL FLUID WAVE PHYSICS</span>
+            <h2 class="suite-title">Gradient Colorway &amp; Dynamic Fluid Lab</h2>
+            <p class="suite-subtitle">Design multi-stop color transitions that stream fluidly across your 120 addressable WS2812B LEDs with real-world wave physics (soap bubble thin-film interference, deep sea bioluminescence, and chromatic opal dispersion), synced or harmonized with your corner WiZ bulbs.</p>
           </div>
           <button id="btn-apply-gradient" class="primary-btn">
-            <span>Push Gradient to Strip</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-svg"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>Push Gradient &amp; Ambient to Room</span>
           </button>
         </div>
 
-        <!-- Interactive Gradient Bar Preview -->
+        <!-- Real-Time 60 FPS Fluid Physics Canvas & Linear Preview -->
         <div class="gradient-editor-card">
+          <div class="gradient-canvas-wrap">
+            <canvas id="gradient-fluid-canvas" class="gradient-fluid-canvas" width="900" height="70"></canvas>
+            <div class="fluid-canvas-overlay">
+              <span class="fluid-badge">LIVE 60 FPS FLUID STREAM</span>
+            </div>
+          </div>
           <div id="gradient-preview-bar" class="gradient-preview-bar"></div>
 
-          <!-- Color Stop Handles -->
+          <!-- Color Stop Handles (4 Multi-Stop Points) -->
           <div class="gradient-stops-row">
             <div class="stop-control">
-              <span class="stop-label">Stop 1 (Left 0%)</span>
-              <input type="color" id="grad-color-1" class="native-color-picker" value="#00f2fe">
+              <span class="stop-label">Stop 1 (0%)</span>
+              <input type="color" id="grad-color-1" class="native-color-picker" value="#a5f3fc" aria-label="Gradient Stop 1">
             </div>
             <div class="stop-control">
-              <span class="stop-label">Stop 2 (Mid 50%)</span>
-              <input type="color" id="grad-color-2" class="native-color-picker" value="#ec4899">
+              <span class="stop-label">Stop 2 (33%)</span>
+              <input type="color" id="grad-color-2" class="native-color-picker" value="#f472b6" aria-label="Gradient Stop 2">
             </div>
             <div class="stop-control">
-              <span class="stop-label">Stop 3 (Right 100%)</span>
-              <input type="color" id="grad-color-3" class="native-color-picker" value="#8a2be2">
+              <span class="stop-label">Stop 3 (67%)</span>
+              <input type="color" id="grad-color-3" class="native-color-picker" value="#c084fc" aria-label="Gradient Stop 3">
+            </div>
+            <div class="stop-control">
+              <span class="stop-label">Stop 4 (100%)</span>
+              <input type="color" id="grad-color-4" class="native-color-picker" value="#fef08a" aria-label="Gradient Stop 4">
             </div>
           </div>
 
-          <!-- Curated Designer Palettes -->
-          <div class="curated-palettes-wrap">
-            <span class="palettes-title">Luxury Curated Palettes:</span>
-            <div class="palette-chips-grid">
-              <button class="palette-chip" data-stops="#ff007f,#7928ca,#00dfd8">Miami Vice</button>
-              <button class="palette-chip" data-stops="#f12711,#f5af19,#ff0844">Solar Flare</button>
-              <button class="palette-chip" data-stops="#11998e,#38ef7d,#0575e6">Emerald Tide</button>
-              <button class="palette-chip" data-stops="#8a2387,#e94057,#f27121">Tokyo Twilight</button>
-              <button class="palette-chip" data-stops="#141e30,#243b55,#00adb5">Nordic Deep</button>
+          <!-- Real Physics Dynamic Motion Modes -->
+          <div class="gradient-subpanel">
+            <div class="row-header">
+              <span class="row-label">Fluid Dynamics &amp; Physics Profile</span>
+            </div>
+            <div class="segmented-effects" id="gradient-motion-selector">
+              <button class="effect-chip active" data-motion="soap-bubble">🫧 Soap Bubble (Interference)</button>
+              <button class="effect-chip" data-motion="wave">🌊 Directional Wave</button>
+              <button class="effect-chip" data-motion="breathe">💨 Harmonic Breathing</button>
+              <button class="effect-chip" data-motion="shimmer">✨ Prismatic Shimmer</button>
             </div>
           </div>
+
+          <!-- Motion Physics Sliders (Speed & Turbulence) -->
+          <div class="control-row-grid">
+            <div class="grid-col">
+              <div class="row-header">
+                <span class="row-label">Flow Velocity</span>
+                <span id="val-gradient-speed" class="row-val">45% (Gentle Fluid)</span>
+              </div>
+              <input type="range" id="slider-gradient-speed" class="custom-range" min="10" max="100" value="45"
+                aria-label="Flow Velocity">
+            </div>
+            <div class="grid-col">
+              <div class="row-header">
+                <span class="row-label">Wave Turbulence &bull; Dispersion</span>
+                <span id="val-gradient-turbulence" class="row-val">50% (Organic)</span>
+              </div>
+              <input type="range" id="slider-gradient-turbulence" class="custom-range" min="10" max="100" value="50"
+                aria-label="Wave Turbulence">
+            </div>
+          </div>
+
+          <!-- Curated Luxury Designer Palettes (Top 10 Physics & Aesthetic Profiles) -->
+          <div class="curated-palettes-wrap">
+            <span class="palettes-title">Luxury Curated Palettes &amp; Natural Physics:</span>
+            <div class="palette-chips-grid">
+              <button class="palette-chip active" data-stops="#a5f3fc,#f472b6,#c084fc,#fef08a" data-motion="soap-bubble">🫧 Soap Bubble Iridescence</button>
+              <button class="palette-chip" data-stops="#00f2fe,#1d4ed8,#0b0f19,#0d9488" data-motion="wave">🌊 Bioluminescent Deep Sea</button>
+              <button class="palette-chip" data-stops="#ffffff,#fde047,#22d3ee,#e879f9" data-motion="shimmer">💎 Opal Prism</button>
+              <button class="palette-chip" data-stops="#10b981,#06b6d4,#8b5cf6,#0f172a" data-motion="wave">🌌 Northern Lights (Aurora)</button>
+              <button class="palette-chip" data-stops="#fef9c3,#f59e0b,#dc2626,#4c1d95" data-motion="wave">🔥 Solar Flare &amp; Plasma</button>
+              <button class="palette-chip" data-stops="#fbcfe8,#a78bfa,#fbbf24,#1e1b4b" data-motion="breathe">🌸 Kyoto Cherry Blossom</button>
+              <button class="palette-chip" data-stops="#ff007f,#7928ca,#00f2fe,#0a0a14" data-motion="wave">⚡ Cyberpunk Synthwave</button>
+              <button class="palette-chip" data-stops="#f59e0b,#f43f5e,#6b21a8,#1e1b4b" data-motion="wave">🏜️ Mojave Sunset</button>
+              <button class="palette-chip" data-stops="#ea580c,#f97316,#fbbf24,#292524" data-motion="breathe">☕ Amber Candle &amp; Hearth</button>
+              <button class="palette-chip" data-stops="#ff1493,#00e5ff,#4a00e0,#ff007f" data-motion="wave">🌴 Miami Sunset Vice</button>
+            </div>
+          </div>
+
+          <!-- Corner WiZ Bulbs Integration Architecture -->
+          <div class="gradient-bulb-sync-panel">
+            <div class="row-header">
+              <span class="row-label">Corner WiZ Bulbs Ambient Integration</span>
+              <span class="tooltip-hint" title="Choose whether corner bulbs dynamically mirror the gradient endpoints or cast architectural warm white for gallery contrast.">?</span>
+            </div>
+            
+            <div class="segmented-effects" id="gradient-bulb-sync-modes">
+              <button class="effect-chip active" data-bulbsync="spatial-sync">Dynamic Spatial Sync (L/R Ends)</button>
+              <button class="effect-chip" data-bulbsync="warm-white">Architectural Warm White (Gallery Contrast)</button>
+              <button class="effect-chip" data-bulbsync="custom">Custom Ambient Bulbs</button>
+            </div>
+
+            <!-- Contextual Options for Warm White or Custom Hue -->
+            <div class="bulb-sync-options-row">
+              <div id="wrap-warm-white-cct" class="sync-option-group">
+                <span class="option-label">Warm White Atmosphere:</span>
+                <select id="select-gradient-warm-cct" class="pill-select custom-select">
+                  <option value="2000">Candlelight Flame (2000K)</option>
+                  <option value="2400" selected>Warm Minimalist (2400K)</option>
+                  <option value="2700">Soft Living Warm (2700K)</option>
+                  <option value="4000">Studio Focus Neutral (4000K)</option>
+                </select>
+              </div>
+
+              <div id="wrap-custom-bulb-color" class="sync-option-group hidden">
+                <span class="option-label">Custom Corner Bulb Wash:</span>
+                <input type="color" id="picker-gradient-bulb-color" class="native-color-picker" value="#ffa757" aria-label="Custom Corner Bulb Wash Color">
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
     </div>
