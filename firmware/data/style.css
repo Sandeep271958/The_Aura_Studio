@@ -1201,24 +1201,122 @@ body {
   box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
 }
 
-/* Color Picker & Swatches */
-.color-picker-wrap {
+/* Color Header & Badges */
+.color-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-val-sub {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.08);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 242, 254, 0.2);
+  font-weight: 600;
+}
+
+/* Continuous Rainbow Hue Spectrum Bar */
+.hue-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hue-range {
+  height: 28px;
+}
+
+.hue-range::-webkit-slider-runnable-track {
+  block-size: 10px !important;
+  border-radius: 9999px;
+  background: linear-gradient(to right,
+    #ff0000 0%,
+    #ffff00 17%,
+    #00ff00 33%,
+    #00ffff 50%,
+    #0000ff 67%,
+    #ff00ff 83%,
+    #ff0000 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.hue-range::-moz-range-track {
+  block-size: 10px !important;
+  border-radius: 9999px;
+  background: linear-gradient(to right,
+    #ff0000 0%,
+    #ffff00 17%,
+    #00ff00 33%,
+    #00ffff 50%,
+    #0000ff 67%,
+    #ff00ff 83%,
+    #ff0000 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.hue-range::-webkit-slider-thumb {
+  border: 2px solid #ffffff !important;
+  background: #07090e !important;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.8), 0 2px 6px rgba(0, 0, 0, 0.8) !important;
+  transform: scale(1.1);
+}
+
+.hue-range:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+
+.hue-gradient-markers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  padding: 0 4px;
+}
+
+/* Top Color Choices Matrix Panel */
+.color-matrix-panel {
   display: flex;
   align-items: center;
   gap: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-glass);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+}
+
+.custom-picker-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-right: 12px;
+  border-right: 1px solid var(--border-glass);
 }
 
 .native-color-picker {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border: none;
   border-radius: 50%;
   cursor: pointer;
   background: transparent;
   padding: 0;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.native-color-picker:hover {
+  transform: scale(1.08);
 }
 
 .native-color-picker::-webkit-color-swatch-wrapper {
@@ -1226,30 +1324,47 @@ body {
 }
 
 .native-color-picker::-webkit-color-swatch {
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
 }
 
-.quick-swatches {
-  display: flex;
-  align-items: center;
+.picker-custom-label {
+  font-size: 0.58rem;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.top-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: 8px;
-  flex-wrap: wrap;
+  flex: 1;
 }
 
 .swatch-dot {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: transform 0.15s var(--ease-spring);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .swatch-dot:hover {
-  transform: scale(1.2);
+  transform: translateY(-2px) scale(1.15);
   border-color: #ffffff;
+  box-shadow: 0 0 14px var(--c, currentColor);
+}
+
+.swatch-dot.active {
+  border-color: #ffffff;
+  transform: scale(1.12);
+  box-shadow: 0 0 16px var(--c, currentColor), 0 0 0 2px rgba(255, 255, 255, 0.9);
 }
 
 /* Two Column Grid for Speed / Spread */

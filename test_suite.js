@@ -115,6 +115,51 @@ testKelvins.forEach(k => {
   }
 });
 
+// 3b. Test HSL & Hue Spectrum Calculations
+function hslToHex(h, s, l) {
+  l /= 100;
+  const a = (s * Math.min(l, 1 - l)) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function hexToHue(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0;
+  const d = max - min;
+  if (d === 0) return 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else if (max === b) h = ((r - g) / d + 4) * 60;
+  return Math.round(h);
+}
+
+const hueTests = [
+  { hue: 0, expected: '#ff0000', name: 'Red' },
+  { hue: 60, expected: '#ffff00', name: 'Yellow' },
+  { hue: 120, expected: '#00ff00', name: 'Green' },
+  { hue: 180, expected: '#00ffff', name: 'Cyan' },
+  { hue: 240, expected: '#0000ff', name: 'Blue' },
+  { hue: 300, expected: '#ff00ff', name: 'Magenta' }
+];
+
+hueTests.forEach(t => {
+  const hex = hslToHex(t.hue, 100, 50);
+  const backHue = hexToHue(hex);
+  if (hex === t.expected && backHue === t.hue) {
+    console.log(`PASS: Spectrum Hue ${t.hue}° (${t.name}) -> ${hex} -> ${backHue}°`);
+  } else {
+    console.error(`FAIL: Hue ${t.hue}° expected ${t.expected}, got ${hex}`);
+  }
+});
+
 // 4. Test Circadian Solar Curve Calculation
 function calculateCircadianSolar(minutesOfDay) {
   const hours = minutesOfDay / 60;

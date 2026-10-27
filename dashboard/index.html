@@ -369,25 +369,51 @@
               </div>
             </div>
 
-            <!-- Color Customizer & Quick Swatches -->
+            <!-- Primary Color & Hue Spectrum Bar + Top Choices Matrix -->
             <div class="control-row">
               <div class="row-header">
-                <span class="row-label">Primary Color</span>
-                <span id="val-desk-hex" class="row-val mono">#EC4899</span>
+                <span class="row-label">Primary Color &amp; Hue Spectrum</span>
+                <div class="color-badge-group">
+                  <span id="val-desk-hue" class="row-val-sub">330&deg; Hue</span>
+                  <span id="val-desk-hex" class="row-val mono">#EC4899</span>
+                </div>
               </div>
-              <div class="color-picker-wrap">
-                <input type="color" id="picker-desk-color" class="native-color-picker" value="#ec4899"
-                  aria-label="Desk Strip Color">
-                <div class="quick-swatches" id="desk-swatches">
-                  <button class="swatch-dot" data-color="#ec4899" style="background:#ec4899" title="Neon Pink"></button>
-                  <button class="swatch-dot" data-color="#00f2fe" style="background:#00f2fe"
-                    title="Electric Cyan"></button>
-                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Warm Amber"></button>
-                  <button class="swatch-dot" data-color="#8a2be2" style="background:#8a2be2"
-                    title="Royal Purple"></button>
-                  <button class="swatch-dot" data-color="#10b981" style="background:#10b981"
-                    title="Emerald Jade"></button>
-                  <button class="swatch-dot" data-color="#ffffff" style="background:#ffffff" title="Pure White"></button>
+
+              <!-- Continuous Rainbow Hue Bar -->
+              <div class="hue-slider-wrap">
+                <input type="range" id="slider-desk-hue" class="custom-range hue-range" min="0" max="360" value="330"
+                  aria-label="Desk Strip Color Hue Spectrum">
+                <div class="hue-gradient-markers">
+                  <span>0&deg; (Red)</span>
+                  <span>60&deg;</span>
+                  <span>120&deg; (Green)</span>
+                  <span>180&deg;</span>
+                  <span>240&deg; (Blue)</span>
+                  <span>300&deg;</span>
+                  <span>360&deg;</span>
+                </div>
+              </div>
+
+              <!-- Top Color Choices Matrix & Custom Color Wheel -->
+              <div class="color-matrix-panel">
+                <div class="custom-picker-cell" title="Open Custom Color Picker">
+                  <input type="color" id="picker-desk-color" class="native-color-picker" value="#ec4899"
+                    aria-label="Desk Strip Custom Color Wheel">
+                  <span class="picker-custom-label">CUSTOM</span>
+                </div>
+                <div class="top-colors-grid" id="desk-swatches">
+                  <button class="swatch-dot active" data-color="#ec4899" style="--c:#ec4899; background:#ec4899" title="Cyber Magenta (#ec4899)"></button>
+                  <button class="swatch-dot" data-color="#00f2fe" style="--c:#00f2fe; background:#00f2fe" title="Electric Cyan (#00f2fe)"></button>
+                  <button class="swatch-dot" data-color="#8a2be2" style="--c:#8a2be2; background:#8a2be2" title="Royal Violet (#8a2be2)"></button>
+                  <button class="swatch-dot" data-color="#1e40af" style="--c:#1e40af; background:#1e40af" title="Deep Cobalt (#1e40af)"></button>
+                  <button class="swatch-dot" data-color="#10b981" style="--c:#10b981; background:#10b981" title="Emerald Glow (#10b981)"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="--c:#f59e0b; background:#f59e0b" title="Warm Amber (#f59e0b)"></button>
+                  <button class="swatch-dot" data-color="#ef4444" style="--c:#ef4444; background:#ef4444" title="Crimson Ruby (#ef4444)"></button>
+                  <button class="swatch-dot" data-color="#fb7185" style="--c:#fb7185; background:#fb7185" title="Sunset Coral (#fb7185)"></button>
+                  <button class="swatch-dot" data-color="#0284c7" style="--c:#0284c7; background:#0284c7" title="Sky Cerulean (#0284c7)"></button>
+                  <button class="swatch-dot" data-color="#ff9329" style="--c:#ff9329; background:#ff9329" title="Candle Flame 2000K (#ff9329)"></button>
+                  <button class="swatch-dot" data-color="#ffa757" style="--c:#ffa757; background:#ffa757" title="Soft Warm 2700K (#ffa757)"></button>
+                  <button class="swatch-dot" data-color="#ffffff" style="--c:#ffffff; background:#ffffff" title="Studio Daylight (#ffffff)"></button>
                 </div>
               </div>
             </div>
@@ -445,21 +471,51 @@
               <button class="mode-tab" data-device="wiz-left" data-mode="cct">White Kelvin</button>
             </div>
 
-            <!-- Mode A: RGB Color Picker -->
+            <!-- Mode A: RGB Color Picker & Top Choices Matrix -->
             <div class="mode-view mode-rgb" id="view-wiz-left-rgb">
               <div class="row-header">
-                <span class="row-label">Color Hue</span>
-                <span id="val-wiz-left-hex" class="row-val mono">#1E40AF</span>
+                <span class="row-label">Color Hue Spectrum &amp; Top Choices</span>
+                <div class="color-badge-group">
+                  <span id="val-wiz-left-hue" class="row-val-sub">226&deg; Hue</span>
+                  <span id="val-wiz-left-hex" class="row-val mono">#1E40AF</span>
+                </div>
               </div>
-              <div class="color-picker-wrap">
-                <input type="color" id="picker-wiz-left-color" class="native-color-picker" value="#1e40af"
-                  aria-label="Left Bulb Color">
-                <div class="quick-swatches" id="wiz-left-swatches">
-                  <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
-                  <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
-                  <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
-                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
-                  <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+
+              <!-- Continuous Rainbow Hue Bar -->
+              <div class="hue-slider-wrap">
+                <input type="range" id="slider-wiz-left-hue" class="custom-range hue-range" min="0" max="360" value="226"
+                  aria-label="Left Bulb Color Hue Spectrum">
+                <div class="hue-gradient-markers">
+                  <span>0&deg; (Red)</span>
+                  <span>60&deg;</span>
+                  <span>120&deg; (Green)</span>
+                  <span>180&deg;</span>
+                  <span>240&deg; (Blue)</span>
+                  <span>300&deg;</span>
+                  <span>360&deg;</span>
+                </div>
+              </div>
+
+              <!-- Top Color Choices Matrix & Custom Color Wheel -->
+              <div class="color-matrix-panel">
+                <div class="custom-picker-cell" title="Open Custom Color Picker">
+                  <input type="color" id="picker-wiz-left-color" class="native-color-picker" value="#1e40af"
+                    aria-label="Left Bulb Custom Color Wheel">
+                  <span class="picker-custom-label">CUSTOM</span>
+                </div>
+                <div class="top-colors-grid" id="wiz-left-swatches">
+                  <button class="swatch-dot active" data-color="#1e40af" style="--c:#1e40af; background:#1e40af" title="Deep Cobalt (#1e40af)"></button>
+                  <button class="swatch-dot" data-color="#00f2fe" style="--c:#00f2fe; background:#00f2fe" title="Electric Cyan (#00f2fe)"></button>
+                  <button class="swatch-dot" data-color="#8a2be2" style="--c:#8a2be2; background:#8a2be2" title="Royal Violet (#8a2be2)"></button>
+                  <button class="swatch-dot" data-color="#ec4899" style="--c:#ec4899; background:#ec4899" title="Cyber Magenta (#ec4899)"></button>
+                  <button class="swatch-dot" data-color="#10b981" style="--c:#10b981; background:#10b981" title="Emerald Glow (#10b981)"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="--c:#f59e0b; background:#f59e0b" title="Warm Amber (#f59e0b)"></button>
+                  <button class="swatch-dot" data-color="#ef4444" style="--c:#ef4444; background:#ef4444" title="Crimson Ruby (#ef4444)"></button>
+                  <button class="swatch-dot" data-color="#fb7185" style="--c:#fb7185; background:#fb7185" title="Sunset Coral (#fb7185)"></button>
+                  <button class="swatch-dot" data-color="#0284c7" style="--c:#0284c7; background:#0284c7" title="Sky Cerulean (#0284c7)"></button>
+                  <button class="swatch-dot" data-color="#ff9329" style="--c:#ff9329; background:#ff9329" title="Candle Flame 2000K (#ff9329)"></button>
+                  <button class="swatch-dot" data-color="#ffa757" style="--c:#ffa757; background:#ffa757" title="Soft Warm 2700K (#ffa757)"></button>
+                  <button class="swatch-dot" data-color="#ffffff" style="--c:#ffffff; background:#ffffff" title="Studio Daylight (#ffffff)"></button>
                 </div>
               </div>
             </div>
@@ -519,21 +575,51 @@
               <button class="mode-tab" data-device="wiz-right" data-mode="cct">White Kelvin</button>
             </div>
 
-            <!-- Mode A: RGB Color Picker -->
+            <!-- Mode A: RGB Color Picker & Top Choices Matrix -->
             <div class="mode-view mode-rgb" id="view-wiz-right-rgb">
               <div class="row-header">
-                <span class="row-label">Color Hue</span>
-                <span id="val-wiz-right-hex" class="row-val mono">#1E40AF</span>
+                <span class="row-label">Color Hue Spectrum &amp; Top Choices</span>
+                <div class="color-badge-group">
+                  <span id="val-wiz-right-hue" class="row-val-sub">226&deg; Hue</span>
+                  <span id="val-wiz-right-hex" class="row-val mono">#1E40AF</span>
+                </div>
               </div>
-              <div class="color-picker-wrap">
-                <input type="color" id="picker-wiz-right-color" class="native-color-picker" value="#1e40af"
-                  aria-label="Right Bulb Color">
-                <div class="quick-swatches" id="wiz-right-swatches">
-                  <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
-                  <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
-                  <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
-                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
-                  <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+
+              <!-- Continuous Rainbow Hue Bar -->
+              <div class="hue-slider-wrap">
+                <input type="range" id="slider-wiz-right-hue" class="custom-range hue-range" min="0" max="360" value="226"
+                  aria-label="Right Bulb Color Hue Spectrum">
+                <div class="hue-gradient-markers">
+                  <span>0&deg; (Red)</span>
+                  <span>60&deg;</span>
+                  <span>120&deg; (Green)</span>
+                  <span>180&deg;</span>
+                  <span>240&deg; (Blue)</span>
+                  <span>300&deg;</span>
+                  <span>360&deg;</span>
+                </div>
+              </div>
+
+              <!-- Top Color Choices Matrix & Custom Color Wheel -->
+              <div class="color-matrix-panel">
+                <div class="custom-picker-cell" title="Open Custom Color Picker">
+                  <input type="color" id="picker-wiz-right-color" class="native-color-picker" value="#1e40af"
+                    aria-label="Right Bulb Custom Color Wheel">
+                  <span class="picker-custom-label">CUSTOM</span>
+                </div>
+                <div class="top-colors-grid" id="wiz-right-swatches">
+                  <button class="swatch-dot active" data-color="#1e40af" style="--c:#1e40af; background:#1e40af" title="Deep Cobalt (#1e40af)"></button>
+                  <button class="swatch-dot" data-color="#00f2fe" style="--c:#00f2fe; background:#00f2fe" title="Electric Cyan (#00f2fe)"></button>
+                  <button class="swatch-dot" data-color="#8a2be2" style="--c:#8a2be2; background:#8a2be2" title="Royal Violet (#8a2be2)"></button>
+                  <button class="swatch-dot" data-color="#ec4899" style="--c:#ec4899; background:#ec4899" title="Cyber Magenta (#ec4899)"></button>
+                  <button class="swatch-dot" data-color="#10b981" style="--c:#10b981; background:#10b981" title="Emerald Glow (#10b981)"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="--c:#f59e0b; background:#f59e0b" title="Warm Amber (#f59e0b)"></button>
+                  <button class="swatch-dot" data-color="#ef4444" style="--c:#ef4444; background:#ef4444" title="Crimson Ruby (#ef4444)"></button>
+                  <button class="swatch-dot" data-color="#fb7185" style="--c:#fb7185; background:#fb7185" title="Sunset Coral (#fb7185)"></button>
+                  <button class="swatch-dot" data-color="#0284c7" style="--c:#0284c7; background:#0284c7" title="Sky Cerulean (#0284c7)"></button>
+                  <button class="swatch-dot" data-color="#ff9329" style="--c:#ff9329; background:#ff9329" title="Candle Flame 2000K (#ff9329)"></button>
+                  <button class="swatch-dot" data-color="#ffa757" style="--c:#ffa757; background:#ffa757" title="Soft Warm 2700K (#ffa757)"></button>
+                  <button class="swatch-dot" data-color="#ffffff" style="--c:#ffffff; background:#ffffff" title="Studio Daylight (#ffffff)"></button>
                 </div>
               </div>
             </div>

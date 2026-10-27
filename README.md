@@ -75,6 +75,13 @@ AURA incorporates the most advanced capabilities found across luxury lighting ec
 - **Tactile Haptic Feedback:** Physical tactile clicks (`navigator.vibrate`) on preset activations, fixture toggles, mode switches, and slider release.
 - **Standalone PWA:** Tap "Share" &rarr; "Add to Home Screen" in iOS Safari for a standalone app with custom high-res obsidian-cyan app icons.
 
+### 8. 🌈 Continuous Rainbow Hue Bar & Curated Top Color Matrix
+- **360&deg; Continuous Spectrum Scrubbing:** Features a smooth rainbow-gradient Hue Bar (`0&deg;` to `360&deg;`) on the Desk Strip and both WiZ bulbs for instant, fluid color selection without needing to open OS color pickers.
+- **Top Color Choices Matrix Grid:** Curated 12-color smart lighting palette with glowing halo swatches:
+  - *Primary & Neon:* Cyber Magenta (`#ec4899`), Electric Cyan (`#00f2fe`), Royal Violet (`#8a2be2`), Deep Cobalt (`#1e40af`), Emerald Jade (`#10b981`), Vivid Amber (`#f59e0b`), Crimson Ruby (`#ef4444`).
+  - *Atmospheric & Natural:* Sunset Coral (`#fb7185`), Sky Cerulean (`#0284c7`), Candlelight 2000K (`#ff9329`), Soft Warm 2700K (`#ffa757`), Studio Daylight White (`#ffffff`).
+- **Bi-Directional Color Synchronization:** Live dual readout (`#EC4899 • 330° Hue`), auto-positioning Hue slider thumbs, active selection rings, and native color wheel integration.
+
 ---
 
 ## 🛠️ Hardware Wiring & Schematic

@@ -188,6 +188,8 @@ const DOM = {
   valDeskBrightness: document.getElementById('val-desk-brightness'),
   pickerDeskColor: document.getElementById('picker-desk-color'),
   valDeskHex: document.getElementById('val-desk-hex'),
+  valDeskHue: document.getElementById('val-desk-hue'),
+  sliderDeskHue: document.getElementById('slider-desk-hue'),
   deskSwatches: document.getElementById('desk-swatches'),
   effectsSelector: document.getElementById('effects-selector'),
   sliderDeskSpeed: document.getElementById('slider-desk-speed'),
@@ -201,6 +203,8 @@ const DOM = {
   valWizLeftBrightness: document.getElementById('val-wiz-left-brightness'),
   pickerWizLeftColor: document.getElementById('picker-wiz-left-color'),
   valWizLeftHex: document.getElementById('val-wiz-left-hex'),
+  valWizLeftHue: document.getElementById('val-wiz-left-hue'),
+  sliderWizLeftHue: document.getElementById('slider-wiz-left-hue'),
   sliderWizLeftKelvin: document.getElementById('slider-wiz-left-kelvin'),
   valWizLeftKelvin: document.getElementById('val-wiz-left-kelvin'),
   viewWizLeftRgb: document.getElementById('view-wiz-left-rgb'),
@@ -212,6 +216,8 @@ const DOM = {
   valWizRightBrightness: document.getElementById('val-wiz-right-brightness'),
   pickerWizRightColor: document.getElementById('picker-wiz-right-color'),
   valWizRightHex: document.getElementById('val-wiz-right-hex'),
+  valWizRightHue: document.getElementById('val-wiz-right-hue'),
+  sliderWizRightHue: document.getElementById('slider-wiz-right-hue'),
   sliderWizRightKelvin: document.getElementById('slider-wiz-right-kelvin'),
   valWizRightKelvin: document.getElementById('val-wiz-right-kelvin'),
   viewWizRightRgb: document.getElementById('view-wiz-right-rgb'),
@@ -457,6 +463,13 @@ function syncAllInputs() {
 
   DOM.pickerDeskColor.value = appState.devices.desk.color;
   DOM.valDeskHex.textContent = appState.devices.desk.color.toUpperCase();
+  const deskHue = hexToHue(appState.devices.desk.color);
+  if (DOM.sliderDeskHue) {
+    DOM.sliderDeskHue.value = deskHue;
+    DOM.sliderDeskHue.style.setProperty('--control-value', deskHue);
+  }
+  if (DOM.valDeskHue) DOM.valDeskHue.textContent = `${deskHue}\u00b0 Hue`;
+  syncActiveSwatches(DOM.deskSwatches, appState.devices.desk.color);
 
   DOM.sliderDeskSpeed.value = appState.devices.desk.speed;
   DOM.valDeskSpeed.textContent = `${appState.devices.desk.speed}%`;
@@ -478,6 +491,13 @@ function syncAllInputs() {
 
   DOM.pickerWizLeftColor.value = appState.devices.wizLeft.color;
   DOM.valWizLeftHex.textContent = appState.devices.wizLeft.color.toUpperCase();
+  const wizLeftHue = hexToHue(appState.devices.wizLeft.color);
+  if (DOM.sliderWizLeftHue) {
+    DOM.sliderWizLeftHue.value = wizLeftHue;
+    DOM.sliderWizLeftHue.style.setProperty('--control-value', wizLeftHue);
+  }
+  if (DOM.valWizLeftHue) DOM.valWizLeftHue.textContent = `${wizLeftHue}\u00b0 Hue`;
+  syncActiveSwatches(document.getElementById('wiz-left-swatches'), appState.devices.wizLeft.color);
 
   DOM.sliderWizLeftKelvin.value = appState.devices.wizLeft.kelvin;
   DOM.valWizLeftKelvin.textContent = `${appState.devices.wizLeft.kelvin}K`;
@@ -493,6 +513,13 @@ function syncAllInputs() {
 
   DOM.pickerWizRightColor.value = appState.devices.wizRight.color;
   DOM.valWizRightHex.textContent = appState.devices.wizRight.color.toUpperCase();
+  const wizRightHue = hexToHue(appState.devices.wizRight.color);
+  if (DOM.sliderWizRightHue) {
+    DOM.sliderWizRightHue.value = wizRightHue;
+    DOM.sliderWizRightHue.style.setProperty('--control-value', wizRightHue);
+  }
+  if (DOM.valWizRightHue) DOM.valWizRightHue.textContent = `${wizRightHue}\u00b0 Hue`;
+  syncActiveSwatches(document.getElementById('wiz-right-swatches'), appState.devices.wizRight.color);
 
   DOM.sliderWizRightKelvin.value = appState.devices.wizRight.kelvin;
   DOM.valWizRightKelvin.textContent = `${appState.devices.wizRight.kelvin}K`;
@@ -1101,6 +1128,19 @@ function bindEvents() {
     dispatchStateChange({ desk: { color: appState.devices.desk.color } });
   });
 
+  if (DOM.sliderDeskHue) {
+    DOM.sliderDeskHue.addEventListener('input', (e) => {
+      const hue = parseInt(e.target.value, 10);
+      const hex = hslToHex(hue, 100, 50);
+      appState.devices.desk.color = hex;
+      renderAll();
+    });
+    DOM.sliderDeskHue.addEventListener('change', () => {
+      triggerHaptic('light');
+      dispatchStateChange({ desk: { color: appState.devices.desk.color } });
+    });
+  }
+
   document.querySelectorAll('#effects-selector .effect-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       triggerHaptic('light');
@@ -1165,16 +1205,41 @@ function bindEvents() {
 
   DOM.pickerWizLeftColor.addEventListener('input', (e) => {
     appState.devices.wizLeft.color = e.target.value;
-    if (appState.syncCorners) appState.devices.wizRight.color = e.target.value;
+    appState.devices.wizLeft.mode = 'rgb';
+    if (appState.syncCorners) {
+      appState.devices.wizRight.color = e.target.value;
+      appState.devices.wizRight.mode = 'rgb';
+    }
     renderAll();
   });
   DOM.pickerWizLeftColor.addEventListener('change', () => {
     triggerHaptic('light');
     dispatchStateChange({
-      wizLeft: { color: appState.devices.wizLeft.color },
-      ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color } } : {})
+      wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+      ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
     });
   });
+
+  if (DOM.sliderWizLeftHue) {
+    DOM.sliderWizLeftHue.addEventListener('input', (e) => {
+      const hue = parseInt(e.target.value, 10);
+      const hex = hslToHex(hue, 100, 50);
+      appState.devices.wizLeft.color = hex;
+      appState.devices.wizLeft.mode = 'rgb';
+      if (appState.syncCorners) {
+        appState.devices.wizRight.color = hex;
+        appState.devices.wizRight.mode = 'rgb';
+      }
+      renderAll();
+    });
+    DOM.sliderWizLeftHue.addEventListener('change', () => {
+      triggerHaptic('light');
+      dispatchStateChange({
+        wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+        ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
+      });
+    });
+  }
 
   DOM.sliderWizLeftKelvin.addEventListener('input', (e) => {
     appState.devices.wizLeft.kelvin = parseInt(e.target.value, 10);
@@ -1216,16 +1281,41 @@ function bindEvents() {
 
   DOM.pickerWizRightColor.addEventListener('input', (e) => {
     appState.devices.wizRight.color = e.target.value;
-    if (appState.syncCorners) appState.devices.wizLeft.color = e.target.value;
+    appState.devices.wizRight.mode = 'rgb';
+    if (appState.syncCorners) {
+      appState.devices.wizLeft.color = e.target.value;
+      appState.devices.wizLeft.mode = 'rgb';
+    }
     renderAll();
   });
   DOM.pickerWizRightColor.addEventListener('change', () => {
     triggerHaptic('light');
     dispatchStateChange({
-      wizRight: { color: appState.devices.wizRight.color },
-      ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color } } : {})
+      wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
+      ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
     });
   });
+
+  if (DOM.sliderWizRightHue) {
+    DOM.sliderWizRightHue.addEventListener('input', (e) => {
+      const hue = parseInt(e.target.value, 10);
+      const hex = hslToHex(hue, 100, 50);
+      appState.devices.wizRight.color = hex;
+      appState.devices.wizRight.mode = 'rgb';
+      if (appState.syncCorners) {
+        appState.devices.wizLeft.color = hex;
+        appState.devices.wizLeft.mode = 'rgb';
+      }
+      renderAll();
+    });
+    DOM.sliderWizRightHue.addEventListener('change', () => {
+      triggerHaptic('light');
+      dispatchStateChange({
+        wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
+        ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
+      });
+    });
+  }
 
   DOM.sliderWizRightKelvin.addEventListener('input', (e) => {
     appState.devices.wizRight.kelvin = parseInt(e.target.value, 10);
@@ -1624,6 +1714,40 @@ function rgbToHex(r, g, b) {
   const gH = Math.min(255, Math.max(0, g)).toString(16).padStart(2, '0');
   const bH = Math.min(255, Math.max(0, b)).toString(16).padStart(2, '0');
   return `#${rH}${gH}${bH}`;
+}
+
+function hslToHex(h, s, l) {
+  l /= 100;
+  const a = (s * Math.min(l, 1 - l)) / 100;
+  const f = n => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function hexToHue(hex) {
+  if (!hex || hex.length < 7) return 0;
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0;
+  const d = max - min;
+  if (d === 0) return 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else if (max === b) h = ((r - g) / d + 4) * 60;
+  return Math.round(h);
+}
+
+function syncActiveSwatches(container, activeColor) {
+  if (!container) return;
+  const target = (activeColor || '').toLowerCase();
+  container.querySelectorAll('.swatch-dot').forEach(dot => {
+    dot.classList.toggle('active', (dot.dataset.color || '').toLowerCase() === target);
+  });
 }
 
 function capitalize(str) {
