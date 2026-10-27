@@ -26,4 +26,8 @@ private:
   void effectSoapBubble(uint8_t brightness, uint8_t speed);
   void effectWave(CRGB baseColor, uint8_t brightness, uint8_t speed);
   void effectShimmer(CRGB baseColor, uint8_t brightness, uint8_t speed);
+  void effectCaustics(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectSoliton(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectThermalPlume(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectMarangoni(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
 };

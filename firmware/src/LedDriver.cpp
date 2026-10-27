@@ -51,6 +51,14 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
         effectWave(baseColor, targetDim, config.speed);
     } else if (config.effect == "shimmer") {
         effectShimmer(baseColor, targetDim, config.speed);
+    } else if (config.effect == "caustics") {
+        effectCaustics(baseColor, targetDim, config.speed, config.intensity);
+    } else if (config.effect == "soliton") {
+        effectSoliton(baseColor, targetDim, config.speed, config.intensity);
+    } else if (config.effect == "thermal-plume") {
+        effectThermalPlume(baseColor, targetDim, config.speed, config.intensity);
+    } else if (config.effect == "marangoni") {
+        effectMarangoni(baseColor, targetDim, config.speed, config.intensity);
     } else {
         effectSolid(baseColor, targetDim);
     }
@@ -171,5 +179,88 @@ void LedDriver::effectShimmer(CRGB baseColor, uint8_t brightness, uint8_t speed)
         if (random8() < sparkChance) {
             leds[i] += CRGB(70, 70, 70);
         }
+    }
+}
+
+void LedDriver::effectCaustics(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    FastLED.setBrightness(brightness);
+    uint8_t step = animationStep * (speed / 12 + 1);
+    uint8_t turb = map(intensity, 0, 100, 20, 80);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t w1 = sin8((i * 14) - (step * 2));
+        uint8_t w2 = sin8((i * 22) + (step * 3));
+        uint8_t caustic = (w1 + w2) / 2;
+        // High contrast ray bundling threshold for caustic highlights
+        if (caustic > 175) {
+            uint8_t boost = map(caustic, 175, 255, 0, turb * 2);
+            leds[i] = blend(baseColor, CRGB::White, boost);
+        } else {
+            uint8_t dim = map(caustic, 0, 175, 140, 255);
+            leds[i] = baseColor;
+            leds[i].nscale8_video(dim);
+        }
+    }
+}
+
+void LedDriver::effectSoliton(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    FastLED.setBrightness(brightness);
+    fill_solid(leds, NUM_LEDS, baseColor);
+    for (int i = 0; i < NUM_LEDS; i++) {
+        leds[i].nscale8_video(70); // Deep coherent base
+    }
+
+    uint8_t bpm = map(speed, 0, 100, 15, 65);
+    int pos1 = beatsin16(bpm, 0, NUM_LEDS - 1);
+    int pos2 = beatsin16(bpm * 4 / 3, 0, NUM_LEDS - 1);
+
+    // Soliton 1 localized packet
+    for (int offset = -4; offset <= 4; offset++) {
+        int idx = pos1 + offset;
+        if (idx >= 0 && idx < NUM_LEDS) {
+            uint8_t mag = 255 - (abs(offset) * 55);
+            leds[idx] += CHSV(180, 220, mag);
+        }
+    }
+
+    // Soliton 2 localized packet
+    for (int offset = -4; offset <= 4; offset++) {
+        int idx = pos2 + offset;
+        if (idx >= 0 && idx < NUM_LEDS) {
+            uint8_t mag = 255 - (abs(offset) * 55);
+            leds[idx] += CHSV(280, 200, mag);
+        }
+    }
+}
+
+void LedDriver::effectThermalPlume(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    FastLED.setBrightness(brightness);
+    uint16_t offset = animationStep * (speed / 8 + 1);
+    uint8_t scale = map(intensity, 0, 100, 15, 60);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t noise1 = inoise8(i * scale, offset);
+        uint8_t noise2 = inoise8(i * (scale * 2), offset * 2);
+        uint8_t fbm = (noise1 * 2 + noise2) / 3;
+
+        CRGB plume = HeatColor(fbm);
+        leds[i] = blend(baseColor, plume, 160);
+    }
+}
+
+void LedDriver::effectMarangoni(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    FastLED.setBrightness(brightness);
+    uint8_t phase = animationStep * (speed / 14 + 1);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t cell = sin8((i * 256 * 4) / NUM_LEDS);
+        uint8_t swirl = cos8(phase + (cell / 2));
+        uint8_t blendFactor = (cell + swirl) / 2;
+
+        CRGB secondary = baseColor;
+        secondary.r = qadd8(secondary.r, 45);
+        secondary.b = qadd8(secondary.b, 65);
+
+        leds[i] = blend(baseColor, secondary, blendFactor);
     }
 }

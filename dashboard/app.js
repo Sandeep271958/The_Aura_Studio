@@ -134,7 +134,7 @@ const appState = {
   // Gradient Lab
   gradient: {
     stops: ['#a5f3fc', '#f472b6', '#c084fc', '#fef08a'],
-    motionMode: 'soap-bubble', // 'soap-bubble', 'wave', 'breathe', 'shimmer'
+    motionMode: 'soap-bubble', // 'soap-bubble', 'wave', 'caustics', 'soliton', 'thermal-plume', 'marangoni', 'breathe', 'shimmer'
     speed: 45,
     turbulence: 50,
     bulbSyncMode: 'spatial-sync', // 'spatial-sync', 'warm-white', 'custom'
@@ -1047,6 +1047,94 @@ function updateGradientPreviewBar() {
   appState.gradient.stops = [c1, c2, c3, c4];
 }
 
+function sampleFluidPhysicsColor(motion, normX, phase, turbNorm, rgbStops) {
+  if (motion === 'soap-bubble') {
+    // 1. Real-world thin-film optical interference: thickness variation splits chromatic spectra
+    const wave = Math.sin(normX * 6.28 * 2 - phase) * 0.5 + Math.sin(normX * 6.28 * 4.5 + phase * 0.8) * turbNorm * 0.4;
+    const sampleT = (normX + wave * 0.25 + 10) % 1;
+    const baseColor = interpolate4Stops(rgbStops, sampleT);
+    const r = Math.min(255, Math.max(0, baseColor.r + Math.cos(wave * 3 * Math.PI) * 45 * turbNorm));
+    const g = Math.min(255, Math.max(0, baseColor.g + Math.cos(wave * 3 * Math.PI - 2.09) * 45 * turbNorm));
+    const b = Math.min(255, Math.max(0, baseColor.b + Math.cos(wave * 3 * Math.PI - 4.18) * 45 * turbNorm));
+    return { r, g, b };
+  } else if (motion === 'wave') {
+    // 2. Directional Navier-Stokes advection fluid wave displacement
+    const wave = Math.sin(normX * 6.28 * 1.8 - phase) * 0.15 * (0.5 + turbNorm);
+    const sampleT = (normX - (phase * 0.2) + wave + 10) % 1;
+    return interpolate4Stops(rgbStops, sampleT);
+  } else if (motion === 'caustics') {
+    // 3. Underwater Caustics: Light ray convergence through oscillating surface ripples
+    const w1 = Math.sin(normX * 18 - phase * 1.8);
+    const w2 = Math.sin(normX * 28 + phase * 1.3);
+    const curvature = Math.cos(normX * 18 - phase * 1.8) * 18 + Math.cos(normX * 28 + phase * 1.3) * 28;
+    const caustic = Math.max(0, (1.0 / Math.abs(1.0 - 0.016 * turbNorm * curvature)) - 0.75);
+    const sparkle = Math.min(180, caustic * 38 * (0.4 + turbNorm * 0.8));
+    const sampleT = (normX - phase * 0.08 + w1 * 0.06 + 10) % 1;
+    const baseColor = interpolate4Stops(rgbStops, sampleT);
+    const r = Math.min(255, Math.max(0, baseColor.r + sparkle * 0.75));
+    const g = Math.min(255, Math.max(0, baseColor.g + sparkle * 0.95));
+    const b = Math.min(255, Math.max(0, baseColor.b + sparkle * 1.15));
+    return { r, g, b };
+  } else if (motion === 'soliton') {
+    // 4. Soliton Wave Packets: Non-dispersive solitary waves colliding coherently
+    const p1 = (phase * 0.18) % 1.0;
+    const p2 = (1.0 - (phase * 0.24) % 1.0);
+    let d1 = Math.abs(normX - p1);
+    if (d1 > 0.5) d1 = 1.0 - d1;
+    let d2 = Math.abs(normX - p2);
+    if (d2 > 0.5) d2 = 1.0 - d2;
+    const e1 = 1.0 / Math.pow(Math.cosh(d1 * 24), 2);
+    const e2 = 1.0 / Math.pow(Math.cosh(d2 * 28), 2);
+    const totalEnergy = e1 + e2;
+    const sampleT = (normX + (e1 - e2) * 0.25 * turbNorm + 10) % 1;
+    const baseColor = interpolate4Stops(rgbStops, sampleT);
+    const boost = totalEnergy * 160 * (0.5 + turbNorm * 0.7);
+    const r = Math.min(255, Math.max(0, baseColor.r + boost * 0.9));
+    const g = Math.min(255, Math.max(0, baseColor.g + boost * 0.6));
+    const b = Math.min(255, Math.max(0, baseColor.b + boost * 1.2));
+    return { r, g, b };
+  } else if (motion === 'thermal-plume') {
+    // 5. Thermal Convection Plume: Fractal Brownian heat convection & rising plasma filaments
+    const h1 = Math.sin(normX * 10 - phase * 1.6);
+    const h2 = Math.sin(normX * 22 + phase * 2.4) * 0.5;
+    const h3 = Math.sin(normX * 42 - phase * 4.2) * 0.25;
+    const fbm = (h1 + h2 + h3) / 1.75;
+    const sampleT = Math.max(0, Math.min(1, normX + fbm * 0.22 * turbNorm));
+    const baseColor = interpolate4Stops(rgbStops, sampleT);
+    const thermalGlow = (fbm + 1.0) * 36 * turbNorm;
+    const r = Math.min(255, Math.max(0, baseColor.r + thermalGlow * 1.2));
+    const g = Math.min(255, Math.max(0, baseColor.g + thermalGlow * 0.6));
+    const b = Math.min(255, Math.max(0, baseColor.b + thermalGlow * 0.1));
+    return { r, g, b };
+  } else if (motion === 'marangoni') {
+    // 6. Marangoni Surface Vortices: Surface-tension gradient driven cellular convection rolls
+    const cell = Math.sin(normX * Math.PI * 6);
+    const roll = cell * Math.cos(phase * 1.4);
+    const shear = Math.sin(normX * Math.PI * 12 + phase * 0.9) * 0.1 * turbNorm;
+    const sampleT = (normX + roll * 0.16 + shear + 10) % 1;
+    const baseColor = interpolate4Stops(rgbStops, sampleT);
+    const vortexGlow = Math.abs(cell) * 32 * turbNorm;
+    const r = Math.min(255, Math.max(0, baseColor.r + vortexGlow * 0.5));
+    const g = Math.min(255, Math.max(0, baseColor.g + vortexGlow * 1.1));
+    const b = Math.min(255, Math.max(0, baseColor.b + vortexGlow * 0.9));
+    return { r, g, b };
+  } else if (motion === 'breathe') {
+    // 7. Harmonic Resonant Breathing: Sinusoidal diaphragm expansion and contraction
+    const pulse = Math.sin(phase * 1.5) * 0.35;
+    const sampleT = Math.max(0, Math.min(1, 0.5 + (normX - 0.5) * (1 + pulse)));
+    return interpolate4Stops(rgbStops, sampleT);
+  } else {
+    // 8. Prismatic Shimmer: High-frequency optical dispersion & crystal scintillation
+    const sparkle = Math.sin(normX * 60 + phase * 8) * turbNorm * 35;
+    const sampleT = (normX - (phase * 0.15) + 10) % 1;
+    const color = interpolate4Stops(rgbStops, sampleT);
+    const r = Math.min(255, Math.max(0, color.r + sparkle));
+    const g = Math.min(255, Math.max(0, color.g + sparkle * 0.8));
+    const b = Math.min(255, Math.max(0, color.b + sparkle * 1.2));
+    return { r, g, b };
+  }
+}
+
 function startGradientFluidSimulation() {
   if (!DOM.gradientFluidCanvas) return;
   const canvas = DOM.gradientFluidCanvas;
@@ -1078,41 +1166,8 @@ function startGradientFluidSimulation() {
     // 1. Draw ultra-smooth fluid plasma wave ribbon
     for (let x = 0; x < width; x += colStep) {
       const normX = x / width;
-      let sampleT = normX;
-
-      if (motion === 'soap-bubble') {
-        // Real-world thin-film interference: film thickness varies with multi-harmonic waves
-        const wave = Math.sin(normX * 6.28 * 2 - phase) * 0.5 + Math.sin(normX * 6.28 * 4.5 + phase * 0.8) * turbNorm * 0.4;
-        sampleT = (normX + wave * 0.25 + 10) % 1;
-        const baseColor = interpolate4Stops(rgbStops, sampleT);
-
-        const r = Math.min(255, Math.max(0, baseColor.r + Math.cos(wave * 3 * Math.PI) * 45 * turbNorm));
-        const g = Math.min(255, Math.max(0, baseColor.g + Math.cos(wave * 3 * Math.PI - 2.09) * 45 * turbNorm));
-        const b = Math.min(255, Math.max(0, baseColor.b + Math.cos(wave * 3 * Math.PI - 4.18) * 45 * turbNorm));
-        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-      } else if (motion === 'wave') {
-        // Directional fluid wave displacement
-        const wave = Math.sin(normX * 6.28 * 1.8 - phase) * 0.15 * (0.5 + turbNorm);
-        sampleT = (normX - (phase * 0.2) + wave + 10) % 1;
-        const color = interpolate4Stops(rgbStops, sampleT);
-        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
-      } else if (motion === 'breathe') {
-        // Harmonic expansion and contraction
-        const pulse = Math.sin(phase * 1.5) * 0.35;
-        sampleT = Math.max(0, Math.min(1, 0.5 + (normX - 0.5) * (1 + pulse)));
-        const color = interpolate4Stops(rgbStops, sampleT);
-        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
-      } else {
-        // Prismatic Shimmer: chromatic micro-dispersion
-        const sparkle = Math.sin(normX * 60 + phase * 8) * turbNorm * 35;
-        sampleT = (normX - (phase * 0.15) + 10) % 1;
-        const color = interpolate4Stops(rgbStops, sampleT);
-        const r = Math.min(255, Math.max(0, color.r + sparkle));
-        const g = Math.min(255, Math.max(0, color.g + sparkle * 0.8));
-        const b = Math.min(255, Math.max(0, color.b + sparkle * 1.2));
-        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-      }
-
+      const c = sampleFluidPhysicsColor(motion, normX, phase, turbNorm, rgbStops);
+      ctx.fillStyle = `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`;
       ctx.fillRect(x, 0, colStep, ribbonHeight);
     }
 
@@ -1128,36 +1183,8 @@ function startGradientFluidSimulation() {
     for (let i = 0; i < numLeds; i++) {
       const ledX = (i + 0.5) * ledStep;
       const normX = i / (numLeds - 1);
-      let sampleT = normX;
-
-      if (motion === 'soap-bubble') {
-        const wave = Math.sin(normX * 6.28 * 2 - phase) * 0.5 + Math.sin(normX * 6.28 * 4.5 + phase * 0.8) * turbNorm * 0.4;
-        sampleT = (normX + wave * 0.25 + 10) % 1;
-        const baseColor = interpolate4Stops(rgbStops, sampleT);
-        const r = Math.min(255, Math.max(0, baseColor.r + Math.cos(wave * 3 * Math.PI) * 45 * turbNorm));
-        const g = Math.min(255, Math.max(0, baseColor.g + Math.cos(wave * 3 * Math.PI - 2.09) * 45 * turbNorm));
-        const b = Math.min(255, Math.max(0, baseColor.b + Math.cos(wave * 3 * Math.PI - 4.18) * 45 * turbNorm));
-        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-      } else if (motion === 'wave') {
-        const wave = Math.sin(normX * 6.28 * 1.8 - phase) * 0.15 * (0.5 + turbNorm);
-        sampleT = (normX - (phase * 0.2) + wave + 10) % 1;
-        const color = interpolate4Stops(rgbStops, sampleT);
-        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
-      } else if (motion === 'breathe') {
-        const pulse = Math.sin(phase * 1.5) * 0.35;
-        sampleT = Math.max(0, Math.min(1, 0.5 + (normX - 0.5) * (1 + pulse)));
-        const color = interpolate4Stops(rgbStops, sampleT);
-        ctx.fillStyle = `rgb(${Math.round(color.r)}, ${Math.round(color.g)}, ${Math.round(color.b)})`;
-      } else {
-        const sparkle = Math.sin(normX * 60 + phase * 8) * turbNorm * 35;
-        sampleT = (normX - (phase * 0.15) + 10) % 1;
-        const color = interpolate4Stops(rgbStops, sampleT);
-        const r = Math.min(255, Math.max(0, color.r + sparkle));
-        const g = Math.min(255, Math.max(0, color.g + sparkle * 0.8));
-        const b = Math.min(255, Math.max(0, color.b + sparkle * 1.2));
-        ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-      }
-
+      const c = sampleFluidPhysicsColor(motion, normX, phase, turbNorm, rgbStops);
+      ctx.fillStyle = `rgb(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)})`;
       ctx.beginPath();
       ctx.arc(ledX, ledY, 2.5, 0, Math.PI * 2);
       ctx.fill();

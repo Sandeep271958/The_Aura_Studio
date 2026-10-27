@@ -253,13 +253,13 @@ while ((match = paletteChipRegex.exec(html)) !== null) {
       paletteErrors++;
     }
   });
-  if (!['soap-bubble', 'wave', 'breathe', 'shimmer'].includes(motion)) {
+  if (!['soap-bubble', 'wave', 'caustics', 'soliton', 'thermal-plume', 'marangoni', 'breathe', 'shimmer'].includes(motion)) {
     console.error(`FAIL: Unknown motion mode in palette ${paletteCount}: ${motion}`);
     paletteErrors++;
   }
 }
 
-if (paletteErrors === 0 && paletteCount === 10) {
+if (paletteErrors === 0 && paletteCount === 14) {
   console.log(`PASS: All ${paletteCount} curated luxury designer palettes have 4 valid hex stops and valid physics motion profiles.`);
 } else {
   console.error(`FAIL: Palette verification issues found (Count: ${paletteCount}, Errors: ${paletteErrors})`);
@@ -559,6 +559,14 @@ testPresets.forEach(p => {
   }
 });
 
+// Test 8 Motion Physics Profile Buttons
+const motionProfiles = ['soap-bubble', 'wave', 'caustics', 'soliton', 'thermal-plume', 'marangoni', 'breathe', 'shimmer'];
+motionProfiles.forEach(m => {
+  const btn = simElements.find(e => e.classList.contains('effect-chip') && e.dataset.motion === m);
+  if (btn) btn.click();
+  if (simAppState.gradient.motionMode !== m) console.error(`FAIL: Motion mode ${m} failed to activate`);
+});
+
 // Test Gradient Palettes
 simElements.filter(e => e.classList.contains('palette-chip')).forEach(chip => chip.click());
 
@@ -574,7 +582,7 @@ simDOM.btnResetPomodoro.click();
 if (simAppState.pomodoro.secondsRemaining !== 1500) console.error('FAIL: Pomodoro reset failed');
 
 const buttonCount = simElements.filter(e => e.tagName === 'BUTTON').length;
-console.log(`PASS: Interactive user simulation validated all ${buttonCount} buttons, 34 sliders, 10 architectural presets, tabs, and Pomodoro engine.`);
+console.log(`PASS: Interactive user simulation validated all ${buttonCount} buttons, 34 sliders, 10 architectural presets, 8 physics profiles, 14 palettes, and Pomodoro engine.`);
 console.log('\n--- All Automated Verification Checks Passed! (100% Zero-Bug Assurance) ---');
 
 

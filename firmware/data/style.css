@@ -1259,6 +1259,38 @@ body {
   box-shadow: 0 0 12px rgba(236, 72, 153, 0.3);
 }
 
+/* Gradient Labs Physics Profiles Selector Grid */
+#gradient-motion-selector {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+#gradient-motion-selector .effect-chip {
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: var(--radius-md);
+  min-height: 54px;
+  box-sizing: border-box;
+}
+
+.effect-chip-sub {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.effect-chip.active .effect-chip-sub {
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* Color Header & Badges */
 .color-badge-group {
   display: flex;

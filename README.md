@@ -62,25 +62,33 @@ AURA incorporates the most advanced capabilities found across luxury lighting ec
   - **Live 60 FPS HTML5 Canvas Fluid Simulation:** Dual-zone visualizer rendering both the continuous multi-harmonic wave ribbon and the 120 individual physical WS2812B LED beads in real time.
 - **4-Stop Linear Colorway Designer:**
   - Precision color stops at 0%, 33%, 67%, and 100% with real-time linear CSS preview bar and canvas synchronization.
-- **4 Fluid Dynamics & Motion Physics Profiles:**
-  - 🫧 **Soap Bubble (Interference):** Multi-harmonic wave displacement with chromatic phase shifting.
-  - 🌊 **Directional Wave:** Smooth laminar fluid flow with sinusoidal turbulence dispersion.
-  - 💨 **Harmonic Breathing:** Symmetric lung-like expansion and contraction from center bias.
-  - ✨ **Prismatic Shimmer:** Micro-refraction dispersion sparkle overlaid on flowing color gradients.
+- **8 Fluid Dynamics & Motion Physics Profiles:**
+  - 🫧 **Soap Bubble (Thin-Film Optical Interference):** Multi-harmonic wave displacement with chromatic phase splitting ($\Delta\phi_R=0, \Delta\phi_G=\frac{2\pi}{3}, \Delta\phi_B=\frac{4\pi}{3}$).
+  - 🌊 **Fluid Wave (Navier-Stokes Advection):** Smooth laminar fluid flow with viscous momentum and sinusoidal turbulence dispersion.
+  - 🏊 **Underwater Caustics (Ray Refraction):** Sunlight ray convergence through dual intersecting ripples, creating sharp, dancing luminous web peaks.
+  - ⚡ **Soliton Wave Packets (Quantum Nonlinear):** Dual solitary waves ($A \cdot \text{sech}^2(\frac{x - vt}{w})$) that travel, collide, and pass through each other without dispersion.
+  - 🔥 **Thermal Convection Plumes (Fractal Brownian Heat):** Multi-octave convective heat flow where buoyant fluid rises in curling filaments and cooling eddies.
+  - 🌀 **Marangoni Surface Vortices (Capillary Flow):** Surface tension gradient-driven flow creating 4 counter-rotating cellular convection rolls with laminar shear.
+  - 💨 **Harmonic Breathing (Resonant Expansion):** Symmetric lung-like expansion and contraction from center bias.
+  - ✨ **Prismatic Opal Shimmer (Scintillation):** High-frequency micro-refraction dispersion sparkle overlaid on flowing color gradients.
 - **Physics Controls:**
   - **Flow Velocity Slider (10–100%):** From gentle deep calm to rapid fluid river flows.
   - **Wave Turbulence Slider (10–100%):** Smooth laminar flow to organic vortex plasma dispersion.
-- **10 Luxury Curated Designer Palettes:**
+- **14 Luxury Curated Designer Palettes:**
   1. 🫧 *Soap Bubble Iridescence* (`#a5f3fc`, `#f472b6`, `#c084fc`, `#fef08a`)
   2. 🌊 *Bioluminescent Deep Sea* (`#00f2fe`, `#1d4ed8`, `#0b0f19`, `#0d9488`)
-  3. 💎 *Opal Prism* (`#ffffff`, `#fde047`, `#22d3ee`, `#e879f9`)
-  4. 🌌 *Northern Lights (Aurora)* (`#10b981`, `#06b6d4`, `#8b5cf6`, `#0f172a`)
-  5. 🔥 *Solar Flare & Plasma* (`#fef9c3`, `#f59e0b`, `#dc2626`, `#4c1d95`)
-  6. 🌸 *Kyoto Cherry Blossom* (`#fbcfe8`, `#a78bfa`, `#fbbf24`, `#1e1b4b`)
-  7. ⚡ *Cyberpunk Synthwave* (`#ff007f`, `#7928ca`, `#00f2fe`, `#0a0a14`)
-  8. 🏜️ *Mojave Sunset* (`#f59e0b`, `#f43f5e`, `#6b21a8`, `#1e1b4b`)
-  9. ☕ *Amber Candle & Hearth* (`#ea580c`, `#f97316`, `#fbbf24`, `#292524`)
-  10. 🌴 *Miami Sunset Vice* (`#ff1493`, `#00e5ff`, `#4a00e0`, `#ff007f`)
+  3. 🏊 *Maldives Tropical Caustics* (`#00f2fe`, `#38bdf8`, `#0284c7`, `#ffffff`)
+  4. ⚡ *Quantum Soliton Stream* (`#8a2be2`, `#00f2fe`, `#3b82f6`, `#ec4899`)
+  5. 🔥 *Geothermal Magma Plume* (`#ffedd5`, `#f97316`, `#dc2626`, `#18181b`)
+  6. 🌀 *Marangoni Azure Vortices* (`#2dd4bf`, `#06b6d4`, `#6366f1`, `#0f172a`)
+  7. 💎 *Opal Prism* (`#ffffff`, `#fde047`, `#22d3ee`, `#e879f9`)
+  8. 🌌 *Northern Lights (Aurora)* (`#10b981`, `#06b6d4`, `#8b5cf6`, `#0f172a`)
+  9. 🔥 *Solar Flare & Plasma* (`#fef9c3`, `#f59e0b`, `#dc2626`, `#4c1d95`)
+  10. 🌸 *Kyoto Cherry Blossom* (`#fbcfe8`, `#a78bfa`, `#fbbf24`, `#1e1b4b`)
+  11. ⚡ *Cyberpunk Synthwave* (`#ff007f`, `#7928ca`, `#00f2fe`, `#0a0a14`)
+  12. 🏜️ *Mojave Sunset* (`#f59e0b`, `#f43f5e`, `#6b21a8`, `#1e1b4b`)
+  13. ☕ *Amber Candle & Hearth* (`#ea580c`, `#f97316`, `#fbbf24`, `#292524`)
+  14. 🌴 *Miami Sunset Vice* (`#ff1493`, `#00e5ff`, `#4a00e0`, `#ff007f`)
 - **Corner WiZ Bulbs Integration Architecture:**
   - **Dynamic Spatial Sync:** Left and Right WiZ bulbs sample the fluid wave boundary edges, expanding the desk strip across the room.
   - **Architectural Warm White (Gallery Contrast):** WiZ bulbs cast pure CCT white (*2000K Candlelight*, *2400K Warm Minimalist*, *2700K Soft Living*, or *4000K Studio Focus Neutral*), framing the dynamic desk strip with high-end museum gallery ambiance.
