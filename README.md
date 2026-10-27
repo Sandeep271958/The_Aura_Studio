@@ -4,7 +4,7 @@
 
 # ✦ THE AURA STUDIO ✦
 ### Luxury Smart Lighting Architecture & Spatial Ambience Hub
-**Designed by Sandy**
+**Designed by **
 
 <br/>
 
