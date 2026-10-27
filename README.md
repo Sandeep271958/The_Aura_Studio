@@ -1,4 +1,4 @@
-# AURA // ESP32 Smart Lighting Room Hub
+# AURA // Luxury Smart Lighting Architecture
 
 > **A production-grade, local smart lighting hub and spatial controller designed for dual Philips WiZ corner bulbs and an addressable WS2812B desktop LED strip.**
 > **Zero cloud dependency. Under 10ms local latency. Built with FreeRTOS dual-core firmware and an obsidian glassmorphism spatial dashboard.**
@@ -35,21 +35,38 @@ Most room lighting feels flat and jarring because standard RGB strips either ove
 
 ---
 
-## 🚀 Key Features
+## 💎 Flagship High-End Feature Suites
 
-- **Self-Contained ESP32 Smart Hub:** Runs its own responsive web server and WebSocket broadcaster. No external Raspberry Pi, Zigbee hub, or Home Assistant box needed.
-- **100% Local WiZ UDP Protocol:** Directly commands Philips WiZ bulbs over UDP port `38899` with instantaneous local execution (<10ms). Operates even when your home internet is offline.
-- **Interactive 2.5D Spatial Room Visualizer:** A real-time reactive SVG/CSS room map that mirrors your fixtures' live colors, animations, lumens, and contrast ratio.
-- **FreeRTOS Dual-Core Multitasking:**
-  - **Core 0:** Wi-Fi stack, LittleFS web server, WebSockets, WiZ discovery & UDP broadcasting.
-  - **Core 1:** FastLED hardware engine rendering smooth 60 FPS WS2812B animations without stutter.
-- **Curated Atmospheric Mood Scenes:**
-  - ⚡ **Cyberpunk Night:** Neon magenta desk pulse & deep cobalt corner wash.
-  - ☕ **Warm Minimalist:** 2400K candlelight corners & soft amber breathing desk glow.
-  - 🎯 **Deep Focus:** 4500K crisp neutral bias & dimmed 15% ambient surround.
-  - 🌅 **Sunset Horizon:** Coral/peach wave with warm golden corner accents.
-  - 🌌 **Aurora Drift:** Undulating emerald & violet waves.
-  - 🎬 **Midnight Cinema:** Ultra-dim 1800K deep ember with anti-glare task bias.
+AURA incorporates the most advanced capabilities found across luxury lighting ecosystems (**Lutron Ketra**, **Philips Hue Entertainment**, **Govee DreamView**, **Nanoleaf Rhythm**, and **Apple HomeKit Adaptive Lighting**):
+
+### 1. ☀️ Circadian Solar Rhythm (Human Centric Lighting)
+- Synchronizes your room's color temperature and lux to the biological 24-hour solar cycle.
+- Automatically transitions from **2200K warm dawn** &rarr; **6500K zenith daylight focus** &rarr; **2700K golden hour** &rarr; **1800K deep melatonin-preserving amber** at night.
+- Interactive 24-hour solar arc timeline with live sun altitude tracker and manual preview scrubber.
+
+### 2. 🖥️ Spatial Ambilight Real-Time Screen Sync
+- Real-time 30 FPS display capture using native browser **WebRTC Screen Capture API** (`getDisplayMedia`) with zero companion desktop apps required.
+- Samples 3 distinct spatial zones:
+  - **Left Screen Edge** &rarr; Dispatched to Left Corner WiZ Bulb.
+  - **Center & Bottom** &rarr; Dispatched to Desk WS2812B Bias Strip.
+  - **Right Screen Edge** &rarr; Dispatched to Right Corner WiZ Bulb.
+- Features Exponential Moving Average (EMA) color smoothing, saturation boost, and an anti-fatigue black floor.
+
+### 3. 🎵 SoundSync Audio Reactive Visualizer
+- Hardware FFT frequency analysis powered by the **Web Audio API**.
+- Sub-bass frequencies (20–150 Hz) drive rhythmic room pulses across corner WiZ bulbs, while vocal mids and percussion ripple fluid waves across the desk strip.
+
+### 4. 🎨 Gradient Colorway Studio
+- Multi-stop linear colorway designer for the 120 addressable WS2812B LEDs.
+- Create custom 3-stop fluid gradients or pick from luxury curated palettes (*Miami Vice*, *Solar Flare*, *Emerald Tide*, *Tokyo Twilight*, *Nordic Deep*).
+
+### 5. ⏳ Focus & Rest Rhythm (Smart Pomodoro Lighting)
+- **Focus Interval (25 min):** 4500K crisp neutral white task bias; corner WiZ bulbs dim to 15% to eliminate room distractions.
+- **Rest Interval (5 min):** Room blooms into a soft, warm 2400K golden amber wash with slow breathing pulses to cue relaxation.
+
+### 6. 🎬 Cinematic Transition Timing & Perceptual Dimming
+- Configurable fade transitions: *Instant (0s)*, *Snappy (0.4s)*, *Smooth (0.8s)*, *Cinema (2.5s)*, and *Sunset Drift (8.0s)*.
+- **CIE 1931 Perceptual Gamma Correction** ($Y = X^{2.2}$) ensuring natural, logarithmic dimming without harsh steps.
 
 ---
 
@@ -85,23 +102,23 @@ $$\text{Max Current (A)} \approx (\text{LED Count} \times 0.05\text{A}) + 0.5\te
 
 ```
 SmartLight/
-├── dashboard/                   # Standalone Web Dashboard (Browser & Mobile Ready)
-│   ├── index.html               # Semantic HTML5 with 2.5D Room Architecture
-│   ├── style.css                # Obsidian glassmorphism design system & accessible sliders
-│   └── app.js                   # WebSocket engine & dual-mode simulator
-├── firmware/                    # ESP32 FreeRTOS Firmware
-│   ├── platformio.ini           # PlatformIO configuration
-│   ├── data/                    # LittleFS assets (automatically served by ESP32)
+├── dashboard/                     # Standalone Web Dashboard (Browser & Mobile PWA)
+│   ├── index.html                 # 6 Feature Suites & 2.5D Room Architecture
+│   ├── style.css                  # Obsidian Glassmorphic Design System & Suite Styling
+│   └── app.js                     # Circadian, Ambilight, SoundSync & WebSocket Engine
+├── firmware/                      # ESP32 FreeRTOS Firmware
+│   ├── platformio.ini             # PlatformIO configuration
+│   ├── data/                      # LittleFS assets (automatically served by ESP32)
 │   │   ├── index.html
 │   │   ├── style.css
 │   │   └── app.js
 │   └── src/
-│       ├── Config.h             # Pins, Wi-Fi credentials, bulb IPs, defaults
-│       ├── LedDriver.h / .cpp   # FastLED 60FPS non-blocking animation driver
+│       ├── Config.h               # Pins, Wi-Fi credentials, bulb IPs, defaults
+│       ├── LedDriver.h / .cpp     # FastLED 60FPS non-blocking animation driver
 │       ├── WizController.h / .cpp # WiZ local UDP driver & discovery parser
 │       ├── WebServerManager.h / .cpp # AsyncWebServer & WebSocket sync
-│       └── main.cpp             # FreeRTOS dual-core initialization
-└── README.md                    # Documentation & setup guide
+│       └── main.cpp               # FreeRTOS dual-core initialization
+└── README.md                      # Documentation & setup guide
 ```
 
 ---
@@ -140,7 +157,7 @@ In PlatformIO:
 
 You can explore and test the dashboard immediately on any computer:
 1. Open [`dashboard/index.html`](file:///Users/mouryasaisandeep/Desktop/Projects/SmartLight/dashboard/index.html) in any modern browser.
-2. The dashboard automatically detects offline mode and starts the **Interactive Room Simulator**, allowing you to preview presets, adjust sliders, and test WiZ network discovery.
+2. The dashboard automatically detects offline mode and starts the **Interactive Room Simulator**, allowing you to preview presets, adjust sliders, run the Circadian timeline, and test Ambilight and SoundSync.
 
 ---
 

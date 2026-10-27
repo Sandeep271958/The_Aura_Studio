@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AURA // Smart Light Room Hub</title>
+  <title>AURA // Luxury Smart Lighting Architecture</title>
   <meta name="description"
-    content="Production-level smart home lighting hub and spatial controller for ESP32 WS2812B desk strip and Philips WiZ corner bulbs.">
+    content="Production-level smart home lighting hub and spatial controller for ESP32 WS2812B desk strip and Philips WiZ corner bulbs. Features Circadian HCL, Ambilight Screen Sync, SoundSync Audio, and Gradient Studio.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -30,12 +30,52 @@
         </svg>
       </div>
       <div class="brand-text">
-        <h1 class="brand-title">AURA <span class="badge-version">HUB v2.4</span></h1>
+        <h1 class="brand-title">AURA <span class="badge-version">STUDIO v3.0</span></h1>
         <p class="brand-subtitle">ESP32 WS2812B &times; Philips WiZ Controller</p>
       </div>
     </div>
 
+    <!-- Center Navigation Tabs for High-End Suites -->
+    <nav class="suite-nav" aria-label="Feature Suites">
+      <button class="suite-tab active" data-tab="studio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        <span>Spatial Studio</span>
+      </button>
+      <button class="suite-tab" data-tab="circadian">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
+        <span>Circadian Solar</span>
+      </button>
+      <button class="suite-tab" data-tab="ambilight">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+        <span>Ambilight Sync</span>
+      </button>
+      <button class="suite-tab" data-tab="soundsync">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        <span>SoundSync</span>
+      </button>
+      <button class="suite-tab" data-tab="gradients">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 10 10 0 0 0 0-20"></path></svg>
+        <span>Gradient Lab</span>
+      </button>
+      <button class="suite-tab" data-tab="rhythm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        <span>Focus Rhythm</span>
+      </button>
+    </nav>
+
     <div class="header-status-panel">
+      <!-- Transition Timing Preset -->
+      <div class="transition-pill-wrap" title="Lutron Ketra-style Smooth Transition Duration">
+        <span class="pill-label">FADE:</span>
+        <select id="select-transition-speed" class="pill-select">
+          <option value="0">Instant (0s)</option>
+          <option value="400">Snappy (0.4s)</option>
+          <option value="800" selected>Smooth (0.8s)</option>
+          <option value="2500">Cinema (2.5s)</option>
+          <option value="8000">Sunset (8s)</option>
+        </select>
+      </div>
+
       <!-- Connection Status Badge -->
       <div id="connection-badge" class="status-chip connected" title="ESP32 Hub Connection">
         <span class="status-dot"></span>
@@ -68,439 +108,761 @@
   <!-- Main Container -->
   <main class="app-layout">
 
-    <!-- Top Section: Interactive Spatial Room Visualizer -->
-    <section class="spatial-card" aria-label="Spatial Room Lighting Preview">
-      <div class="spatial-header">
-        <div class="spatial-title-group">
-          <span class="spatial-badge">LIVE SPATIAL PREVIEW</span>
-          <h2 class="section-title">Room Lighting Architecture</h2>
-        </div>
-        <div class="spatial-telemetry">
-          <span id="telemetry-lux" class="mono-stat">TOTAL LUMENS: <strong>84%</strong></span>
-          <span class="stat-divider">|</span>
-          <span id="telemetry-contrast" class="mono-stat">CONTRAST RATIO: <strong>1.4:1</strong></span>
-        </div>
-      </div>
-
-      <!-- Interactive 2.5D Room Viewport -->
-      <div id="room-viewport" class="room-viewport">
-        <!-- Room Walls & Corner Auras -->
-        <div class="room-back-wall"></div>
-        <div id="glow-corner-left" class="corner-aura aura-left"></div>
-        <div id="glow-corner-right" class="corner-aura aura-right"></div>
-        <div id="glow-desk-bias" class="desk-bias-aura"></div>
-
-        <!-- Left WiZ Fixture -->
-        <div id="fixture-wiz-left" class="room-fixture fixture-left" data-device="wiz-left">
-          <div class="fixture-glow-source"></div>
-          <div class="fixture-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zM9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z" />
-            </svg>
+    <!-- ====================================================================
+         VIEW 1: SPATIAL STUDIO (Primary Architectural Room View)
+         ==================================================================== -->
+    <div id="view-studio" class="tab-view active">
+      <!-- Top Section: Interactive Spatial Room Visualizer -->
+      <section class="spatial-card" aria-label="Spatial Room Lighting Preview">
+        <div class="spatial-header">
+          <div class="spatial-title-group">
+            <span class="spatial-badge">LIVE SPATIAL PREVIEW</span>
+            <h2 class="section-title">Room Lighting Architecture</h2>
           </div>
-          <span class="fixture-label">L-Corner WiZ</span>
-          <span id="badge-wiz-left-val" class="fixture-value">75%</span>
-        </div>
-
-        <!-- Right WiZ Fixture -->
-        <div id="fixture-wiz-right" class="room-fixture fixture-right" data-device="wiz-right">
-          <div class="fixture-glow-source"></div>
-          <div class="fixture-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zM9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z" />
-            </svg>
+          <div class="spatial-telemetry">
+            <span id="telemetry-lux" class="mono-stat">TOTAL LUMENS: <strong>84%</strong></span>
+            <span class="stat-divider">|</span>
+            <span id="telemetry-contrast" class="mono-stat">CONTRAST RATIO: <strong>1.4:1</strong></span>
           </div>
-          <span class="fixture-label">R-Corner WiZ</span>
-          <span id="badge-wiz-right-val" class="fixture-value">75%</span>
         </div>
 
-        <!-- Center Desk Setup (Monitor + WS2812B Strip) -->
-        <div id="fixture-desk" class="room-desk-station" data-device="desk-strip">
-          <div class="monitor-frame">
-            <div class="monitor-screen">
-              <div class="screen-code-lines">
-                <span class="line-1"></span>
-                <span class="line-2"></span>
-                <span class="line-3"></span>
+        <!-- Interactive 2.5D Room Viewport -->
+        <div id="room-viewport" class="room-viewport">
+          <!-- Room Walls & Corner Auras -->
+          <div class="room-back-wall"></div>
+          <div id="glow-corner-left" class="corner-aura aura-left"></div>
+          <div id="glow-corner-right" class="corner-aura aura-right"></div>
+          <div id="glow-desk-bias" class="desk-bias-aura"></div>
+
+          <!-- Left WiZ Fixture -->
+          <div id="fixture-wiz-left" class="room-fixture fixture-left" data-device="wiz-left">
+            <div class="fixture-glow-source"></div>
+            <div class="fixture-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zM9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z" />
+              </svg>
+            </div>
+            <span class="fixture-label">L-Corner WiZ</span>
+            <span id="badge-wiz-left-val" class="fixture-value">75%</span>
+          </div>
+
+          <!-- Right WiZ Fixture -->
+          <div id="fixture-wiz-right" class="room-fixture fixture-right" data-device="wiz-right">
+            <div class="fixture-glow-source"></div>
+            <div class="fixture-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M12 2a7 7 0 0 0-7 7c0 2.38 1.19 4.47 3 5.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 0 0-7-7zM9 21a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-1H9v1z" />
+              </svg>
+            </div>
+            <span class="fixture-label">R-Corner WiZ</span>
+            <span id="badge-wiz-right-val" class="fixture-value">75%</span>
+          </div>
+
+          <!-- Center Desk Setup (Monitor + WS2812B Strip) -->
+          <div id="fixture-desk" class="room-desk-station" data-device="desk-strip">
+            <div class="monitor-frame">
+              <div class="monitor-screen">
+                <div class="screen-code-lines">
+                  <span class="line-1"></span>
+                  <span class="line-2"></span>
+                  <span class="line-3"></span>
+                </div>
+              </div>
+              <div class="monitor-stand"></div>
+            </div>
+            <!-- Addressable Strip Representation -->
+            <div id="virtual-led-strip" class="virtual-led-strip"></div>
+            <div class="desk-surface">
+              <div class="keyboard-mock"></div>
+            </div>
+            <div class="fixture-tag">
+              <span class="tag-title">DESK WS2812B STRIP</span>
+              <span id="badge-desk-val" class="fixture-value">85% • Cyberpulse</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Master Controls: Master Dimmer & Contrast Ratio -->
+      <section class="master-controls-bar glass-panel">
+        <div class="master-control-group">
+          <div class="control-header">
+            <div class="control-label-wrap">
+              <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+              <span class="control-title">Master Room Brightness</span>
+            </div>
+            <span id="val-master-brightness" class="control-val-badge">80%</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="slider-master-brightness" class="custom-range" min="0" max="100" value="80"
+              aria-label="Master Room Brightness">
+          </div>
+        </div>
+
+        <div class="master-control-group">
+          <div class="control-header">
+            <div class="control-label-wrap">
+              <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 3v18"></path>
+                <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path>
+              </svg>
+              <span class="control-title">Layer Contrast Ratio</span>
+              <span class="tooltip-hint"
+                title="Balances the ratio between ambient wall bounce (Corner WiZ) and direct desk bias lighting.">?</span>
+            </div>
+            <span id="val-master-contrast" class="control-val-badge">Balanced (1:1)</span>
+          </div>
+          <div class="slider-wrapper">
+            <input type="range" id="slider-master-contrast" class="custom-range range-bipolar" min="-50" max="50"
+              value="0" aria-label="Layer Contrast Ratio">
+            <div class="slider-sublabels">
+              <span>&larr; More Ambient (Corners)</span>
+              <span>Balanced</span>
+              <span>More Desk Bias &rarr;</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Curated Aesthetic Mood Scenes (One-Tap Presets) -->
+      <section class="scenes-deck" aria-label="Aesthetic Lighting Presets">
+        <div class="deck-header">
+          <h2 class="section-title">Atmospheric Presets</h2>
+          <span class="deck-subtitle">Curated color harmony & contrast profiles</span>
+        </div>
+        <div class="scenes-grid">
+          <!-- Preset 1: Cyberpunk -->
+          <button class="scene-card active" data-preset="cyberpunk" id="scene-cyberpunk">
+            <div class="scene-gradient scene-grad-cyberpunk"></div>
+            <div class="scene-content">
+              <div class="scene-icon">⚡</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Cyberpunk Night</h3>
+                <p class="scene-desc">Neon Magenta Desk &bull; Deep Cobalt Corners</p>
               </div>
             </div>
-            <div class="monitor-stand"></div>
-          </div>
-          <!-- Addressable Strip Representation -->
-          <div id="virtual-led-strip" class="virtual-led-strip"></div>
-          <div class="desk-surface">
-            <div class="keyboard-mock"></div>
-          </div>
-          <div class="fixture-tag">
-            <span class="tag-title">DESK WS2812B STRIP</span>
-            <span id="badge-desk-val" class="fixture-value">85% • Cyberpulse</span>
-          </div>
-        </div>
-      </div>
-    </section>
+          </button>
 
-    <!-- Master Controls: Master Dimmer & Contrast Ratio -->
-    <section class="master-controls-bar glass-panel">
-      <div class="master-control-group">
-        <div class="control-header">
-          <div class="control-label-wrap">
-            <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-            <span class="control-title">Master Room Brightness</span>
-          </div>
-          <span id="val-master-brightness" class="control-val-badge">80%</span>
-        </div>
-        <div class="slider-wrapper">
-          <input type="range" id="slider-master-brightness" class="custom-range" min="0" max="100" value="80"
-            aria-label="Master Room Brightness">
-        </div>
-      </div>
-
-      <div class="master-control-group">
-        <div class="control-header">
-          <div class="control-label-wrap">
-            <svg class="control-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M12 3v18"></path>
-              <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path>
-            </svg>
-            <span class="control-title">Layer Contrast Ratio</span>
-            <span class="tooltip-hint"
-              title="Balances the ratio between ambient wall bounce (Corner WiZ) and direct desk bias lighting.">?</span>
-          </div>
-          <span id="val-master-contrast" class="control-val-badge">Balanced (1:1)</span>
-        </div>
-        <div class="slider-wrapper">
-          <input type="range" id="slider-master-contrast" class="custom-range range-bipolar" min="-50" max="50"
-            value="0" aria-label="Layer Contrast Ratio">
-          <div class="slider-sublabels">
-            <span>&larr; More Ambient (Corners)</span>
-            <span>Balanced</span>
-            <span>More Desk Bias &rarr;</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Curated Aesthetic Mood Scenes (One-Tap Presets) -->
-    <section class="scenes-deck" aria-label="Aesthetic Lighting Presets">
-      <div class="deck-header">
-        <h2 class="section-title">Atmospheric Presets</h2>
-        <span class="deck-subtitle">Curated color harmony & contrast profiles</span>
-      </div>
-      <div class="scenes-grid">
-        <!-- Preset 1: Cyberpunk -->
-        <button class="scene-card active" data-preset="cyberpunk" id="scene-cyberpunk">
-          <div class="scene-gradient scene-grad-cyberpunk"></div>
-          <div class="scene-content">
-            <div class="scene-icon">⚡</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Cyberpunk Night</h3>
-              <p class="scene-desc">Neon Magenta Desk &bull; Deep Cobalt Corners</p>
-            </div>
-          </div>
-        </button>
-
-        <!-- Preset 2: Warm Minimalist -->
-        <button class="scene-card" data-preset="warm-minimal" id="scene-warm-minimal">
-          <div class="scene-gradient scene-grad-warm"></div>
-          <div class="scene-content">
-            <div class="scene-icon">☕</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Warm Minimalist</h3>
-              <p class="scene-desc">2400K Candlelight Corners &bull; Soft Amber Desk</p>
-            </div>
-          </div>
-        </button>
-
-        <!-- Preset 3: Deep Focus -->
-        <button class="scene-card" data-preset="deep-focus" id="scene-deep-focus">
-          <div class="scene-gradient scene-grad-focus"></div>
-          <div class="scene-content">
-            <div class="scene-icon">🎯</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Deep Focus</h3>
-              <p class="scene-desc">4500K Neutral Bias &bull; Dimmed 15% Ambient</p>
-            </div>
-          </div>
-        </button>
-
-        <!-- Preset 4: Sunset Horizon -->
-        <button class="scene-card" data-preset="sunset" id="scene-sunset">
-          <div class="scene-gradient scene-grad-sunset"></div>
-          <div class="scene-content">
-            <div class="scene-icon">🌅</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Sunset Horizon</h3>
-              <p class="scene-desc">Peach & Sunset Wave &bull; Warm Gold Corners</p>
-            </div>
-          </div>
-        </button>
-
-        <!-- Preset 5: Aurora Borealis -->
-        <button class="scene-card" data-preset="aurora" id="scene-aurora">
-          <div class="scene-gradient scene-grad-aurora"></div>
-          <div class="scene-content">
-            <div class="scene-icon">🌌</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Aurora Drift</h3>
-              <p class="scene-desc">Emerald & Violet Flow &bull; Jade Ambient</p>
-            </div>
-          </div>
-        </button>
-
-        <!-- Preset 6: Midnight Cinema -->
-        <button class="scene-card" data-preset="cinema" id="scene-cinema">
-          <div class="scene-gradient scene-grad-cinema"></div>
-          <div class="scene-content">
-            <div class="scene-icon">🎬</div>
-            <div class="scene-info">
-              <h3 class="scene-name">Midnight Cinema</h3>
-              <p class="scene-desc">Ultra-dim 1800K Ember &bull; Anti-Glare Bias</p>
-            </div>
-          </div>
-        </button>
-      </div>
-    </section>
-
-    <!-- Detailed Device Control Matrix (3 Channels) -->
-    <section class="device-matrix" aria-label="Individual Light Control">
-
-      <!-- CARD 1: WS2812B Desk Strip (ESP32 Direct Driver) -->
-      <article class="device-card glass-panel" id="card-desk-strip">
-        <div class="card-header">
-          <div class="device-identity">
-            <div class="device-chip chip-esp32">ESP32 GPIO 16</div>
-            <h3 class="device-name">Desk WS2812B Strip</h3>
-            <p class="device-type">Addressable Bias Lighting (120 LEDs)</p>
-          </div>
-          <label class="toggle-switch" aria-label="Toggle Desk Strip Power">
-            <input type="checkbox" id="toggle-desk-power" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div class="card-body">
-          <!-- Brightness -->
-          <div class="control-row">
-            <div class="row-header">
-              <span class="row-label">Brightness</span>
-              <span id="val-desk-brightness" class="row-val">85%</span>
-            </div>
-            <input type="range" id="slider-desk-brightness" class="custom-range" min="0" max="100" value="85"
-              aria-label="Desk Strip Brightness">
-          </div>
-
-          <!-- Animation Mode Selector -->
-          <div class="control-row">
-            <div class="row-header">
-              <span class="row-label">Lighting Animation</span>
-            </div>
-            <div class="segmented-effects" id="effects-selector">
-              <button class="effect-chip" data-effect="solid">Solid</button>
-              <button class="effect-chip" data-effect="breathe">Breathe</button>
-              <button class="effect-chip active" data-effect="cyberpulse">Cyberpulse</button>
-              <button class="effect-chip" data-effect="sunset-wave">Wave</button>
-              <button class="effect-chip" data-effect="aurora">Aurora</button>
-              <button class="effect-chip" data-effect="fire">Candle Fire</button>
-            </div>
-          </div>
-
-          <!-- Color Customizer & Quick Swatches -->
-          <div class="control-row">
-            <div class="row-header">
-              <span class="row-label">Primary Color</span>
-              <span id="val-desk-hex" class="row-val mono">#EC4899</span>
-            </div>
-            <div class="color-picker-wrap">
-              <input type="color" id="picker-desk-color" class="native-color-picker" value="#ec4899"
-                aria-label="Desk Strip Color">
-              <div class="quick-swatches" id="desk-swatches">
-                <button class="swatch-dot" data-color="#ec4899" style="background:#ec4899" title="Neon Pink"></button>
-                <button class="swatch-dot" data-color="#00f2fe" style="background:#00f2fe"
-                  title="Electric Cyan"></button>
-                <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Warm Amber"></button>
-                <button class="swatch-dot" data-color="#8a2be2" style="background:#8a2be2"
-                  title="Royal Purple"></button>
-                <button class="swatch-dot" data-color="#10b981" style="background:#10b981"
-                  title="Emerald Jade"></button>
-                <button class="swatch-dot" data-color="#ffffff" style="background:#ffffff" title="Pure White"></button>
+          <!-- Preset 2: Warm Minimalist -->
+          <button class="scene-card" data-preset="warm-minimal" id="scene-warm-minimal">
+            <div class="scene-gradient scene-grad-warm"></div>
+            <div class="scene-content">
+              <div class="scene-icon">☕</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Warm Minimalist</h3>
+                <p class="scene-desc">2400K Candlelight Corners &bull; Soft Amber Desk</p>
               </div>
             </div>
+          </button>
+
+          <!-- Preset 3: Deep Focus -->
+          <button class="scene-card" data-preset="deep-focus" id="scene-deep-focus">
+            <div class="scene-gradient scene-grad-focus"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🎯</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Deep Focus</h3>
+                <p class="scene-desc">4500K Neutral Bias &bull; Dimmed 15% Ambient</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 4: Sunset Horizon -->
+          <button class="scene-card" data-preset="sunset" id="scene-sunset">
+            <div class="scene-gradient scene-grad-sunset"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🌅</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Sunset Horizon</h3>
+                <p class="scene-desc">Peach & Sunset Wave &bull; Warm Gold Corners</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 5: Aurora Borealis -->
+          <button class="scene-card" data-preset="aurora" id="scene-aurora">
+            <div class="scene-gradient scene-grad-aurora"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🌌</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Aurora Drift</h3>
+                <p class="scene-desc">Emerald & Violet Flow &bull; Jade Ambient</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 6: Midnight Cinema -->
+          <button class="scene-card" data-preset="cinema" id="scene-cinema">
+            <div class="scene-gradient scene-grad-cinema"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🎬</div>
+              <div class="scene-info">
+                <h3 class="scene-name">Midnight Cinema</h3>
+                <p class="scene-desc">Ultra-dim 1800K Ember &bull; Anti-Glare Bias</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Detailed Device Control Matrix (3 Channels) -->
+      <section class="device-matrix" aria-label="Individual Light Control">
+
+        <!-- CARD 1: WS2812B Desk Strip (ESP32 Direct Driver) -->
+        <article class="device-card glass-panel" id="card-desk-strip">
+          <div class="card-header">
+            <div class="device-identity">
+              <div class="device-chip chip-esp32">ESP32 GPIO 16</div>
+              <h3 class="device-name">Desk WS2812B Strip</h3>
+              <p class="device-type">Addressable Bias Lighting (120 LEDs)</p>
+            </div>
+            <label class="toggle-switch" aria-label="Toggle Desk Strip Power">
+              <input type="checkbox" id="toggle-desk-power" checked>
+              <span class="toggle-slider"></span>
+            </label>
           </div>
 
-          <!-- Animation Speed & Intensity Sliders -->
-          <div class="control-row-grid">
-            <div class="grid-col">
+          <div class="card-body">
+            <!-- Brightness -->
+            <div class="control-row">
               <div class="row-header">
-                <span class="row-label">Speed</span>
-                <span id="val-desk-speed" class="row-val">60%</span>
+                <span class="row-label">Brightness</span>
+                <span id="val-desk-brightness" class="row-val">85%</span>
               </div>
-              <input type="range" id="slider-desk-speed" class="custom-range" min="10" max="100" value="60"
-                aria-label="Effect Speed">
+              <input type="range" id="slider-desk-brightness" class="custom-range" min="0" max="100" value="85"
+                aria-label="Desk Strip Brightness">
             </div>
-            <div class="grid-col">
+
+            <!-- Animation Mode Selector -->
+            <div class="control-row">
               <div class="row-header">
-                <span class="row-label">Spread</span>
-                <span id="val-desk-intensity" class="row-val">75%</span>
+                <span class="row-label">Lighting Animation</span>
               </div>
-              <input type="range" id="slider-desk-intensity" class="custom-range" min="10" max="100" value="75"
-                aria-label="Effect Intensity">
+              <div class="segmented-effects" id="effects-selector">
+                <button class="effect-chip" data-effect="solid">Solid</button>
+                <button class="effect-chip" data-effect="breathe">Breathe</button>
+                <button class="effect-chip active" data-effect="cyberpulse">Cyberpulse</button>
+                <button class="effect-chip" data-effect="sunset-wave">Wave</button>
+                <button class="effect-chip" data-effect="aurora">Aurora</button>
+                <button class="effect-chip" data-effect="fire">Candle Fire</button>
+              </div>
             </div>
-          </div>
-        </div>
-      </article>
 
-      <!-- CARD 2: Left Corner Philips WiZ Bulb -->
-      <article class="device-card glass-panel" id="card-wiz-left">
-        <div class="card-header">
-          <div class="device-identity">
-            <div class="device-chip chip-wiz">WiZ UDP: <span id="ip-display-wiz-left">192.168.1.101</span></div>
-            <h3 class="device-name">Left Corner WiZ Bulb</h3>
-            <p class="device-type">Corner Ambient Wall Wash</p>
-          </div>
-          <label class="toggle-switch" aria-label="Toggle Left Bulb Power">
-            <input type="checkbox" id="toggle-wiz-left-power" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div class="card-body">
-          <!-- Brightness -->
-          <div class="control-row">
-            <div class="row-header">
-              <span class="row-label">Brightness</span>
-              <span id="val-wiz-left-brightness" class="row-val">75%</span>
+            <!-- Color Customizer & Quick Swatches -->
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Primary Color</span>
+                <span id="val-desk-hex" class="row-val mono">#EC4899</span>
+              </div>
+              <div class="color-picker-wrap">
+                <input type="color" id="picker-desk-color" class="native-color-picker" value="#ec4899"
+                  aria-label="Desk Strip Color">
+                <div class="quick-swatches" id="desk-swatches">
+                  <button class="swatch-dot" data-color="#ec4899" style="background:#ec4899" title="Neon Pink"></button>
+                  <button class="swatch-dot" data-color="#00f2fe" style="background:#00f2fe"
+                    title="Electric Cyan"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Warm Amber"></button>
+                  <button class="swatch-dot" data-color="#8a2be2" style="background:#8a2be2"
+                    title="Royal Purple"></button>
+                  <button class="swatch-dot" data-color="#10b981" style="background:#10b981"
+                    title="Emerald Jade"></button>
+                  <button class="swatch-dot" data-color="#ffffff" style="background:#ffffff" title="Pure White"></button>
+                </div>
+              </div>
             </div>
-            <input type="range" id="slider-wiz-left-brightness" class="custom-range" min="0" max="100" value="75"
-              aria-label="Left Bulb Brightness">
-          </div>
 
-          <!-- Color Mode Toggle: RGB vs White Spectrum -->
-          <div class="mode-tab-group">
-            <button class="mode-tab active" data-device="wiz-left" data-mode="rgb">RGB Color</button>
-            <button class="mode-tab" data-device="wiz-left" data-mode="cct">White Kelvin</button>
-          </div>
-
-          <!-- Mode A: RGB Color Picker -->
-          <div class="mode-view mode-rgb" id="view-wiz-left-rgb">
-            <div class="row-header">
-              <span class="row-label">Color Hue</span>
-              <span id="val-wiz-left-hex" class="row-val mono">#1E40AF</span>
-            </div>
-            <div class="color-picker-wrap">
-              <input type="color" id="picker-wiz-left-color" class="native-color-picker" value="#1e40af"
-                aria-label="Left Bulb Color">
-              <div class="quick-swatches" id="wiz-left-swatches">
-                <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
-                <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
-                <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
-                <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
-                <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+            <!-- Animation Speed & Intensity Sliders -->
+            <div class="control-row-grid">
+              <div class="grid-col">
+                <div class="row-header">
+                  <span class="row-label">Speed</span>
+                  <span id="val-desk-speed" class="row-val">60%</span>
+                </div>
+                <input type="range" id="slider-desk-speed" class="custom-range" min="10" max="100" value="60"
+                  aria-label="Effect Speed">
+              </div>
+              <div class="grid-col">
+                <div class="row-header">
+                  <span class="row-label">Spread</span>
+                  <span id="val-desk-intensity" class="row-val">75%</span>
+                </div>
+                <input type="range" id="slider-desk-intensity" class="custom-range" min="10" max="100" value="75"
+                  aria-label="Effect Intensity">
               </div>
             </div>
           </div>
+        </article>
 
-          <!-- Mode B: White Kelvin Slider -->
-          <div class="mode-view mode-cct hidden" id="view-wiz-left-cct">
-            <div class="row-header">
-              <span class="row-label">Temperature</span>
-              <span id="val-wiz-left-kelvin" class="row-val">2700K (Warm)</span>
+        <!-- CARD 2: Left Corner Philips WiZ Bulb -->
+        <article class="device-card glass-panel" id="card-wiz-left">
+          <div class="card-header">
+            <div class="device-identity">
+              <div class="device-chip chip-wiz">WiZ UDP: <span id="ip-display-wiz-left">192.168.1.101</span></div>
+              <h3 class="device-name">Left Corner WiZ Bulb</h3>
+              <p class="device-type">Corner Ambient Wall Wash</p>
             </div>
-            <div class="kelvin-slider-wrap">
-              <input type="range" id="slider-wiz-left-kelvin" class="custom-range kelvin-range" min="2200" max="6500"
-                step="50" value="2700" aria-label="Left Bulb Kelvin Temperature">
-            </div>
-          </div>
-        </div>
-      </article>
-
-      <!-- CARD 3: Right Corner Philips WiZ Bulb -->
-      <article class="device-card glass-panel" id="card-wiz-right">
-        <div class="card-header">
-          <div class="device-identity">
-            <div class="device-chip chip-wiz">WiZ UDP: <span id="ip-display-wiz-right">192.168.1.102</span></div>
-            <div class="name-with-link">
-              <h3 class="device-name">Right Corner WiZ Bulb</h3>
-              <button id="btn-sync-corners" class="link-btn active"
-                title="When active, changes to Left Corner mirror to Right Corner automatically">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                </svg>
-                <span>SYNC CORNERS</span>
-              </button>
-            </div>
-            <p class="device-type">Corner Ambient Wall Wash</p>
-          </div>
-          <label class="toggle-switch" aria-label="Toggle Right Bulb Power">
-            <input type="checkbox" id="toggle-wiz-right-power" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-
-        <div class="card-body">
-          <!-- Brightness -->
-          <div class="control-row">
-            <div class="row-header">
-              <span class="row-label">Brightness</span>
-              <span id="val-wiz-right-brightness" class="row-val">75%</span>
-            </div>
-            <input type="range" id="slider-wiz-right-brightness" class="custom-range" min="0" max="100" value="75"
-              aria-label="Right Bulb Brightness">
+            <label class="toggle-switch" aria-label="Toggle Left Bulb Power">
+              <input type="checkbox" id="toggle-wiz-left-power" checked>
+              <span class="toggle-slider"></span>
+            </label>
           </div>
 
-          <!-- Color Mode Toggle: RGB vs White Spectrum -->
-          <div class="mode-tab-group">
-            <button class="mode-tab active" data-device="wiz-right" data-mode="rgb">RGB Color</button>
-            <button class="mode-tab" data-device="wiz-right" data-mode="cct">White Kelvin</button>
-          </div>
-
-          <!-- Mode A: RGB Color Picker -->
-          <div class="mode-view mode-rgb" id="view-wiz-right-rgb">
-            <div class="row-header">
-              <span class="row-label">Color Hue</span>
-              <span id="val-wiz-right-hex" class="row-val mono">#1E40AF</span>
+          <div class="card-body">
+            <!-- Brightness -->
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Brightness</span>
+                <span id="val-wiz-left-brightness" class="row-val">75%</span>
+              </div>
+              <input type="range" id="slider-wiz-left-brightness" class="custom-range" min="0" max="100" value="75"
+                aria-label="Left Bulb Brightness">
             </div>
-            <div class="color-picker-wrap">
-              <input type="color" id="picker-wiz-right-color" class="native-color-picker" value="#1e40af"
-                aria-label="Right Bulb Color">
-              <div class="quick-swatches" id="wiz-right-swatches">
-                <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
-                <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
-                <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
-                <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
-                <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+
+            <!-- Color Mode Toggle: RGB vs White Spectrum -->
+            <div class="mode-tab-group">
+              <button class="mode-tab active" data-device="wiz-left" data-mode="rgb">RGB Color</button>
+              <button class="mode-tab" data-device="wiz-left" data-mode="cct">White Kelvin</button>
+            </div>
+
+            <!-- Mode A: RGB Color Picker -->
+            <div class="mode-view mode-rgb" id="view-wiz-left-rgb">
+              <div class="row-header">
+                <span class="row-label">Color Hue</span>
+                <span id="val-wiz-left-hex" class="row-val mono">#1E40AF</span>
+              </div>
+              <div class="color-picker-wrap">
+                <input type="color" id="picker-wiz-left-color" class="native-color-picker" value="#1e40af"
+                  aria-label="Left Bulb Color">
+                <div class="quick-swatches" id="wiz-left-swatches">
+                  <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
+                  <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
+                  <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
+                  <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode B: White Kelvin Slider -->
+            <div class="mode-view mode-cct hidden" id="view-wiz-left-cct">
+              <div class="row-header">
+                <span class="row-label">Temperature</span>
+                <span id="val-wiz-left-kelvin" class="row-val">2700K (Warm)</span>
+              </div>
+              <div class="kelvin-slider-wrap">
+                <input type="range" id="slider-wiz-left-kelvin" class="custom-range kelvin-range" min="2200" max="6500"
+                  step="50" value="2700" aria-label="Left Bulb Kelvin Temperature">
               </div>
             </div>
           </div>
+        </article>
 
-          <!-- Mode B: White Kelvin Slider -->
-          <div class="mode-view mode-cct hidden" id="view-wiz-right-cct">
-            <div class="row-header">
-              <span class="row-label">Temperature</span>
-              <span id="val-wiz-right-kelvin" class="row-val">2700K (Warm)</span>
+        <!-- CARD 3: Right Corner Philips WiZ Bulb -->
+        <article class="device-card glass-panel" id="card-wiz-right">
+          <div class="card-header">
+            <div class="device-identity">
+              <div class="device-chip chip-wiz">WiZ UDP: <span id="ip-display-wiz-right">192.168.1.102</span></div>
+              <div class="name-with-link">
+                <h3 class="device-name">Right Corner WiZ Bulb</h3>
+                <button id="btn-sync-corners" class="link-btn active"
+                  title="When active, changes to Left Corner mirror to Right Corner automatically">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                  </svg>
+                  <span>SYNC CORNERS</span>
+                </button>
+              </div>
+              <p class="device-type">Corner Ambient Wall Wash</p>
             </div>
-            <div class="kelvin-slider-wrap">
-              <input type="range" id="slider-wiz-right-kelvin" class="custom-range kelvin-range" min="2200" max="6500"
-                step="50" value="2700" aria-label="Right Bulb Kelvin Temperature">
+            <label class="toggle-switch" aria-label="Toggle Right Bulb Power">
+              <input type="checkbox" id="toggle-wiz-right-power" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="card-body">
+            <!-- Brightness -->
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Brightness</span>
+                <span id="val-wiz-right-brightness" class="row-val">75%</span>
+              </div>
+              <input type="range" id="slider-wiz-right-brightness" class="custom-range" min="0" max="100" value="75"
+                aria-label="Right Bulb Brightness">
+            </div>
+
+            <!-- Color Mode Toggle: RGB vs White Spectrum -->
+            <div class="mode-tab-group">
+              <button class="mode-tab active" data-device="wiz-right" data-mode="rgb">RGB Color</button>
+              <button class="mode-tab" data-device="wiz-right" data-mode="cct">White Kelvin</button>
+            </div>
+
+            <!-- Mode A: RGB Color Picker -->
+            <div class="mode-view mode-rgb" id="view-wiz-right-rgb">
+              <div class="row-header">
+                <span class="row-label">Color Hue</span>
+                <span id="val-wiz-right-hex" class="row-val mono">#1E40AF</span>
+              </div>
+              <div class="color-picker-wrap">
+                <input type="color" id="picker-wiz-right-color" class="native-color-picker" value="#1e40af"
+                  aria-label="Right Bulb Color">
+                <div class="quick-swatches" id="wiz-right-swatches">
+                  <button class="swatch-dot" data-color="#1e40af" style="background:#1e40af" title="Cobalt"></button>
+                  <button class="swatch-dot" data-color="#0284c7" style="background:#0284c7" title="Sky"></button>
+                  <button class="swatch-dot" data-color="#7c3aed" style="background:#7c3aed" title="Violet"></button>
+                  <button class="swatch-dot" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
+                  <button class="swatch-dot" data-color="#059669" style="background:#059669" title="Forest"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode B: White Kelvin Slider -->
+            <div class="mode-view mode-cct hidden" id="view-wiz-right-cct">
+              <div class="row-header">
+                <span class="row-label">Temperature</span>
+                <span id="val-wiz-right-kelvin" class="row-val">2700K (Warm)</span>
+              </div>
+              <div class="kelvin-slider-wrap">
+                <input type="range" id="slider-wiz-right-kelvin" class="custom-range kelvin-range" min="2200" max="6500"
+                  step="50" value="2700" aria-label="Right Bulb Kelvin Temperature">
+              </div>
+            </div>
+          </div>
+        </article>
+
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 2: CIRCADIAN RHYTHM & NATURAL LIGHTING (HCL)
+         ==================================================================== -->
+    <div id="view-circadian" class="tab-view">
+      <section class="suite-feature-panel glass-panel">
+        <div class="feature-panel-header">
+          <div class="header-text">
+            <span class="feature-badge">LUTRON KETRA &times; APPLE ADAPTIVE LIGHTING</span>
+            <h2 class="suite-title">Natural Circadian Rhythm Engine</h2>
+            <p class="suite-subtitle">Synchronizes color temperature and illumination lux to the natural solar cycle to regulate melatonin, boost daylight focus, and ease evening relaxation.</p>
+          </div>
+          <div class="suite-toggle-wrap">
+            <span class="toggle-desc">Auto-Circadian Adaptation</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-circadian-auto">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Solar Curve Interactive Canvas -->
+        <div class="circadian-arc-card">
+          <div class="arc-header">
+            <div class="time-readout">
+              <span id="circadian-clock-val" class="clock-display">14:30</span>
+              <span id="circadian-phase-val" class="phase-badge">Daylight Focus (5500K &bull; 90% Lux)</span>
+            </div>
+            <button id="btn-circadian-now" class="subtle-btn">Sync to Real Time</button>
+          </div>
+
+          <div class="timeline-visual-wrap">
+            <div class="solar-curve-container">
+              <svg id="solar-svg-curve" viewBox="0 0 1000 240" class="solar-svg">
+                <!-- Gradients for day/night -->
+                <defs>
+                  <linearGradient id="solarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#ff7e29" />
+                    <stop offset="25%" stop-color="#ffd599" />
+                    <stop offset="50%" stop-color="#e0f2fe" />
+                    <stop offset="75%" stop-color="#ffedd5" />
+                    <stop offset="100%" stop-color="#ea580c" />
+                  </linearGradient>
+                </defs>
+                <!-- Ground horizon line -->
+                <line x1="0" y1="200" x2="1000" y2="200" stroke="rgba(255,255,255,0.15)" stroke-dasharray="4 4" />
+                <!-- Solar bell curve path -->
+                <path d="M 0 200 C 250 200, 300 40, 500 40 C 700 40, 750 200, 1000 200" fill="none" stroke="url(#solarGrad)" stroke-width="4" />
+                <!-- Sun marker icon -->
+                <circle id="solar-sun-marker" cx="500" cy="40" r="12" fill="#ffd599" filter="drop-shadow(0 0 12px #ffedd5)" />
+              </svg>
+            </div>
+            <!-- Interactive Time Scrubber Slider -->
+            <input type="range" id="slider-circadian-time" class="custom-range timeline-slider" min="0" max="1439" value="870" aria-label="Simulate 24-Hour Solar Timeline">
+            <div class="solar-hours-markers">
+              <span>00:00 (Midnight)</span>
+              <span>06:00 (Dawn)</span>
+              <span>12:00 (Zenith)</span>
+              <span>18:00 (Golden Hour)</span>
+              <span>23:59 (Deep Rest)</span>
+            </div>
+          </div>
+
+          <!-- Phase Presets Grid -->
+          <div class="circadian-phases-grid">
+            <button class="phase-card" data-phase="dawn">
+              <div class="phase-icon">🌅</div>
+              <div class="phase-info">
+                <strong>Gentle Dawn</strong>
+                <span>2200K &bull; 30% Dim</span>
+              </div>
+            </button>
+            <button class="phase-card" data-phase="noon">
+              <div class="phase-icon">☀️</div>
+              <div class="phase-info">
+                <strong>Zenith Daylight</strong>
+                <span>6500K &bull; 100% Lux</span>
+              </div>
+            </button>
+            <button class="phase-card" data-phase="dusk">
+              <div class="phase-icon">🌆</div>
+              <div class="phase-info">
+                <strong>Golden Hour</strong>
+                <span>2800K &bull; 60% Lux</span>
+              </div>
+            </button>
+            <button class="phase-card" data-phase="night">
+              <div class="phase-icon">🌙</div>
+              <div class="phase-info">
+                <strong>Melatonin Sleep</strong>
+                <span>1800K &bull; 15% Dim</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 3: AMBILIGHT REAL-TIME SCREEN SYNC (Entertainment Bias)
+         ==================================================================== -->
+    <div id="view-ambilight" class="tab-view">
+      <section class="suite-feature-panel glass-panel">
+        <div class="feature-panel-header">
+          <div class="header-text">
+            <span class="feature-badge">PHILIPS HUE ENTERTAINMENT &times; GOVEE DREAMVIEW</span>
+            <h2 class="suite-title">Spatial Ambilight Screen Synchronizer</h2>
+            <p class="suite-subtitle">Samples your computer screen at 30 FPS using native WebRTC, projecting matching ambient color washes onto your corner WiZ bulbs and dynamic bias behind your monitor.</p>
+          </div>
+          <button id="btn-toggle-ambilight" class="primary-btn ambilight-trigger-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-svg"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span id="ambilight-btn-label">Start Screen Sync</span>
+          </button>
+        </div>
+
+        <div class="ambilight-sandbox-grid">
+          <!-- Live Preview Screen Viewport -->
+          <div class="ambilight-monitor-wrap">
+            <div class="screen-sampling-regions">
+              <!-- Left Sampling Zone -->
+              <div class="sample-zone zone-left" id="zone-preview-left">
+                <span class="zone-tag">L-Corner WiZ</span>
+                <span class="zone-hex" id="hex-zone-left">#1E40AF</span>
+              </div>
+              <!-- Center Desk Strip Zone -->
+              <div class="sample-zone zone-center" id="zone-preview-center">
+                <span class="zone-tag">Desk Bias Strip</span>
+                <span class="zone-hex" id="hex-zone-center">#EC4899</span>
+              </div>
+              <!-- Right Sampling Zone -->
+              <div class="sample-zone zone-right" id="zone-preview-right">
+                <span class="zone-tag">R-Corner WiZ</span>
+                <span class="zone-hex" id="hex-zone-right">#1E40AF</span>
+              </div>
+            </div>
+
+            <!-- Video Capture Feed -->
+            <video id="ambilight-video" autoplay playsinline muted class="screen-video-feed"></video>
+            <canvas id="ambilight-canvas" class="sampling-canvas hidden"></canvas>
+
+            <div id="ambilight-placeholder" class="feed-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              <span>Click "Start Screen Sync" to select a screen, window, or video to mirror.</span>
+            </div>
+          </div>
+
+          <!-- Ambilight Tuning Parameters -->
+          <div class="ambilight-settings-card">
+            <h3 class="card-mini-title">Spatial Immersion Tuning</h3>
+            
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Color Smoothing (EMA Filter)</span>
+                <span id="val-ambi-smoothing" class="row-val">70% (Cinematic)</span>
+              </div>
+              <input type="range" id="slider-ambi-smoothing" class="custom-range" min="10" max="95" value="70" aria-label="Smoothing Filter">
+            </div>
+
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Color Saturation Boost</span>
+                <span id="val-ambi-boost" class="row-val">1.4&times; Vibrant</span>
+              </div>
+              <input type="range" id="slider-ambi-boost" class="custom-range" min="10" max="25" value="14" aria-label="Saturation Boost">
+            </div>
+
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Minimum Black Floor (Anti-Fatigue)</span>
+                <span id="val-ambi-blackfloor" class="row-val">15% Brightness</span>
+              </div>
+              <input type="range" id="slider-ambi-blackfloor" class="custom-range" min="0" max="35" value="15" aria-label="Black Floor Dimming">
             </div>
           </div>
         </div>
-      </article>
+      </section>
+    </div>
 
-    </section>
+    <!-- ====================================================================
+         VIEW 4: SOUNDSYNC AUDIO REACTIVE (Music Visualizer)
+         ==================================================================== -->
+    <div id="view-soundsync" class="tab-view">
+      <section class="suite-feature-panel glass-panel">
+        <div class="feature-panel-header">
+          <div class="header-text">
+            <span class="feature-badge">NANOLEAF RHYTHM &times; RAZER CHROMA</span>
+            <h2 class="suite-title">SoundSync Audio Reactive Visualizer</h2>
+            <p class="suite-subtitle">Uses Web Audio FFT frequency separation to translate music into synchronized room lighting pulses: deep sub-bass drives the corner WiZ bulbs while mids/highs stream dynamic waves across your desk strip.</p>
+          </div>
+          <button id="btn-toggle-soundsync" class="primary-btn audio-trigger-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-svg"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            <span id="soundsync-btn-label">Activate Microphone / Audio</span>
+          </button>
+        </div>
+
+        <div class="soundsync-layout">
+          <!-- FFT Realtime Canvas Spectrum -->
+          <div class="fft-canvas-card">
+            <canvas id="soundsync-canvas" class="fft-canvas" width="800" height="200"></canvas>
+            <div class="freq-band-labels">
+              <span class="band-tag">SUB-BASS (WiZ Bulbs)</span>
+              <span class="band-tag">VOCAL MIDS (Desk Wave)</span>
+              <span class="band-tag">HIGHS / PERCUSSION (Sparkle)</span>
+            </div>
+          </div>
+
+          <!-- Audio Controls -->
+          <div class="audio-tuning-grid">
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Beat Sensitivity</span>
+                <span id="val-audio-sens" class="row-val">75%</span>
+              </div>
+              <input type="range" id="slider-audio-sens" class="custom-range" min="20" max="100" value="75" aria-label="Audio Sensitivity">
+            </div>
+
+            <div class="control-row">
+              <div class="row-header">
+                <span class="row-label">Reactive Lighting Profile</span>
+              </div>
+              <div class="segmented-effects" id="audio-modes-selector">
+                <button class="effect-chip active" data-audiomode="pulse">Bass Pulse</button>
+                <button class="effect-chip" data-audiomode="equalizer">Equalizer</button>
+                <button class="effect-chip" data-audiomode="rave">Rave Burst</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 5: GRADIENT STUDIO (Multi-Stop Dynamic Color Palette)
+         ==================================================================== -->
+    <div id="view-gradients" class="tab-view">
+      <section class="suite-feature-panel glass-panel">
+        <div class="feature-panel-header">
+          <div class="header-text">
+            <span class="feature-badge">MULTI-ZONE ADDRESSABLE MATRIX</span>
+            <h2 class="suite-title">Gradient Colorway Studio</h2>
+            <p class="suite-subtitle">Design multi-stop, fluid linear color transitions that dynamically stream across the 120 addressable WS2812B LEDs on your desk.</p>
+          </div>
+          <button id="btn-apply-gradient" class="primary-btn">
+            <span>Push Gradient to Strip</span>
+          </button>
+        </div>
+
+        <!-- Interactive Gradient Bar Preview -->
+        <div class="gradient-editor-card">
+          <div id="gradient-preview-bar" class="gradient-preview-bar"></div>
+
+          <!-- Color Stop Handles -->
+          <div class="gradient-stops-row">
+            <div class="stop-control">
+              <span class="stop-label">Stop 1 (Left 0%)</span>
+              <input type="color" id="grad-color-1" class="native-color-picker" value="#00f2fe">
+            </div>
+            <div class="stop-control">
+              <span class="stop-label">Stop 2 (Mid 50%)</span>
+              <input type="color" id="grad-color-2" class="native-color-picker" value="#ec4899">
+            </div>
+            <div class="stop-control">
+              <span class="stop-label">Stop 3 (Right 100%)</span>
+              <input type="color" id="grad-color-3" class="native-color-picker" value="#8a2be2">
+            </div>
+          </div>
+
+          <!-- Curated Designer Palettes -->
+          <div class="curated-palettes-wrap">
+            <span class="palettes-title">Luxury Curated Palettes:</span>
+            <div class="palette-chips-grid">
+              <button class="palette-chip" data-stops="#ff007f,#7928ca,#00dfd8">Miami Vice</button>
+              <button class="palette-chip" data-stops="#f12711,#f5af19,#ff0844">Solar Flare</button>
+              <button class="palette-chip" data-stops="#11998e,#38ef7d,#0575e6">Emerald Tide</button>
+              <button class="palette-chip" data-stops="#8a2387,#e94057,#f27121">Tokyo Twilight</button>
+              <button class="palette-chip" data-stops="#141e30,#243b55,#00adb5">Nordic Deep</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ====================================================================
+         VIEW 6: FOCUS & REST RHYTHM (Pomodoro Lighting Engine)
+         ==================================================================== -->
+    <div id="view-rhythm" class="tab-view">
+      <section class="suite-feature-panel glass-panel">
+        <div class="feature-panel-header">
+          <div class="header-text">
+            <span class="feature-badge">PRODUCTIVITY & CHRONOBIOLOGY</span>
+            <h2 class="suite-title">Smart Focus &amp; Rest Interval Engine</h2>
+            <p class="suite-subtitle">Pairs structured Pomodoro intervals with biological light cues. During focus, lights lock into anti-distraction 4500K neutral bias. When break time arrives, the room blooms into a warm, relaxing recharge ambient wash.</p>
+          </div>
+          <div class="suite-toggle-wrap">
+            <button id="btn-toggle-pomodoro" class="primary-btn">Start 25m Focus Sprint</button>
+          </div>
+        </div>
+
+        <div class="pomodoro-stage-card">
+          <div class="pomo-timer-ring">
+            <span id="pomo-time-left" class="pomo-time">25:00</span>
+            <span id="pomo-status-label" class="pomo-label">READY FOR FOCUS SPRINT</span>
+          </div>
+
+          <div class="pomo-rules-preview">
+            <div class="rule-box rule-focus">
+              <strong>Focus Phase (25 min)</strong>
+              <p>4500K crisp neutral white desk strip bias. WiZ bulbs dimmed to 15% to eliminate room distractions.</p>
+            </div>
+            <div class="rule-box rule-break">
+              <strong>Rest Interval (5 min)</strong>
+              <p>Soft 2400K golden amber room bloom with slow breathing desk pulse to signal mental relaxation.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
 
   </main>
 
@@ -527,8 +889,7 @@
               <span>Scan Network</span>
             </button>
           </div>
-          <p class="section-note">Broadcasts UDP packet <code>{"method":"getSystemConfig"}</code> to find local WiZ
-            bulbs.</p>
+          <p class="section-note">Broadcasts UDP packet <code>{"method":"getSystemConfig"}</code> to find local WiZ bulbs.</p>
           <div id="discovery-results" class="discovery-list">
             <div class="empty-state">Click "Scan Network" to discover Philips WiZ bulbs on your local Wi-Fi.</div>
           </div>
@@ -548,6 +909,21 @@
               <input type="text" id="input-wiz-right-ip" class="custom-input mono" placeholder="192.168.1.102"
                 value="192.168.1.102">
             </div>
+          </div>
+        </div>
+
+        <!-- Advanced Gamma Correction Toggle -->
+        <div class="settings-section">
+          <h4>Optical Tuning</h4>
+          <div class="section-inline-header">
+            <div>
+              <strong style="font-size:0.8rem">Perceptual CIE 1931 Gamma Curve</strong>
+              <p class="section-note">Applies logarithmic dimming curve ($Y = X^{2.2}$) for smooth, luxury dimming.</p>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggle-gamma" checked>
+              <span class="toggle-slider"></span>
+            </label>
           </div>
         </div>
 
