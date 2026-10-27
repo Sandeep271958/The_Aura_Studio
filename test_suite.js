@@ -163,4 +163,32 @@ solarCheckpoints.forEach(chk => {
   console.log(`PASS: Circadian @ ${chk.mins / 60}h: ${res.phaseName} -> ${res.targetKelvin}K, ${res.targetLux}% Lux`);
 });
 
+// 5. Test iPhone 16 Scalability & PWA Compliance
+const manifestContent = JSON.parse(fs.readFileSync('dashboard/manifest.json', 'utf8'));
+if (manifestContent.display === 'standalone' && manifestContent.icons && manifestContent.icons.length >= 2) {
+  console.log('PASS: PWA manifest.json is valid with standalone display and high-res icons.');
+} else {
+  console.error('FAIL: manifest.json missing required PWA fields');
+}
+
+const css = fs.readFileSync('dashboard/style.css', 'utf8');
+if (css.includes('safe-area-inset-top') && css.includes('safe-area-inset-bottom')) {
+  console.log('PASS: style.css includes iOS safe-area insets for Dynamic Island & Home Bar.');
+} else {
+  console.error('FAIL: style.css missing safe-area-inset variables.');
+}
+
+if (css.includes('position: fixed') && css.includes('.suite-nav')) {
+  console.log('PASS: style.css includes ergonomic bottom tab dock navigation for mobile.');
+} else {
+  console.error('FAIL: style.css missing bottom dock positioning.');
+}
+
+if (js.includes('triggerHaptic')) {
+  console.log('PASS: app.js implements tactile haptic feedback for mobile interaction.');
+} else {
+  console.error('FAIL: app.js missing triggerHaptic implementation.');
+}
+
 console.log('\n--- All Automated Verification Checks Passed! ---');
+

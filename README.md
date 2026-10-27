@@ -68,6 +68,13 @@ AURA incorporates the most advanced capabilities found across luxury lighting ec
 - Configurable fade transitions: *Instant (0s)*, *Snappy (0.4s)*, *Smooth (0.8s)*, *Cinema (2.5s)*, and *Sunset Drift (8.0s)*.
 - **CIE 1931 Perceptual Gamma Correction** ($Y = X^{2.2}$) ensuring natural, logarithmic dimming without harsh steps.
 
+### 7. 📱 iPhone 16 & Mobile Native PWA Experience
+- **Dynamic Island & Safe Area Integration:** Built with `viewport-fit=cover` and dynamic CSS variables (`env(safe-area-inset-top)`, `env(safe-area-inset-bottom)`) ensuring edge-to-edge immersion without clipping behind the iPhone 16 Dynamic Island or home indicator.
+- **Ergonomic Obsidian Glass Bottom Dock:** On screens &le; 768px, navigation seamlessly transforms into an iOS-style fixed bottom tab bar for effortless single-thumb access to all 6 feature suites.
+- **Apple HIG Touch Ergonomics:** Minimum 44&times;44 pt touch targets, enlarged touch slider thumbs (`26px`), and `touch-action: pan-y` preventing horizontal scrubbing from triggering scroll locks.
+- **Tactile Haptic Feedback:** Physical tactile clicks (`navigator.vibrate`) on preset activations, fixture toggles, mode switches, and slider release.
+- **Standalone PWA:** Tap "Share" &rarr; "Add to Home Screen" in iOS Safari for a standalone app with custom high-res obsidian-cyan app icons.
+
 ---
 
 ## 🛠️ Hardware Wiring & Schematic

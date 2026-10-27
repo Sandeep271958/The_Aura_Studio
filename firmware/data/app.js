@@ -1003,13 +1003,25 @@ function updatePomodoroDisplay() {
 }
 
 // ============================================================================
-// 10. EVENT BINDING & INTERACTIVITY
+// 10. EVENT BINDING & INTERACTIVITY (With Haptic Tactile Feedback)
 // ============================================================================
+
+function triggerHaptic(type = 'light') {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try {
+      if (type === 'light') navigator.vibrate(10);
+      else if (type === 'medium') navigator.vibrate(22);
+      else if (type === 'heavy') navigator.vibrate(40);
+      else if (type === 'double') navigator.vibrate([12, 35, 12]);
+    } catch (_) {}
+  }
+}
 
 function bindEvents() {
   // Navigation Tabs
   DOM.suiteTabs.forEach(tab => {
     tab.addEventListener('click', () => {
+      triggerHaptic('light');
       const target = tab.dataset.tab;
       appState.activeTab = target;
       DOM.suiteTabs.forEach(t => t.classList.toggle('active', t === tab));
@@ -1019,6 +1031,7 @@ function bindEvents() {
 
   // Transition Timing Speed
   DOM.selectTransitionSpeed.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.transitionDuration = parseInt(e.target.value, 10);
     document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
     showToast(`Fade transition set to ${e.target.options[e.target.selectedIndex].text}`);
@@ -1027,6 +1040,7 @@ function bindEvents() {
 
   // Master Power
   DOM.btnMasterPower.addEventListener('click', () => {
+    triggerHaptic('medium');
     appState.isMasterOn = !appState.isMasterOn;
     renderAll();
     dispatchStateChange({ isMasterOn: appState.isMasterOn });
@@ -1039,6 +1053,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderMasterBrightness.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ masterBrightness: appState.masterBrightness });
   });
 
@@ -1048,18 +1063,21 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderMasterContrast.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ contrastRatio: appState.contrastRatio });
   });
 
   // Presets
   document.querySelectorAll('.scene-card').forEach(card => {
     card.addEventListener('click', () => {
+      triggerHaptic('light');
       applyPreset(card.dataset.preset);
     });
   });
 
   // Desk Controls
   DOM.toggleDeskPower.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.devices.desk.power = e.target.checked;
     renderAll();
     dispatchStateChange({ desk: { power: appState.devices.desk.power } });
@@ -1070,6 +1088,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderDeskBrightness.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ desk: { brightness: appState.devices.desk.brightness } });
   });
 
@@ -1078,11 +1097,13 @@ function bindEvents() {
     renderAll();
   });
   DOM.pickerDeskColor.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ desk: { color: appState.devices.desk.color } });
   });
 
   document.querySelectorAll('#effects-selector .effect-chip').forEach(chip => {
     chip.addEventListener('click', () => {
+      triggerHaptic('light');
       appState.devices.desk.effect = chip.dataset.effect;
       renderAll();
       dispatchStateChange({ desk: { effect: appState.devices.desk.effect } });
@@ -1092,6 +1113,7 @@ function bindEvents() {
   DOM.deskSwatches.addEventListener('click', (e) => {
     const dot = e.target.closest('.swatch-dot');
     if (dot) {
+      triggerHaptic('light');
       appState.devices.desk.color = dot.dataset.color;
       renderAll();
       dispatchStateChange({ desk: { color: appState.devices.desk.color } });
@@ -1103,6 +1125,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderDeskSpeed.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ desk: { speed: appState.devices.desk.speed } });
   });
 
@@ -1111,11 +1134,13 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderDeskIntensity.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({ desk: { intensity: appState.devices.desk.intensity } });
   });
 
   // WiZ Left Controls
   DOM.toggleWizLeftPower.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.devices.wizLeft.power = e.target.checked;
     if (appState.syncCorners) appState.devices.wizRight.power = e.target.checked;
     renderAll();
@@ -1131,6 +1156,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderWizLeftBrightness.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizLeft: { brightness: appState.devices.wizLeft.brightness },
       ...(appState.syncCorners ? { wizRight: { brightness: appState.devices.wizRight.brightness } } : {})
@@ -1143,6 +1169,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.pickerWizLeftColor.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizLeft: { color: appState.devices.wizLeft.color },
       ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color } } : {})
@@ -1155,6 +1182,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderWizLeftKelvin.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizLeft: { kelvin: appState.devices.wizLeft.kelvin },
       ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin } } : {})
@@ -1163,6 +1191,7 @@ function bindEvents() {
 
   // WiZ Right Controls
   DOM.toggleWizRightPower.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.devices.wizRight.power = e.target.checked;
     if (appState.syncCorners) appState.devices.wizLeft.power = e.target.checked;
     renderAll();
@@ -1178,6 +1207,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderWizRightBrightness.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizRight: { brightness: appState.devices.wizRight.brightness },
       ...(appState.syncCorners ? { wizLeft: { brightness: appState.devices.wizLeft.brightness } } : {})
@@ -1190,6 +1220,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.pickerWizRightColor.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizRight: { color: appState.devices.wizRight.color },
       ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color } } : {})
@@ -1202,6 +1233,7 @@ function bindEvents() {
     renderAll();
   });
   DOM.sliderWizRightKelvin.addEventListener('change', () => {
+    triggerHaptic('light');
     dispatchStateChange({
       wizRight: { kelvin: appState.devices.wizRight.kelvin },
       ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin } } : {})
@@ -1211,6 +1243,7 @@ function bindEvents() {
   // Mode Tabs (RGB vs White Kelvin)
   document.querySelectorAll('.mode-tab').forEach(tab => {
     tab.addEventListener('click', () => {
+      triggerHaptic('light');
       const dev = tab.dataset.device;
       const mode = tab.dataset.mode;
       if (dev === 'wiz-left') {
@@ -1229,6 +1262,7 @@ function bindEvents() {
   });
 
   DOM.btnSyncCorners.addEventListener('click', () => {
+    triggerHaptic('medium');
     appState.syncCorners = !appState.syncCorners;
     if (appState.syncCorners) {
       Object.assign(appState.devices.wizRight, JSON.parse(JSON.stringify(appState.devices.wizLeft)));
@@ -1245,6 +1279,7 @@ function bindEvents() {
 
   // Circadian Controls
   DOM.toggleCircadianAuto.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.circadian.autoEnabled = e.target.checked;
     if (appState.circadian.autoEnabled) {
       const now = new Date();
@@ -1264,6 +1299,7 @@ function bindEvents() {
   });
 
   DOM.btnCircadianNow.addEventListener('click', () => {
+    triggerHaptic('light');
     const now = new Date();
     appState.circadian.simulatedMinutes = now.getHours() * 60 + now.getMinutes();
     DOM.sliderCircadianTime.value = appState.circadian.simulatedMinutes;
@@ -1273,6 +1309,7 @@ function bindEvents() {
 
   document.querySelectorAll('.phase-card').forEach(btn => {
     btn.addEventListener('click', () => {
+      triggerHaptic('light');
       const phase = btn.dataset.phase;
       if (phase === 'dawn') appState.circadian.simulatedMinutes = 6 * 60;
       else if (phase === 'noon') appState.circadian.simulatedMinutes = 12 * 60;
@@ -1284,7 +1321,10 @@ function bindEvents() {
   });
 
   // Ambilight
-  DOM.btnToggleAmbilight.addEventListener('click', toggleAmbilight);
+  DOM.btnToggleAmbilight.addEventListener('click', () => {
+    triggerHaptic('medium');
+    toggleAmbilight();
+  });
   DOM.sliderAmbiSmoothing.addEventListener('input', (e) => {
     appState.ambilight.smoothing = parseInt(e.target.value, 10) / 100;
     DOM.valAmbiSmoothing.textContent = `${e.target.value}% (Cinematic)`;
@@ -1299,7 +1339,10 @@ function bindEvents() {
   });
 
   // SoundSync
-  DOM.btnToggleSoundSync.addEventListener('click', toggleSoundSync);
+  DOM.btnToggleSoundSync.addEventListener('click', () => {
+    triggerHaptic('medium');
+    toggleSoundSync();
+  });
   DOM.sliderAudioSens.addEventListener('input', (e) => {
     appState.soundsync.sensitivity = parseInt(e.target.value, 10);
     DOM.valAudioSens.textContent = `${e.target.value}%`;
@@ -1309,6 +1352,7 @@ function bindEvents() {
     DOM.audioModesSelector.addEventListener('click', (e) => {
       const chip = e.target.closest('.effect-chip');
       if (chip && chip.dataset.audiomode) {
+        triggerHaptic('light');
         appState.soundsync.mode = chip.dataset.audiomode;
         DOM.audioModesSelector.querySelectorAll('.effect-chip').forEach(c => c.classList.toggle('active', c === chip));
         showToast(`SoundSync profile: ${chip.textContent}`);
@@ -1320,10 +1364,14 @@ function bindEvents() {
   [DOM.gradColor1, DOM.gradColor2, DOM.gradColor3].forEach(picker => {
     picker.addEventListener('input', updateGradientPreviewBar);
   });
-  DOM.btnApplyGradient.addEventListener('click', applyCustomGradientToDesk);
+  DOM.btnApplyGradient.addEventListener('click', () => {
+    triggerHaptic('medium');
+    applyCustomGradientToDesk();
+  });
 
   document.querySelectorAll('.palette-chip').forEach(chip => {
     chip.addEventListener('click', () => {
+      triggerHaptic('light');
       const stops = chip.dataset.stops.split(',');
       DOM.gradColor1.value = stops[0];
       DOM.gradColor2.value = stops[1];
@@ -1334,16 +1382,27 @@ function bindEvents() {
   });
 
   // Focus Rhythm (Pomodoro)
-  DOM.btnTogglePomodoro.addEventListener('click', togglePomodoro);
+  DOM.btnTogglePomodoro.addEventListener('click', () => {
+    triggerHaptic('medium');
+    togglePomodoro();
+  });
+  DOM.btnResetPomodoro.addEventListener('click', () => {
+    triggerHaptic('light');
+    resetPomodoro();
+  });
 
   // Settings Dialog
   DOM.btnOpenSettings.addEventListener('click', () => {
+    triggerHaptic('light');
     DOM.modalSettings.showModal();
     DOM.inputWizLeftIp.value = appState.network.wizLeftIp;
     DOM.inputWizRightIp.value = appState.network.wizRightIp;
   });
 
-  DOM.btnCloseSettings.addEventListener('click', () => DOM.modalSettings.close());
+  DOM.btnCloseSettings.addEventListener('click', () => {
+    triggerHaptic('light');
+    DOM.modalSettings.close();
+  });
   DOM.modalSettings.addEventListener('click', (e) => {
     const d = DOM.modalSettings.getBoundingClientRect();
     if (e.clientX < d.left || e.clientX > d.right || e.clientY < d.top || e.clientY > d.bottom) {
@@ -1351,8 +1410,12 @@ function bindEvents() {
     }
   });
 
-  DOM.btnScanWiz.addEventListener('click', runWizDiscovery);
+  DOM.btnScanWiz.addEventListener('click', () => {
+    triggerHaptic('medium');
+    runWizDiscovery();
+  });
   DOM.btnSaveSettings.addEventListener('click', () => {
+    triggerHaptic('medium');
     appState.network.wizLeftIp = DOM.inputWizLeftIp.value.trim();
     appState.network.wizRightIp = DOM.inputWizRightIp.value.trim();
     localStorage.setItem('aura_wiz_left_ip', appState.network.wizLeftIp);
@@ -1365,6 +1428,7 @@ function bindEvents() {
   });
 
   DOM.toggleGamma.addEventListener('change', (e) => {
+    triggerHaptic('light');
     appState.useGammaCorrection = e.target.checked;
     renderAll();
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
@@ -1377,6 +1441,7 @@ function bindEvents() {
 
   if (fixtureLeft) {
     fixtureLeft.addEventListener('click', () => {
+      triggerHaptic('medium');
       appState.devices.wizLeft.power = !appState.devices.wizLeft.power;
       if (appState.syncCorners) appState.devices.wizRight.power = appState.devices.wizLeft.power;
       renderAll();
@@ -1390,6 +1455,7 @@ function bindEvents() {
 
   if (fixtureRight) {
     fixtureRight.addEventListener('click', () => {
+      triggerHaptic('medium');
       appState.devices.wizRight.power = !appState.devices.wizRight.power;
       if (appState.syncCorners) appState.devices.wizLeft.power = appState.devices.wizRight.power;
       renderAll();
@@ -1403,6 +1469,7 @@ function bindEvents() {
 
   if (fixtureDesk) {
     fixtureDesk.addEventListener('click', () => {
+      triggerHaptic('medium');
       appState.devices.desk.power = !appState.devices.desk.power;
       renderAll();
       dispatchStateChange({ desk: { power: appState.devices.desk.power } });
@@ -1420,6 +1487,7 @@ function setupBulbSwatches(containerId, deviceKey) {
   container.addEventListener('click', (e) => {
     const dot = e.target.closest('.swatch-dot');
     if (dot) {
+      triggerHaptic('light');
       const color = dot.dataset.color;
       appState.devices[deviceKey].color = color;
       appState.devices[deviceKey].mode = 'rgb';
