@@ -9,21 +9,78 @@
 <br/>
 
 <a href="https://github.com/Sandeep271958/The_Aura_Studio">
-  <img src="dashboard/sandy_logo.png" alt="Designed by Sandy Signature Logo" width="220" style="filter: drop-shadow(0 0 16px rgba(168,85,247,0.45));">
+  <img src="assets/sandy_logo.png" alt="Designed by Sandy Signature Logo" width="220" style="filter: drop-shadow(0 0 16px rgba(168,85,247,0.45));">
 </a>
 
 <br/><br/>
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![PWA](https://img.shields.io/badge/PWA-iOS%2016%20%7C%20MacBook-f59e0b?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
+[![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
+[![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
+[![PWA Responsive](https://img.shields.io/badge/PWA-MacBook%20%7C%20iPhone%2016-f59e0b?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
+[![FastLED](https://img.shields.io/badge/FastLED-60%20FPS-8b5cf6?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 
 <br/>
 
-> **A production-grade, local luxury smart lighting hub and spatial controller designed for dual Philips WiZ corner bulbs and an addressable WS2812B desktop LED strip.**
-> **Zero cloud dependency. Under 10ms local latency. Built with FreeRTOS dual-core firmware and an obsidian glassmorphism spatial dashboard.**
+> **A production-grade, local luxury smart lighting hub and spatial architecture controller engineered for dual Philips WiZ corner bulbs and an addressable WS2812B desktop LED strip.**
+> **Zero cloud dependency. Under 10ms local UDP latency. Built with FreeRTOS dual-core firmware, real-time wave physics, and an obsidian glassmorphism spatial dashboard.**
+
+</div>
+
+---
+
+## 📸 Visual Tour & Interface Showcase
+
+The Aura Studio features a bespoke obsidian glassmorphism interface built from the ground up to rival commercial luxury systems like Lutron Ketra and Bang & Olufsen BeoLiving. Below is a complete visual walkthrough of the operational Web UI.
+
+<div align="center">
+
+### 1. 🏛️ Spatial Studio & Interactive 2.5D Room Architecture
+![Spatial Studio Viewport](assets/screenshots/01_spatial_studio_viewport.png)
+*Real-time 2.5D isometric room canvas rendering live ambient wall bounce, desk monitor bias, and luxury hospitality atmospheric presets.*
+
+<br/>
+
+### 2. 🎛️ 3-Channel Hardware Matrix & Spectrum Scrubbing
+![3-Channel Hardware Matrix](assets/screenshots/02_channel_hardware_matrix.png)
+*Independent and unified controls for Desk WS2812B Strip and dual Corner WiZ Bulbs with 360° Rainbow Hue Bars, 12-color curated palette chips, and the Designed by Sandy signature footer.*
+
+<br/>
+
+### 3. ☀️ Natural Circadian Rhythm Engine
+![Natural Circadian Rhythm Engine](assets/screenshots/03_circadian_solar_rhythm.png)
+*Biological 24-hour solar arc tracking based on Lutron Ketra and Apple Adaptive Lighting algorithms with live Kelvin/Lux modulation.*
+
+<br/>
+
+### 4. 🖥️ Spatial Ambilight Screen Synchronizer
+![Spatial Ambilight Screen Synchronizer](assets/screenshots/04_ambilight_screen_sync.png)
+*Native WebRTC 30 FPS display sampling projecting dynamic left, center, and right room color washes with zero companion desktop apps.*
+
+<br/>
+
+### 5. 🎵 SoundSync Audio Reactive Visualizer
+![SoundSync Audio Reactive Visualizer](assets/screenshots/05_soundsync_audio_visualizer.png)
+*Web Audio API FFT frequency separation driving sub-bass room pulses across WiZ bulbs while vocal mids and highs ripple across the desk strip.*
+
+<br/>
+
+### 6. 🎨 Gradient Colorway & Real Fluid Wave Physics Lab
+![Gradient Fluid Physics Lab](assets/screenshots/06_gradient_fluid_physics_lab.png)
+*Live 60 FPS fluid simulation canvas, 120-LED addressable pixel matrix, 4-stop linear colorway builder, and 8 Navier-Stokes & optical wave physics engines.*
+
+<br/>
+
+### 7. 🌌 Curated Luxury Palettes & WiZ Ambient Integration
+![Curated Palettes and WiZ Integration](assets/screenshots/07_gradient_palettes_wiz_integration.png)
+*14 luxury designer physics palettes and intelligent WiZ integration modes (Dynamic Spatial Sync vs. Architectural Warm White Gallery Contrast).*
+
+<br/>
+
+### 8. ⏳ Smart Focus & Rest Interval Engine (Pomodoro Chronobiology)
+![Smart Focus and Rest Interval Engine](assets/screenshots/08_focus_rhythm_pomodoro.png)
+*Chronobiology interval timer pairing anti-distraction 4500K task lighting with 2400K golden amber restorative bloom.*
 
 </div>
 
@@ -31,7 +88,7 @@
 
 ## 🌟 The Concept: Layered Room Lighting Architecture
 
-Most room lighting feels flat and jarring because standard RGB strips either overpower the room or fail to integrate with ambient wall lights. **The Aura Studio** treats your room as a multi-layered lighting canvas:
+Most smart lighting setups feel harsh, distracting, or flat because single-strip setups produce harsh localized glare without diffuse room fill. **The Aura Studio** models your room as an architectural, multi-layered lighting canvas:
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -50,110 +107,189 @@ Most room lighting feels flat and jarring because standard RGB strips either ove
 └────────────────────────────────────────────────────────┘
 ```
 
-1. **Layer 1: Ambient Fill (2&times; Philips WiZ Corner Bulbs)**
-   - Bathes walls in diffused, low-intensity light. Eliminates deep shadows in the room's periphery.
-2. **Layer 2: Contrast & Bias Glow (Desk WS2812B Strip)**
-   - Backlight behind your monitor/desk to soften screen contrast, banishing eye fatigue during late-night work or gaming.
+1. **Layer 1: Ambient Wall Fill (2× Philips WiZ Corner Bulbs)**
+   - Bathes perimeter walls in diffuse, indirect illumination, eliminating high-contrast shadows in peripheral vision.
+2. **Layer 2: Contrast & Eye Bias Glow (Desk WS2812B Strip)**
+   - Backlight situated directly behind the computer monitor to balance screen luminosity and prevent optical strain.
 3. **The Layer Contrast Slider**:
-   - Dynamically shifts the illumination balance between ambient wall bounce and direct task bias without altering perceived overall brightness.
+   - Dynamically rebalances illumination between ambient wall bounce and monitor bias while preserving perceived overall room lux.
 
 ---
 
-## 💎 Flagship High-End Feature Suites
+## 💎 Deep-Dive Feature Suites
 
-The Aura Studio incorporates the most advanced capabilities found across luxury lighting ecosystems (**Lutron Ketra**, **Philips Hue Entertainment**, **Govee DreamView**, **Nanoleaf Rhythm**, and **Apple HomeKit Adaptive Lighting**):
+The Aura Studio incorporates the most sophisticated lighting engineering found across luxury architectural installations (**Lutron Ketra**, **Philips Hue Entertainment**, **Govee DreamView**, **Nanoleaf Rhythm**, and **Apple Adaptive Lighting**):
 
-### 1. 🏛️ World-Class Architectural Atmosphere Presets
-Curated scenes inspired by luxury 5-star hospitality design (Lutron Ketra, Aman Resorts Kyoto, Nordic wellness spas):
-1. ⚡ **Cyberpunk Night:** Neon Magenta desk (`#ec4899`) with Deep Cobalt corners (`#1e40af`) for immersive synthwave gaming.
-2. ☕ **Warm Minimalist:** 2400K Candlelight corners with soft amber desk breathe effect (`#f59e0b`).
-3. 🎯 **Deep Focus:** 4500K crisp neutral white bias with 15% dimmed ambient corners for distraction-free sprints.
-4. 🌅 **Sunset Horizon:** Golden peach & sunset wave (`#f43f5e`) with warm 2700K gold corners (`#fb923c`).
-5. 🌌 **Aurora Drift:** Emerald & violet fluid flow (`#10b981`) with jade ambient bounce (`#8b5cf6`).
-6. 🎬 **Midnight Cinema:** Ultra-dim 1800K ember with anti-glare monitor bias for cinematic viewing.
-7. 🌸 **Aman Kyoto Zen:** Serene Japanese ryokan tranquility. 2200K Sakura dawn wave (`#fbcfe8`) paired with 2000K intimate candlelight corners (`#ff8a12`).
-8. 🏛️ **Grand Welcome (Lutron Ketra):** High-end hotel arrival scene. Flattering 2800K incandescent ambient baseline with rich warm amber-gold wall wash (`#ffc078`).
-9. 🌿 **Deep Sanctuary Spa:** Nordic wellness recovery. Restorative aquamarine bio-luminescent desk glow (`#0d9488`) with 2400K warm decompression wash (`#ff9b3d`).
-10. 🌊 **Oceanic Abyss:** Bioluminescent deep-sea cyan pulse (`#00f2fe`) transitioning into deep midnight cobalt corners (`#0b192c`).
+---
 
-### 2. 🎨 Gradient Colorway & Dynamic Fluid Lab (Real Wave Physics)
-- **Real-World Fluid Wave Physics & Thin-Film Soap Bubble Interference:**
-  - Models physical light interference on microscopic fluid films ($\delta = \frac{4\pi}{\lambda} d \cos\theta$), generating organic, pearlescent cyan-magenta-lavender-gold swirls.
-  - **Live 60 FPS HTML5 Canvas Fluid Simulation:** Dual-zone visualizer rendering both the continuous multi-harmonic wave ribbon and the 120 individual physical WS2812B LED beads in real time.
-- **4-Stop Linear Colorway Designer:**
-  - Precision color stops at 0%, 33%, 67%, and 100% with real-time linear CSS preview bar and canvas synchronization.
-- **8 Fluid Dynamics & Motion Physics Profiles:**
-  - 🫧 **Soap Bubble (Thin-Film Optical Interference):** Multi-harmonic wave displacement with chromatic phase splitting ($\Delta\phi_R=0, \Delta\phi_G=\frac{2\pi}{3}, \Delta\phi_B=\frac{4\pi}{3}$).
-  - 🌊 **Fluid Wave (Navier-Stokes Advection):** Smooth laminar fluid flow with viscous momentum and sinusoidal turbulence dispersion.
-  - 🏊 **Underwater Caustics (Ray Refraction):** Sunlight ray convergence through dual intersecting ripples, creating sharp, dancing luminous web peaks.
-  - ⚡ **Soliton Wave Packets (Quantum Nonlinear):** Dual solitary waves ($A \cdot \text{sech}^2(\frac{x - vt}{w})$) that travel, collide, and pass through each other without dispersion.
-  - 🔥 **Thermal Convection Plumes (Fractal Brownian Heat):** Multi-octave convective heat flow where buoyant fluid rises in curling filaments and cooling eddies.
-  - 🌀 **Marangoni Surface Vortices (Capillary Flow):** Surface tension gradient-driven flow creating 4 counter-rotating cellular convection rolls with laminar shear.
-  - 💨 **Harmonic Breathing (Resonant Expansion):** Symmetric lung-like expansion and contraction from center bias.
-  - ✨ **Prismatic Opal Shimmer (Scintillation):** High-frequency micro-refraction dispersion sparkle overlaid on flowing color gradients.
-- **Physics Controls:**
-  - **Flow Velocity Slider (10–100%):** From gentle deep calm to rapid fluid river flows.
-  - **Wave Turbulence Slider (10–100%):** Smooth laminar flow to organic vortex plasma dispersion.
-- **14 Luxury Curated Designer Palettes:**
-  1. 🫧 *Soap Bubble Iridescence* (`#a5f3fc`, `#f472b6`, `#c084fc`, `#fef08a`)
-  2. 🌊 *Bioluminescent Deep Sea* (`#00f2fe`, `#1d4ed8`, `#0b0f19`, `#0d9488`)
-  3. 🏊 *Maldives Tropical Caustics* (`#00f2fe`, `#38bdf8`, `#0284c7`, `#ffffff`)
-  4. ⚡ *Quantum Soliton Stream* (`#8a2be2`, `#00f2fe`, `#3b82f6`, `#ec4899`)
-  5. 🔥 *Geothermal Magma Plume* (`#ffedd5`, `#f97316`, `#dc2626`, `#18181b`)
-  6. 🌀 *Marangoni Azure Vortices* (`#2dd4bf`, `#06b6d4`, `#6366f1`, `#0f172a`)
-  7. 💎 *Opal Prism* (`#ffffff`, `#fde047`, `#22d3ee`, `#e879f9`)
-  8. 🌌 *Northern Lights (Aurora)* (`#10b981`, `#06b6d4`, `#8b5cf6`, `#0f172a`)
-  9. 🔥 *Solar Flare & Plasma* (`#fef9c3`, `#f59e0b`, `#dc2626`, `#4c1d95`)
-  10. 🌸 *Kyoto Cherry Blossom* (`#fbcfe8`, `#a78bfa`, `#fbbf24`, `#1e1b4b`)
-  11. ⚡ *Cyberpunk Synthwave* (`#ff007f`, `#7928ca`, `#00f2fe`, `#0a0a14`)
-  12. 🏜️ *Mojave Sunset* (`#f59e0b`, `#f43f5e`, `#6b21a8`, `#1e1b4b`)
-  13. ☕ *Amber Candle & Hearth* (`#ea580c`, `#f97316`, `#fbbf24`, `#292524`)
-  14. 🌴 *Miami Sunset Vice* (`#ff1493`, `#00e5ff`, `#4a00e0`, `#ff007f`)
-- **Corner WiZ Bulbs Integration Architecture:**
-  - **Dynamic Spatial Sync:** Left and Right WiZ bulbs sample the fluid wave boundary edges, expanding the desk strip across the room.
-  - **Architectural Warm White (Gallery Contrast):** WiZ bulbs cast pure CCT white (*2000K Candlelight*, *2400K Warm Minimalist*, *2700K Soft Living*, or *4000K Studio Focus Neutral*), framing the dynamic desk strip with high-end museum gallery ambiance.
-  - **Custom Ambient Bulbs:** Independent color picker for personalized corner bulb wash.
+### 1. 🏛️ Spatial Studio & Architectural Atmosphere Presets
 
-### 3. ☀️ Circadian Solar Rhythm (Human Centric Lighting)
-- Synchronizes your room's color temperature and lux to the biological 24-hour solar cycle.
-- Automatically transitions from **2200K warm dawn** &rarr; **6500K zenith daylight focus** &rarr; **2700K golden hour** &rarr; **1800K deep melatonin-preserving amber** at night.
-- Interactive 24-hour solar arc timeline with live sun altitude tracker and manual preview scrubber.
+<p align="center">
+  <img src="assets/screenshots/01_spatial_studio_viewport.png" alt="Spatial Studio Viewport" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
 
-### 4. 🖥️ Spatial Ambilight Real-Time Screen Sync
-- Real-time 30 FPS display capture using native browser **WebRTC Screen Capture API** (`getDisplayMedia`) with zero companion desktop apps required.
-- Samples 3 distinct spatial zones:
-  - **Left Screen Edge** &rarr; Dispatched to Left Corner WiZ Bulb.
-  - **Center & Bottom** &rarr; Dispatched to Desk WS2812B Bias Strip.
-  - **Right Screen Edge** &rarr; Dispatched to Right Corner WiZ Bulb.
-- Features Exponential Moving Average (EMA) color smoothing, saturation boost, and an anti-fatigue black floor.
+The **Spatial Studio** is the primary control deck of The Aura Studio. It centers around a live **2.5D Isometric Room Viewport** rendered on an HTML5 canvas that mirrors the physical room's lighting state in real time:
+- **Real-Time Spatial Simulation:** Visualizes light emitted from the two corner WiZ bulbs and the central desk strip, simulating wall bounce, monitor reflection, and floor gradients.
+- **Master Room Controls:**
+  - **Master Brightness (0–100%):** Logarithmic dimming curve calibrated to human eye perception ($CIE\ 1931$).
+  - **Layer Contrast Ratio (Bias vs. Ambient Fill):** Shifts illumination weight between direct desk backlight and ambient perimeter bounce without shifting overall room lux.
+  - **Global Fade Transition:** Configurable fade speeds (`Instant`, `Smooth 0.8s`, `Gentle 2.0s`, `Cinematic 4.0s`).
+- **World-Class Hospitality Presets:**
+  1. ⚡ **Cyberpunk Night:** Neon Magenta desk (`#ec4899`) with Deep Cobalt corners (`#1e40af`) for immersive synthwave gaming.
+  2. ☕ **Warm Minimalist:** 2400K Candlelight corners with soft amber desk breathe effect (`#f59e0b`).
+  3. 🎯 **Deep Focus:** 4500K crisp neutral white bias with 15% dimmed ambient corners for distraction-free sprints.
+  4. 🌅 **Sunset Horizon:** Golden peach & sunset wave (`#f43f5e`) with warm 2700K gold corners (`#fb923c`).
+  5. 🌌 **Aurora Drift:** Emerald & violet fluid flow (`#10b981`) with jade ambient bounce (`#8b5cf6`).
+  6. 🎬 **Midnight Cinema:** Ultra-dim 1800K ember with anti-glare monitor bias for cinematic viewing.
+  7. 🌸 **Aman Kyoto Zen:** Serene Japanese ryokan tranquility. 2200K Sakura dawn wave (`#fbcfe8`) paired with 2000K intimate candlelight corners (`#ff8a12`).
+  8. 🏛️ **Grand Welcome (Lutron Ketra):** High-end hotel arrival scene. Flattering 2800K incandescent ambient baseline with rich warm amber-gold wall wash (`#ffc078`).
+  9. 🌿 **Deep Sanctuary Spa:** Nordic wellness recovery. Restorative aquamarine bioluminescent desk glow (`#0d9488`) with 2400K warm decompression wash (`#ff9b3d`).
+  10. 🌊 **Oceanic Abyss:** Bioluminescent deep-sea cyan pulse (`#00f2fe`) transitioning into deep midnight cobalt corners (`#0b192c`).
+
+---
+
+### 2. 🎛️ 3-Channel Hardware Matrix & Spectrum Scrubbing
+
+<p align="center">
+  <img src="assets/screenshots/02_channel_hardware_matrix.png" alt="3-Channel Hardware Matrix" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+Provides complete independent or coordinated mastery over all 3 lighting hardware channels:
+- **Desk WS2812B Strip (120 Addressable LEDs):**
+  - High-performance FastLED animation modes: `Solid Color`, `Fluid Wave`, `Breathe`, `Rainbow Flow`, `Chroma Pulse`.
+  - Rate/speed slider, brightness dimming, and independent power switch.
+- **Left & Right Corner WiZ Bulbs:**
+  - Dual-mode operation: **Pure CCT White** (2000K Candlelight to 6500K Studio Daylight) or **Full RGB Spectrum**.
+- **360° Continuous Rainbow Spectrum Hue Bar:**
+  - Draggable smooth hue scrubber (`0°` to `360°`) on each channel for rapid, intuitive color dialing without OS dialogs.
+- **Curated 12-Color Smart Palette Matrix:**
+  - One-tap access to hand-tuned architectural hues: Cyber Magenta, Electric Cyan, Royal Violet, Deep Cobalt, Emerald Jade, Vivid Amber, Crimson Ruby, Sunset Coral, Sky Cerulean, Candlelight 2000K, Soft Warm 2700K, and Studio Daylight White.
+- **Signature Branding Footer:**
+  - Includes Sandy's signature product logo, hardware firmware indicators, FastLED 60 FPS telemetry, UDP port 38899 status, and CIE 1931 optical compliance tag.
+
+---
+
+### 3. ☀️ Natural Circadian Rhythm Engine (Human-Centric Lighting)
+
+<p align="center">
+  <img src="assets/screenshots/03_circadian_solar_rhythm.png" alt="Natural Circadian Rhythm Engine" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+Synchronizes room lighting with the biological 24-hour solar cycle to naturally regulate melatonin production, alertness, and restorative sleep:
+- **Mathematical Solar Arc Model:** Computes sun elevation using sinusoidal solar harmonics:
+  $$\text{Elevation}(t) = \sin\left(\frac{t - 6}{12} \times \pi\right)$$
+- **Autonomous CCT & Lux Progression:**
+  - **06:00 Dawn:** Gentle 2200K warm sunrise at 30% lux to stimulate natural cortisol release without glare.
+  - **12:00 Zenith Noon:** 6500K daylight-balanced white at 100% lux for peak mental focus and cognitive acuity.
+  - **18:00 Golden Hour:** 2800K warm incandescent glow at 60% lux signaling the end of the workday.
+  - **23:00+ Deep Rest (Melatonin Guard):** 1800K ultra-warm amber at 15% lux, eliminating blue wavelengths below 480nm to protect melatonin synthesis.
+- **Interactive Timeline Scrubber:** Allows immediate manual time simulation and preview across any hour of the day.
+
+---
+
+### 4. 🖥️ Spatial Ambilight Real-Time Screen Synchronizer
+
+<p align="center">
+  <img src="assets/screenshots/04_ambilight_screen_sync.png" alt="Spatial Ambilight Screen Synchronizer" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+Transforms the entire room into an expansive visual extension of your computer monitor:
+- **Native WebRTC Capture:** Utilizes the browser's native `navigator.mediaDevices.getDisplayMedia` API running at 30 FPS. **Requires zero third-party software, drivers, or background daemons.**
+- **3-Zone Spatial Color Extraction:**
+  - **Left Screen Edge:** Extracted and dispatched to Left Corner WiZ Bulb (`#6a0d62`).
+  - **Center & Bottom:** Extracted and streamed to Desk WS2812B Strip (`#ba01c1`).
+  - **Right Screen Edge:** Extracted and dispatched to Right Corner WiZ Bulb (`#720150`).
+- **Spatial Immersion Tuning:**
+  - **Color Smoothing (EMA Filter):** Exponential Moving Average ($C_t = \alpha \cdot C_{sample} + (1-\alpha) \cdot C_{t-1}$) configurable from 10% (high-speed gaming) to 90% (cinematic movie transitions).
+  - **Saturation Boost (1.0×–2.0×):** Compensates for dark letterboxing and enhances cinematic color vibrancy.
+  - **Minimum Black Floor (Anti-Fatigue):** Prevents the room from abruptly snapping to pitch-black during dark movie cuts.
+
+---
 
 ### 5. 🎵 SoundSync Audio Reactive Visualizer
-- Hardware FFT frequency analysis powered by the **Web Audio API**.
-- Sub-bass frequencies (20–150 Hz) drive rhythmic room pulses across corner WiZ bulbs, while vocal mids and percussion ripple fluid waves across the desk strip.
 
-### 6. ⏳ Focus & Rest Rhythm (Smart Pomodoro Lighting)
-- **Focus Interval (25 min):** 4500K crisp neutral white task bias; corner WiZ bulbs dim to 15% to eliminate room distractions.
-- **Rest Interval (5 min):** Room blooms into a soft, warm 2400K golden amber wash with slow breathing pulses to cue relaxation.
-- **Generous Countdown Ring:** 260px circular ring with radial glassmorphism and auto-wrapping pill badges (`FOCUS SPRINT • 4500K`, `REST INTERVAL • 2400K`), eliminating any border clipping on all viewports.
+<p align="center">
+  <img src="assets/screenshots/05_soundsync_audio_visualizer.png" alt="SoundSync Audio Reactive Visualizer" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
 
-### 7. 🌈 Continuous Rainbow Hue Bar & Curated Top Color Matrix
-- **360&deg; Continuous Spectrum Scrubbing:** Smooth rainbow-gradient Hue Bar (`0&deg;` to `360&deg;`) on the Desk Strip and both WiZ bulbs for instant, fluid color selection without needing to open OS color pickers.
-- **Top Color Choices Matrix Grid:** Curated 12-color smart lighting palette with glowing halo swatches:
-  - *Primary & Neon:* Cyber Magenta (`#ec4899`), Electric Cyan (`#00f2fe`), Royal Violet (`#8a2be2`), Deep Cobalt (`#1e40af`), Emerald Jade (`#10b981`), Vivid Amber (`#f59e0b`), Crimson Ruby (`#ef4444`).
-  - *Atmospheric & Natural:* Sunset Coral (`#fb7185`), Sky Cerulean (`#0284c7`), Candlelight 2000K (`#ff9329`), Soft Warm 2700K (`#ffa757`), Studio Daylight White (`#ffffff`).
-- **Bi-Directional Color Synchronization:** Live dual readout (`#EC4899 • 330° Hue`), auto-positioning Hue slider thumbs, active selection rings, and native color wheel integration.
+Converts music and voice into physical light dynamics using real-time Fast Fourier Transform (FFT) frequency analysis via the **Web Audio API**:
+- **3-Band Frequency Separation:**
+  - **Sub-Bass (20–150 Hz):** Powers deep ambient thumps on both corner WiZ bulbs, creating visceral room-filling presence.
+  - **Vocal Mids (150–2500 Hz):** Drives fluid harmonic light waves across the desk strip.
+  - **Highs / Percussion (2500–16000 Hz):** Triggers crisp micro-sparkles and shimmer highlights.
+- **Reactive Lighting Profiles:**
+  - **Bass Pulse:** Rhythmic illumination breathing to low-end transients.
+  - **Equalizer:** Real-time LED strip graphic equalizer mapping frequency bins from left to right.
+  - **Rave Burst:** High-energy transient strobe with dynamic hue rotation.
 
-### 8. 📱 MacBook & iPhone 16 Boundary-Clean Responsive Architecture
-- **MacBook Pro & Air Display Boundary Guarantee:** Designed with fluid flexbox containment, zero-overflow headers, auto-scrolling suite navigation tabs (`scrollbar-width: none`), and intelligent responsive collapsing (`@media (max-width: 1440px)` and `@media (max-width: 1180px)`). Prevents header options and the master **ROOM** power toggle from ever overflowing or clipping on MacBook Air 13" (1280px/1312px) or MacBook Pro 14"/16" viewports.
-- **Dynamic Island & Safe Area Integration:** Built with `viewport-fit=cover` and dynamic CSS variables (`env(safe-area-inset-top)`, `env(safe-area-inset-bottom)`) ensuring edge-to-edge immersion without clipping behind the iPhone 16 Dynamic Island or home indicator.
-- **Ergonomic Obsidian Glass Bottom Dock:** On screens &le; 768px, navigation seamlessly transforms into an iOS-style fixed bottom tab bar for effortless single-thumb access to all 6 feature suites.
-- **Apple HIG Touch Ergonomics:** Minimum 44&times;44 pt touch targets, enlarged touch slider thumbs (`26px`), and `touch-action: pan-y` preventing horizontal scrubbing from triggering scroll locks.
-- **Tactile Haptic Feedback:** Physical tactile clicks (`navigator.vibrate`) on preset activations, fixture toggles, mode switches, and slider release.
-- **Standalone PWA:** Tap "Share" &rarr; "Add to Home Screen" in iOS Safari for a standalone app with custom high-res obsidian-cyan app icons.
+---
 
-### 9. 🖋️ Product Signature Branding (Designed by Sandy)
-- Embedded luxury branding badge featuring Sandy's signature product logo at the base of the interface.
-- Includes dynamic hardware telemetry chips (Firmware v3.0, FreeRTOS dual-core engine, under 10ms local UDP latency indicator).
+### 6. 🎨 Gradient Colorway & Real Fluid Wave Physics Lab
+
+<p align="center">
+  <img src="assets/screenshots/06_gradient_fluid_physics_lab.png" alt="Gradient Fluid Physics Lab - Profiles" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/07_gradient_palettes_wiz_integration.png" alt="Gradient Fluid Physics Lab - Palettes" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+The flagship dynamic lighting laboratory. Unlike generic smart strips that shift between static colors, The Aura Studio models **real-world fluid dynamics and optical wave physics** running in a real-time 60 FPS simulation loop:
+- **Live Dual-Zone Simulation:**
+  - **Continuous Fluid Stream Ribbon:** Displays the uninterrupted multi-harmonic wave dispersion.
+  - **120-LED Addressable Pixel Matrix:** Renders the exact interpolated color of every individual physical LED bead.
+- **4-Stop Linear Colorway Designer:**
+  - Customizable color stops at 0%, 33%, 67%, and 100% with real-time gradient blending.
+- **8 Scientific Physics & Motion Profiles:**
+  1. 🫧 **Soap Bubble (Thin-Film Optical Interference):** Models light interference on microscopic fluid membranes ($\delta = \frac{4\pi}{\lambda} d \cos\theta$) with chromatic phase splitting ($\Delta\phi_R=0, \Delta\phi_G=\frac{2\pi}{3}, \Delta\phi_B=\frac{4\pi}{3}$).
+  2. 🌊 **Fluid Wave (Navier-Stokes Advection):** Fluid momentum transfer with viscous dissipation and turbulence dispersion.
+  3. 🏊 **Underwater Caustics (Ray Refraction):** Optical ray convergence through dual intersecting wave surfaces.
+  4. ⚡ **Soliton Wave Packets (Quantum Nonlinear):** Dual solitary waves ($A \cdot \text{sech}^2(\frac{x - vt}{w})$) that collide and pass through each other without dispersion.
+  5. 🔥 **Thermal Convection Plumes (Fractal Brownian Heat):** Convective buoyant fluid rising in curling filaments.
+  6. 🌀 **Marangoni Surface Vortices (Capillary Flow):** Surface tension gradient-driven flow creating 4 counter-rotating cellular convection rolls.
+  7. 💨 **Harmonic Breathing (Resonant Expansion):** Symmetric expansion and contraction from center bias.
+  8. ✨ **Prismatic Opal Shimmer (Scintillation):** High-frequency micro-refraction dispersion sparkle.
+- **14 Luxury Curated Designer Palettes:**
+  - *Soap Bubble Iridescence*, *Bioluminescent Deep Sea*, *Maldives Tropical Caustics*, *Quantum Soliton Stream*, *Geothermal Magma Plume*, *Marangoni Azure Vortices*, *Opal Prism*, *Northern Lights (Aurora)*, *Solar Flare & Plasma*, *Kyoto Cherry Blossom*, *Cyberpunk Synthwave*, *Mojave Sunset*, *Amber Candle & Hearth*, *Miami Sunset Vice*.
+- **Intelligent Corner WiZ Bulbs Integration:**
+  - **Dynamic Spatial Sync:** Left and Right WiZ bulbs sample the fluid gradient's outer boundary edges, expanding the desk strip across the room walls.
+  - **Architectural Warm White (Gallery Contrast):** Keeps the desk strip dynamic while holding corner WiZ bulbs at a pure, architectural warm CCT white (2000K–4000K) to frame the desk like a high-end art gallery installation.
+  - **Custom Ambient Bulbs:** Independent manual color selection.
+
+---
+
+### 7. ⏳ Smart Focus & Rest Interval Engine (Pomodoro Chronobiology)
+
+<p align="center">
+  <img src="assets/screenshots/08_focus_rhythm_pomodoro.png" alt="Smart Focus and Rest Interval Engine" width="900" style="border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);">
+</p>
+
+Pairs structured Pomodoro productivity sprints with biological lighting cues:
+- **Focus Phase (25 Minutes):**
+  - Desk strip locks into an anti-distraction **4500K neutral white bias**.
+  - Corner WiZ bulbs automatically dim to **15%** to eliminate peripheral room distractions.
+- **Rest Interval (5 Minutes):**
+  - Room blooms into a restorative **2400K golden amber wash** accompanied by a gentle breathing desk pulse signaling mental recharge.
+- **Boundary-Clean Glowing Countdown Ring:**
+  - 260px circular SVG ring with radial glassmorphic backdrop and auto-wrapping pill badges (`25:00`, `READY FOR SPRINT`), engineered to eliminate clipping across all screen sizes.
+
+---
+
+## 📱 Responsive Architecture (MacBook Air/Pro & iPhone 16)
+
+The Aura Studio is engineered to deliver a native app experience on both desktop and mobile form factors:
+
+- **MacBook Pro & Air Zero-Overflow Guarantee:**
+  - Designed with fluid flexbox containment, zero-overflow headers, auto-scrolling suite navigation tabs (`scrollbar-width: none`), and intelligent responsive collapsing (`@media (max-width: 1440px)` and `@media (max-width: 1180px)`).
+  - Header actions and the master **ROOM** power toggle remain cleanly within bounds on MacBook Air 13" (1280px/1312px) and MacBook Pro 14"/16" viewports.
+- **iPhone 16 Dynamic Island & Safe Area Integration:**
+  - Built with `viewport-fit=cover` and dynamic CSS variables (`env(safe-area-inset-top)`, `env(safe-area-inset-bottom)`), ensuring full-bleed immersion without UI elements falling behind the Dynamic Island or iOS home bar.
+- **Ergonomic Obsidian Glass Bottom Dock:**
+  - On screens ≤ 768px, navigation automatically transforms into an iOS-style fixed bottom tab dock for effortless single-thumb access to all 6 feature suites.
+- **Apple HIG Touch Ergonomics & Haptics:**
+  - Minimum 44×44 pt touch targets, enlarged touch slider thumbs (`26px`), `touch-action: pan-y`, and physical tactile haptic clicks (`navigator.vibrate`) on preset activations, fixture toggles, and slider release.
+- **Standalone PWA:**
+  - Tap "Share" → "Add to Home Screen" in iOS Safari for an offline-capable standalone app with bundled high-resolution obsidian-cyan icons.
 
 ---
 
@@ -178,7 +314,7 @@ Curated scenes inspired by luxury 5-star hospitality design (Lutron Ketra, Aman 
            [               ESP32 (NodeMCU)            ]
 ```
 
-### Power Calculation Formula
+### Power Calculation & Safety
 $$\text{Max Current (A)} \approx (\text{LED Count} \times 0.05\text{A}) + 0.5\text{A (ESP32)}$$
 * For **120 LEDs** (approx. 2 meters of 60 LEDs/m strip): $120 \times 0.05 + 0.5 \approx \mathbf{6.5\text{A}}$ at 100% full white.
 * FastLED includes a software safety power limiter configured at `MAX_POWER_MILLIAMPS = 3000` (3A).
@@ -189,19 +325,32 @@ $$\text{Max Current (A)} \approx (\text{LED Count} \times 0.05\text{A}) + 0.5\te
 
 ```
 The_Aura_Studio/
+├── assets/                        # Documentation & Branding Assets
+│   ├── sandy_logo.png             # Designed by Sandy Signature Logo
+│   └── screenshots/               # Full UI Suite Screenshots
+│       ├── 01_spatial_studio_viewport.png
+│       ├── 02_channel_hardware_matrix.png
+│       ├── 03_circadian_solar_rhythm.png
+│       ├── 04_ambilight_screen_sync.png
+│       ├── 05_soundsync_audio_visualizer.png
+│       ├── 06_gradient_fluid_physics_lab.png
+│       ├── 07_gradient_palettes_wiz_integration.png
+│       └── 08_focus_rhythm_pomodoro.png
 ├── dashboard/                     # Standalone Web Dashboard (Browser & Mobile PWA)
 │   ├── index.html                 # 6 Feature Suites, 2.5D Room Canvas & Sandy Signature
 │   ├── style.css                  # Obsidian Glassmorphic Design System & Responsive Layout
 │   ├── app.js                     # Circadian, Ambilight, SoundSync & WebSocket Engine
-│   ├── sandy_logo.png             # Product Signature Branding (Designed by Sandy)
+│   ├── Satisfy.ttf                # Bundled Offline Header Script Font (Option-2)
+│   ├── sandy_logo.png             # Product Signature Branding
 │   ├── manifest.json              # Progressive Web App configuration
 │   └── icons/                     # High-res PWA application icons
 ├── firmware/                      # ESP32 FreeRTOS Firmware
-│   ├── platformio.ini             # PlatformIO configuration
+│   ├── platformio.ini             # PlatformIO build configuration
 │   ├── data/                      # LittleFS assets (automatically served by ESP32)
 │   │   ├── index.html
 │   │   ├── style.css
 │   │   ├── app.js
+│   │   ├── Satisfy.ttf
 │   │   ├── sandy_logo.png
 │   │   ├── manifest.json
 │   │   └── icons/
@@ -211,7 +360,7 @@ The_Aura_Studio/
 │       ├── WizController.h / .cpp # WiZ local UDP driver & discovery parser
 │       ├── WebServerManager.h / .cpp # AsyncWebServer & WebSocket sync
 │       └── main.cpp               # FreeRTOS dual-core initialization
-├── test_suite.js                  # Automated test suite (15 files, 124 IDs, 106 buttons)
+├── test_suite.js                  # Automated verification test suite
 └── README.md                      # Comprehensive documentation & setup guide
 ```
 
@@ -229,7 +378,7 @@ cd The_Aura_Studio
 ```
 
 ### 2. Configure Wi-Fi & Hardware
-Open [`firmware/src/Config.h`](file:///Users/mouryasaisandeep/Desktop/Projects/SmartLight/firmware/src/Config.h) and set your local credentials:
+Open [`firmware/src/Config.h`](firmware/src/Config.h) and set your local credentials:
 ```cpp
 #define DEFAULT_WIFI_SSID       "Your_Home_WiFi"
 #define DEFAULT_WIFI_PASSWORD   "Your_WiFi_Password"
@@ -240,8 +389,8 @@ Open [`firmware/src/Config.h`](file:///Users/mouryasaisandeep/Desktop/Projects/S
 ### 3. Upload Web Assets to LittleFS
 In PlatformIO:
 1. Click the PlatformIO Alien icon on the sidebar.
-2. Under `esp32dev` &rarr; `Platform`, click **Upload Filesystem Image**.
-*(This writes `firmware/data` into the ESP32's flash memory).*
+2. Under `esp32dev` → `Platform`, click **Upload Filesystem Image**.
+*(This writes `firmware/data` into the ESP32's onboard flash memory).*
 
 ### 4. Flash the Firmware
 1. Click **Upload and Monitor**.
@@ -253,11 +402,11 @@ In PlatformIO:
 
 ---
 
-## 🌐 Instant Browser Preview (No Hardware Required)
+## 🌐 Instant Browser Preview (Zero Hardware Required)
 
 You can explore and test the dashboard immediately on any computer:
-1. Open [`dashboard/index.html`](file:///Users/mouryasaisandeep/Desktop/Projects/SmartLight/dashboard/index.html) in any modern browser.
-2. The dashboard automatically detects offline mode and starts the **Interactive Room Simulator**, allowing you to preview presets, adjust sliders, run the Circadian timeline, and test Ambilight and SoundSync.
+1. Open [`dashboard/index.html`](dashboard/index.html) in any modern browser.
+2. The dashboard automatically detects offline mode and starts the **Interactive Room Simulator**, allowing you to preview presets, adjust sliders, test the Circadian timeline, and experiment with Ambilight, SoundSync, and Fluid Wave physics.
 
 ---
 
@@ -268,8 +417,8 @@ The Aura Studio includes a comprehensive headless verification test suite:
 node test_suite.js
 ```
 Validates:
-- 15 core asset and firmware files.
-- 124 unique DOM IDs across 6 suites.
+- 17 core asset, font, and firmware files.
+- 124 unique DOM IDs across all 6 feature suites.
 - 106 interactive buttons with corresponding event bindings.
 - 34 range sliders with numeric feedback tags.
 - 10 world-class architectural presets.

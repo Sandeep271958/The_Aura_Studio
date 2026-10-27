@@ -26,7 +26,16 @@ const files = [
   'firmware/src/WebServerManager.h',
   'firmware/src/WebServerManager.cpp',
   'firmware/src/main.cpp',
-  'README.md'
+  'README.md',
+  'assets/sandy_logo.png',
+  'assets/screenshots/01_spatial_studio_viewport.png',
+  'assets/screenshots/02_channel_hardware_matrix.png',
+  'assets/screenshots/03_circadian_solar_rhythm.png',
+  'assets/screenshots/04_ambilight_screen_sync.png',
+  'assets/screenshots/05_soundsync_audio_visualizer.png',
+  'assets/screenshots/06_gradient_fluid_physics_lab.png',
+  'assets/screenshots/07_gradient_palettes_wiz_integration.png',
+  'assets/screenshots/08_focus_rhythm_pomodoro.png'
 ];
 
 let allFilesExist = true;
