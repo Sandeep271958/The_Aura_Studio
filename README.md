@@ -4,7 +4,7 @@
 
 # ✦ THE AURA STUDIO ✦
 ### Elegant Smart Lighting Architecture & Spatial Ambience Hub
-**Designed by **
+**Designed by**
 
 <br/>
 
