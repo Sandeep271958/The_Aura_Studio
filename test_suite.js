@@ -14,7 +14,9 @@ const files = [
   'dashboard/style.css',
   'dashboard/app.js',
   'dashboard/sandy_logo.png',
+  'dashboard/MrDafoe.ttf',
   'firmware/data/sandy_logo.png',
+  'firmware/data/MrDafoe.ttf',
   'firmware/platformio.ini',
   'firmware/src/Config.h',
   'firmware/src/LedDriver.h',
@@ -36,7 +38,7 @@ files.forEach(f => {
 });
 
 if (allFilesExist) {
-  console.log('PASS: All 15 core files and signature assets exist.');
+  console.log(`PASS: All ${files.length} core files, fonts, and signature assets exist.`);
 }
 
 // 2. Validate HTML & JS ID Synchronization

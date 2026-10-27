@@ -1,7 +1,16 @@
 /* ==========================================================================
-   AURA // SMART LIGHT ROOM HUB - DESIGN SYSTEM & STYLESHEET
-   Aesthetics: Deep Obsidian Glassmorphism, Neon Accents & Dynamic Spatial Glow
+   THE AURA STUDIO // LUXURY SMART LIGHTING ARCHITECTURE
+   Aesthetics: Deep Obsidian Glassmorphism, Neon Accents & Marshall Cursive Signature
    ========================================================================== */
+
+/* Local Fallback Font-Face for Offline ESP32 Operation */
+@font-face {
+  font-family: 'Mr Dafoe';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('MrDafoe.ttf') format('truetype');
+}
 
 /* Design Tokens & CSS Variables */
 :root {
@@ -39,6 +48,7 @@
   /* Typography */
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-signature: 'Mr Dafoe', 'Satisfy', cursive;
 
   /* Dimensions & Radius */
   --radius-sm: 8px;
@@ -159,12 +169,23 @@ body {
 }
 
 .brand-title {
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
+}
+
+.brand-title-text {
+  font-family: var(--font-signature);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  text-shadow: 0 0 16px rgba(0, 242, 254, 0.35), 0 2px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-block;
+  transform: translateY(-1px);
 }
 
 .badge-version {
@@ -2709,8 +2730,11 @@ body {
   }
 
   .brand-title {
-    font-size: 1.05rem;
     gap: 6px;
+  }
+
+  .brand-title-text {
+    font-size: 1.35rem;
   }
 
   .badge-version {
@@ -3197,9 +3221,12 @@ body {
   }
 
   .brand-title {
-    font-size: 0.95rem;
     gap: 5px;
     white-space: nowrap;
+  }
+
+  .brand-title-text {
+    font-size: 1.22rem;
   }
 
   .badge-version {
@@ -3227,6 +3254,10 @@ body {
 
 /* Ultra-Compact Handset Screens (e.g. iPhone SE / 13 mini / < 380px) */
 @media (max-width: 380px) {
+  .brand-title-text {
+    font-size: 1.12rem;
+  }
+
   .scenes-grid {
     grid-template-columns: 1fr;
   }
