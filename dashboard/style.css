@@ -5,11 +5,11 @@
 
 /* Local Fallback Font-Face for Offline ESP32 Operation */
 @font-face {
-  font-family: 'Mr Dafoe';
+  font-family: 'Satisfy';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('MrDafoe.ttf') format('truetype');
+  src: url('Satisfy.ttf') format('truetype');
 }
 
 /* Design Tokens & CSS Variables */
@@ -48,7 +48,7 @@
   /* Typography */
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-signature: 'Mr Dafoe', 'Satisfy', cursive;
+  --font-signature: 'Satisfy', cursive;
 
   /* Dimensions & Radius */
   --radius-sm: 8px;
@@ -177,7 +177,7 @@ body {
 
 .brand-title-text {
   font-family: var(--font-signature);
-  font-size: 1.5rem;
+  font-size: 1.55rem;
   font-weight: 400;
   letter-spacing: 0.02em;
   color: #ffffff;
