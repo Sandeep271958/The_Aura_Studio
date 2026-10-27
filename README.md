@@ -1,9 +1,9 @@
-# THE AURA STUDIO // Luxury Smart Lighting Architecture
+# THE AURA STUDIO - Elegant Smart Lighting Architecture
 
 <div align="center">
 
 # ✦ THE AURA STUDIO ✦
-### Luxury Smart Lighting Architecture & Spatial Ambience Hub
+### Elegant Smart Lighting Architecture & Spatial Ambience Hub
 **Designed by **
 
 <br/>
