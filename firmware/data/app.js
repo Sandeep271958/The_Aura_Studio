@@ -1,5 +1,6 @@
 /**
- * AURA // Luxury Smart Lighting Architecture - Engine v3.0
+ * THE AURA STUDIO // Luxury Smart Lighting Architecture - Engine v3.0
+ * Designed by Sandy
  * Unified Controller: Spatial Studio, Circadian HCL, Ambilight, SoundSync, Gradient Lab & Focus Rhythm
  */
 

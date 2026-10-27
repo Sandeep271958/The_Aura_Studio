@@ -28,7 +28,8 @@ void setup() {
     Serial.begin(115200);
     delay(1000);
     Serial.println("\n==========================================");
-    Serial.println("   AURA // ESP32 SMART LIGHT ROOM HUB    ");
+    Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
+    Serial.println("   Designed by Sandy                        ");
     Serial.println("==========================================");
 
     // 1. Initialize LittleFS
@@ -86,7 +87,7 @@ void setup() {
         1
     );
 
-    Serial.println("[System] AURA Hub Ready & Operational.\n");
+    Serial.println("[System] The Aura Studio Hub Ready & Operational.\n");
 }
 
 void loop() {

@@ -1,7 +1,7 @@
 {
-  "name": "AURA // Smart Light Room Hub",
-  "short_name": "AURA",
-  "description": "Production-grade smart home lighting hub and spatial controller for ESP32 and Philips WiZ.",
+  "name": "The Aura Studio // Luxury Smart Light Hub",
+  "short_name": "The Aura Studio",
+  "description": "Production-grade smart home lighting hub and spatial controller for ESP32 and Philips WiZ. Designed by Sandy.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

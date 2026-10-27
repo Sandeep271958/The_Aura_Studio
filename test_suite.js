@@ -1,17 +1,20 @@
 /**
- * Automated Test Suite for AURA Smart Light Hub
+ * Automated Test Suite for THE AURA STUDIO
+ * Designed by Sandy
  * Tests all DOM elements, event listeners, state synchronizations, and edge cases.
  */
 
 const fs = require('fs');
 
-console.log('--- Starting AURA Automated Test Suite ---');
+console.log('--- Starting THE AURA STUDIO Automated Test Suite ---');
 
 // 1. Verify all files exist
 const files = [
   'dashboard/index.html',
   'dashboard/style.css',
   'dashboard/app.js',
+  'dashboard/sandy_logo.png',
+  'firmware/data/sandy_logo.png',
   'firmware/platformio.ini',
   'firmware/src/Config.h',
   'firmware/src/LedDriver.h',
@@ -33,7 +36,7 @@ files.forEach(f => {
 });
 
 if (allFilesExist) {
-  console.log('PASS: All 13 core files exist.');
+  console.log('PASS: All 15 core files and signature assets exist.');
 }
 
 // 2. Validate HTML & JS ID Synchronization

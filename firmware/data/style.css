@@ -2399,6 +2399,137 @@ body {
 }
 
 /* ==========================================================================
+   SIGNATURE FOOTER BRANDING (Designed by Sandy • The Aura Studio)
+   ========================================================================== */
+.app-footer {
+  width: 100%;
+  max-width: 1600px;
+  margin: 36px auto 16px auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.footer-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  gap: 20px;
+  flex-wrap: wrap;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.footer-brand-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-signature-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.footer-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.footer-author-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 14px 6px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s var(--ease-spring);
+}
+
+.footer-author-group:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 242, 254, 0.35);
+  box-shadow: 0 4px 24px rgba(0, 242, 254, 0.2);
+  transform: translateY(-1px);
+}
+
+.footer-author-name {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  font-family: var(--font-sans);
+}
+
+.footer-signature-logo {
+  height: 28px;
+  width: auto;
+  aspect-ratio: 1024 / 512;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(0, 242, 254, 0.4));
+  transition: filter 0.3s ease;
+}
+
+.footer-author-group:hover .footer-signature-logo {
+  filter: drop-shadow(0 0 16px rgba(0, 242, 254, 0.75));
+}
+
+.footer-project-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.footer-project-name {
+  font-weight: 700;
+  color: var(--accent-cyan);
+  letter-spacing: -0.01em;
+}
+
+.footer-dot-divider {
+  color: var(--text-dim);
+}
+
+.footer-subtext {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.footer-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.footer-chip {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-glass);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
+
+/* ==========================================================================
    RESPONSIVE BREAKPOINTS & IPHONE 16 SCALABILITY
    ========================================================================== */
 
@@ -3000,6 +3131,21 @@ body {
     width: 100%;
     max-width: 380px;
     text-align: center;
+  }
+
+  /* Signature Footer Mobile Clearance (Above Fixed Bottom Dock) */
+  .app-footer {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+    margin: 24px auto 10px auto;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .footer-container {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 20px;
+    gap: 16px;
   }
 }
 
