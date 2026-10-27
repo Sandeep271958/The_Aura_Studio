@@ -502,6 +502,12 @@ function syncAllInputs() {
 
   DOM.btnSyncCorners.classList.toggle('active', appState.syncCorners);
   DOM.toggleCircadianAuto.checked = appState.circadian.autoEnabled;
+
+  if (DOM.sliderCircadianTime) syncRangeProgress(DOM.sliderCircadianTime);
+  if (DOM.sliderAmbiSmoothing) syncRangeProgress(DOM.sliderAmbiSmoothing);
+  if (DOM.sliderAmbiBoost) syncRangeProgress(DOM.sliderAmbiBoost);
+  if (DOM.sliderAmbiBlackfloor) syncRangeProgress(DOM.sliderAmbiBlackfloor);
+  if (DOM.sliderAudioSens) syncRangeProgress(DOM.sliderAudioSens);
 }
 
 function renderDeviceCards() {
@@ -731,6 +737,10 @@ function stopAmbilight() {
 }
 
 function sampleRegionColor(ctx, x, y, w, h) {
+  x = Math.max(0, Math.floor(x));
+  y = Math.max(0, Math.floor(y));
+  w = Math.max(1, Math.floor(w));
+  h = Math.max(1, Math.floor(h));
   const imgData = ctx.getImageData(x, y, w, h);
   const data = imgData.data;
   let r = 0, g = 0, b = 0;
@@ -789,6 +799,9 @@ function startSoundSync(stream) {
 
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 128;
   analyser.smoothingTimeConstant = 0.8;
@@ -927,6 +940,25 @@ function togglePomodoro() {
   }
 }
 
+function playChime(freq = 880, duration = 0.35) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    // Audio context may require prior interaction
+  }
+}
+
 function startPomodoroPhase(phase) {
   appState.pomodoro.phase = phase;
   if (phase === 'focus') {
@@ -942,6 +974,7 @@ function startPomodoroPhase(phase) {
     appState.devices.wizRight.brightness = 15;
     appState.devices.wizRight.mode = 'cct';
     appState.devices.wizRight.kelvin = 4500;
+    playChime(880, 0.4); // High focus chime
     showToast('Entering 25m Focus Phase: Anti-distraction bias lighting engaged.');
   } else {
     appState.pomodoro.secondsRemaining = 5 * 60;
@@ -956,6 +989,7 @@ function startPomodoroPhase(phase) {
     appState.devices.wizRight.brightness = 75;
     appState.devices.wizRight.mode = 'cct';
     appState.devices.wizRight.kelvin = 2400;
+    playChime(523, 0.5); // Warm restorative chime
     showToast('Time for a 5m break! Ambient relaxation bloom activated.');
   }
   renderAll();

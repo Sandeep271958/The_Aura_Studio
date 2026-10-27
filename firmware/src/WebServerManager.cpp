@@ -169,10 +169,19 @@ void WebServerManager::setupRoutes() {
         request->send(200, "application/json", "{\"status\":\"scanning\"}");
     });
 
-    // 404 Handler
+    // 404 Handler with automatic rescue page if LittleFS image has not been uploaded yet
     server.onNotFound([](AsyncWebServerRequest *request) {
-        request->send(404, "text/plain", "AURA Hub: File Not Found");
+        if (!LittleFS.exists("/index.html")) {
+            String rescue = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>AURA Setup</title><style>body{background:#07090e;color:#f8fafc;font-family:-apple-system,sans-serif;padding:40px;text-align:center}h1{color:#00f2fe;font-size:24px}p{color:#94a3b8;font-size:16px;max-width:500px;margin:12px auto}.box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;display:inline-block;margin-top:20px}code{background:rgba(0,242,254,0.15);color:#00f2fe;padding:4px 8px;border-radius:6px;font-family:monospace}</style></head><body><h1>AURA // ESP32 Smart Light Hub</h1><div class='box'><p>Firmware is running and online! However, dashboard files are not found on flash memory.</p><p>In PlatformIO, run <code>Upload Filesystem Image</code> to flash the web dashboard to LittleFS.</p></div></body></html>";
+            request->send(200, "text/html", rescue);
+        } else {
+            request->send(404, "text/plain", "AURA Hub: File Not Found");
+        }
     });
+}
+
+void WebServerManager::cleanupClients() {
+    ws.cleanupClients();
 }
 
 String WebServerManager::serializeState() {

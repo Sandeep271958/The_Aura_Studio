@@ -102,5 +102,8 @@ void loop() {
         }
     }
 
+    // Clean up disconnected WebSocket clients periodically
+    webManager.cleanupClients();
+
     delay(20);
 }
