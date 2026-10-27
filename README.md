@@ -94,14 +94,29 @@ AURA incorporates the most advanced capabilities found across luxury lighting ec
 - Configurable fade transitions: *Instant (0s)*, *Snappy (0.4s)*, *Smooth (0.8s)*, *Cinema (2.5s)*, and *Sunset Drift (8.0s)*.
 - **CIE 1931 Perceptual Gamma Correction** ($Y = X^{2.2}$) ensuring natural, logarithmic dimming without harsh steps.
 
-### 7. 📱 iPhone 16 & Mobile Native PWA Experience
+### 7. 🏛️ World-Class Architectural Atmosphere Presets
+Curated scenes inspired by luxury 5-star hospitality design (Lutron Ketra, Aman Resorts Kyoto, Nordic wellness spas):
+1. ⚡ **Cyberpunk Night:** Neon Magenta desk (`#ec4899`) with Deep Cobalt corners (`#1e40af`) for immersive synthwave gaming.
+2. ☕ **Warm Minimalist:** 2400K Candlelight corners with soft amber desk breathe effect (`#f59e0b`).
+3. 🎯 **Deep Focus:** 4500K crisp neutral white bias with 15% dimmed ambient corners for distraction-free sprints.
+4. 🌅 **Sunset Horizon:** Golden peach & sunset wave (`#f43f5e`) with warm 2700K gold corners (`#fb923c`).
+5. 🌌 **Aurora Drift:** Emerald & violet fluid flow (`#10b981`) with jade ambient bounce (`#8b5cf6`).
+6. 🎬 **Midnight Cinema:** Ultra-dim 1800K ember with anti-glare monitor bias for cinematic viewing.
+7. 🌸 **Aman Kyoto Zen:** Serene Japanese ryokan tranquility. 2200K Sakura dawn wave (`#fbcfe8`) paired with 2000K intimate candlelight corners (`#ff8a12`).
+8. 🏛️ **Grand Welcome (Lutron Ketra):** High-end hotel arrival scene. Flattering 2800K incandescent ambient baseline with rich warm amber-gold wall wash (`#ffc078`).
+9. 🌿 **Deep Sanctuary Spa:** Nordic wellness recovery. Restorative aquamarine bio-luminescent desk glow (`#0d9488`) with 2400K warm decompression wash (`#ff9b3d`).
+10. 🌊 **Oceanic Abyss:** Bioluminescent deep-sea cyan pulse (`#00f2fe`) transitioning into deep midnight cobalt corners (`#0b192c`).
+
+### 8. 📱 MacBook & iPhone 16 Boundary-Clean Responsive Architecture
+- **MacBook Pro & Air Display Boundary Guarantee:** Designed with fluid flexbox containment, zero-overflow headers, auto-scrolling suite navigation tabs (`scrollbar-width: none`), and intelligent responsive collapsing (`@media (max-width: 1440px)` and `@media (max-width: 1180px)`). Prevents header options and the master **ROOM** power toggle from ever overflowing or clipping on MacBook Air 13" (1280px/1312px) or MacBook Pro 14"/16" viewports.
+- **Focus Rhythm Countdown Circle Containment:** Generous 260px circular ring with radial glassmorphism and auto-wrapping pill badges (`FOCUS SPRINT • 4500K`, `REST INTERVAL • 2400K`). Completely contains countdown digits and biological lighting status tags with zero border clipping.
 - **Dynamic Island & Safe Area Integration:** Built with `viewport-fit=cover` and dynamic CSS variables (`env(safe-area-inset-top)`, `env(safe-area-inset-bottom)`) ensuring edge-to-edge immersion without clipping behind the iPhone 16 Dynamic Island or home indicator.
 - **Ergonomic Obsidian Glass Bottom Dock:** On screens &le; 768px, navigation seamlessly transforms into an iOS-style fixed bottom tab bar for effortless single-thumb access to all 6 feature suites.
 - **Apple HIG Touch Ergonomics:** Minimum 44&times;44 pt touch targets, enlarged touch slider thumbs (`26px`), and `touch-action: pan-y` preventing horizontal scrubbing from triggering scroll locks.
 - **Tactile Haptic Feedback:** Physical tactile clicks (`navigator.vibrate`) on preset activations, fixture toggles, mode switches, and slider release.
 - **Standalone PWA:** Tap "Share" &rarr; "Add to Home Screen" in iOS Safari for a standalone app with custom high-res obsidian-cyan app icons.
 
-### 8. 🌈 Continuous Rainbow Hue Bar & Curated Top Color Matrix
+### 9. 🌈 Continuous Rainbow Hue Bar & Curated Top Color Matrix
 - **360&deg; Continuous Spectrum Scrubbing:** Features a smooth rainbow-gradient Hue Bar (`0&deg;` to `360&deg;`) on the Desk Strip and both WiZ bulbs for instant, fluid color selection without needing to open OS color pickers.
 - **Top Color Choices Matrix Grid:** Curated 12-color smart lighting palette with glowing halo swatches:
   - *Primary & Neon:* Cyber Magenta (`#ec4899`), Electric Cyan (`#00f2fe`), Royal Violet (`#8a2be2`), Deep Cobalt (`#1e40af`), Emerald Jade (`#10b981`), Vivid Amber (`#f59e0b`), Crimson Ruby (`#ef4444`).

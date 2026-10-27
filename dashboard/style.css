@@ -112,7 +112,7 @@ body {
     inset 0 1px 1px rgba(255, 255, 255, 0.08);
 }
 
-/* Header & Top Bar with iPhone 16 Dynamic Island Inset */
+/* Header & Top Bar with iPhone 16 Dynamic Island Inset & MacBook Boundary Control */
 .app-header {
   position: sticky;
   top: 0;
@@ -120,19 +120,24 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(14px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) 14px calc(24px + env(safe-area-inset-left));
-  background: rgba(7, 9, 14, 0.9);
+  padding: calc(12px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 12px calc(20px + env(safe-area-inset-left));
+  background: rgba(7, 9, 14, 0.92);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border-glass);
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: clip;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .logo-mark {
@@ -154,7 +159,7 @@ body {
 }
 
 .brand-title {
-  font-size: 1.18rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   display: flex;
@@ -174,7 +179,7 @@ body {
 }
 
 .brand-subtitle {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
 }
 
@@ -186,22 +191,33 @@ body {
   padding: 4px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-glass);
-  gap: 4px;
+  gap: 3px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.suite-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .suite-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 7px;
+  padding: 7px 13px;
   border-radius: var(--radius-pill);
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s var(--ease-spring);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .suite-tab svg {
@@ -225,8 +241,9 @@ body {
 .header-status-panel {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .transition-pill-wrap {
@@ -340,11 +357,15 @@ body {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   transition: all 0.25s var(--ease-spring);
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .master-power-btn svg {
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
 }
 
 .master-power-btn.active {
@@ -979,6 +1000,22 @@ body {
 
 .scene-grad-cinema {
   background: linear-gradient(135deg, #78350f, #1e1b4b);
+}
+
+.scene-grad-zen {
+  background: linear-gradient(135deg, #fbcfe8, #f472b6, #fb923c);
+}
+
+.scene-grad-welcome {
+  background: linear-gradient(135deg, #ffd166, #ff9f1c, #e76f51);
+}
+
+.scene-grad-spa {
+  background: linear-gradient(135deg, #0d9488, #14b8a6, #f59e0b);
+}
+
+.scene-grad-ocean {
+  background: linear-gradient(135deg, #00f2fe, #4facfe, #0b192c);
 }
 
 .scene-content {
@@ -1972,30 +2009,61 @@ body {
 }
 
 .pomo-timer-ring {
-  width: 220px;
-  height: 220px;
+  width: 260px;
+  height: 260px;
   border-radius: 50%;
-  border: 4px solid var(--accent-cyan);
-  box-shadow: 0 0 35px rgba(0, 242, 254, 0.3), inset 0 0 35px rgba(0, 242, 254, 0.15);
+  border: 3.5px solid var(--accent-cyan);
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.08) 0%, rgba(7, 9, 14, 0.5) 75%);
+  box-shadow: 0 0 35px rgba(0, 242, 254, 0.25), inset 0 0 30px rgba(0, 242, 254, 0.12);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
+  padding: 24px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-spring), background 0.4s var(--ease-spring);
+}
+
+.pomo-timer-ring.ring-break {
+  border-color: var(--accent-amber);
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, rgba(7, 9, 14, 0.5) 75%);
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.25), inset 0 0 30px rgba(245, 158, 11, 0.12);
 }
 
 .pomo-time {
-  font-size: 3.5rem;
+  font-size: 3.2rem;
   font-family: var(--font-mono);
   font-weight: 800;
   color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .pomo-label {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--accent-cyan);
+  max-width: 190px;
+  text-align: center;
+  line-height: 1.35;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  box-sizing: border-box;
+  text-transform: uppercase;
+  word-break: break-word;
+  transition: all 0.3s ease;
+}
+
+.pomo-label.status-break {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 .pomo-rules-preview {
@@ -2337,6 +2405,76 @@ body {
   .phase-card:active,
   .swatch-dot:active {
     transform: scale(0.95);
+  }
+}
+
+/* MacBook Pro / Air & Compact Laptops (1100px - 1440px) */
+@media (max-width: 1440px) {
+  .app-header {
+    padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));
+    gap: 10px;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .suite-tab {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+    gap: 5px;
+  }
+
+  .suite-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .header-status-panel {
+    gap: 6px;
+  }
+
+  .pill-label {
+    display: none;
+  }
+
+  .transition-pill-wrap {
+    padding: 3px 8px;
+  }
+
+  .status-chip {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+
+  .master-power-btn {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    gap: 6px;
+  }
+}
+
+/* Compact Laptops, 13" MacBook Air & Split Windows (769px - 1180px) */
+@media (max-width: 1180px) {
+  #connection-text {
+    display: none;
+  }
+
+  .status-chip {
+    padding: 6px 10px;
+  }
+
+  .suite-tab span {
+    font-size: 0.72rem;
+  }
+
+  .suite-nav {
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .suite-tab {
+    padding: 5px 8px;
   }
 }
 
@@ -2754,6 +2892,22 @@ body {
   }
 
   /* Focus Rhythm Pomodoro */
+  .pomo-timer-ring {
+    width: 220px;
+    height: 220px;
+    padding: 16px;
+  }
+
+  .pomo-time {
+    font-size: 2.7rem;
+  }
+
+  .pomo-label {
+    font-size: 0.62rem;
+    max-width: 160px;
+    padding: 3px 8px;
+  }
+
   .pomo-ring-wrap {
     width: min(220px, 65vw);
     height: min(220px, 65vw);

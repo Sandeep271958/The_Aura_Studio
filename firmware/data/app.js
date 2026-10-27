@@ -57,6 +57,38 @@ const PRESETS = {
     desk: { power: true, brightness: 35, color: '#f59e0b', effect: 'solid', speed: 20, intensity: 30 },
     wizLeft: { power: true, brightness: 15, mode: 'cct', color: '#ff8a12', kelvin: 2000 },
     wizRight: { power: true, brightness: 15, mode: 'cct', color: '#ff8a12', kelvin: 2000 }
+  },
+  'zen-sanctuary': {
+    name: 'Aman Kyoto Zen',
+    masterBrightness: 75,
+    contrast: -5,
+    desk: { power: true, brightness: 75, color: '#fbcfe8', effect: 'wave', speed: 30, intensity: 45 },
+    wizLeft: { power: true, brightness: 60, mode: 'cct', color: '#ff8a12', kelvin: 2000 },
+    wizRight: { power: true, brightness: 60, mode: 'cct', color: '#ff8a12', kelvin: 2000 }
+  },
+  'grand-welcome': {
+    name: 'Grand Welcome',
+    masterBrightness: 85,
+    contrast: 10,
+    desk: { power: true, brightness: 85, color: '#ffc078', effect: 'breathe', speed: 35, intensity: 60 },
+    wizLeft: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 },
+    wizRight: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 }
+  },
+  'bio-spa': {
+    name: 'Deep Sanctuary Spa',
+    masterBrightness: 70,
+    contrast: -15,
+    desk: { power: true, brightness: 75, color: '#0d9488', effect: 'shimmer', speed: 25, intensity: 55 },
+    wizLeft: { power: true, brightness: 65, mode: 'cct', color: '#ff9b3d', kelvin: 2400 },
+    wizRight: { power: true, brightness: 65, mode: 'cct', color: '#ff9b3d', kelvin: 2400 }
+  },
+  'ocean-abyss': {
+    name: 'Oceanic Abyss',
+    masterBrightness: 80,
+    contrast: 20,
+    desk: { power: true, brightness: 90, color: '#00f2fe', effect: 'soap-bubble', speed: 50, intensity: 85 },
+    wizLeft: { power: true, brightness: 70, mode: 'rgb', color: '#0b192c', kelvin: 4000 },
+    wizRight: { power: true, brightness: 70, mode: 'rgb', color: '#0b192c', kelvin: 4000 }
   }
 };
 
@@ -286,6 +318,7 @@ const DOM = {
   btnApplyGradient: document.getElementById('btn-apply-gradient'),
 
   // Focus Rhythm (Pomodoro)
+  pomoTimerRing: document.getElementById('pomo-timer-ring'),
   btnTogglePomodoro: document.getElementById('btn-toggle-pomodoro'),
   btnResetPomodoro: document.getElementById('btn-reset-pomodoro'),
   pomoTimeLeft: document.getElementById('pomo-time-left'),
@@ -1211,7 +1244,7 @@ function togglePomodoro() {
     appState.pomodoro.active = false;
     DOM.btnTogglePomodoro.textContent = 'Start 25m Focus Sprint';
     DOM.btnTogglePomodoro.classList.remove('active');
-    DOM.pomoStatusLabel.textContent = 'PAUSED';
+    if (DOM.pomoStatusLabel) DOM.pomoStatusLabel.textContent = 'PAUSED';
     showToast('Focus Sprint paused.');
   } else {
     appState.pomodoro.active = true;
@@ -1256,7 +1289,15 @@ function startPomodoroPhase(phase) {
   appState.pomodoro.phase = phase;
   if (phase === 'focus') {
     appState.pomodoro.secondsRemaining = 25 * 60;
-    DOM.pomoStatusLabel.textContent = 'FOCUS PHASE ACTIVE (4500K CRISP BIAS)';
+    if (DOM.pomoStatusLabel) {
+      DOM.pomoStatusLabel.textContent = 'FOCUS SPRINT • 4500K';
+      DOM.pomoStatusLabel.classList.remove('status-break');
+      DOM.pomoStatusLabel.classList.add('status-focus');
+    }
+    if (DOM.pomoTimerRing) {
+      DOM.pomoTimerRing.classList.remove('ring-break');
+      DOM.pomoTimerRing.classList.add('ring-focus');
+    }
     // Apply Focus Lighting Profile
     appState.devices.desk.color = '#00f2fe';
     appState.devices.desk.brightness = 95;
@@ -1271,7 +1312,15 @@ function startPomodoroPhase(phase) {
     showToast('Entering 25m Focus Phase: Anti-distraction bias lighting engaged.');
   } else {
     appState.pomodoro.secondsRemaining = 5 * 60;
-    DOM.pomoStatusLabel.textContent = 'REST INTERVAL (2400K AMBER BLOOM)';
+    if (DOM.pomoStatusLabel) {
+      DOM.pomoStatusLabel.textContent = 'REST INTERVAL • 2400K';
+      DOM.pomoStatusLabel.classList.remove('status-focus');
+      DOM.pomoStatusLabel.classList.add('status-break');
+    }
+    if (DOM.pomoTimerRing) {
+      DOM.pomoTimerRing.classList.remove('ring-focus');
+      DOM.pomoTimerRing.classList.add('ring-break');
+    }
     // Apply Break Relax Lighting Profile
     appState.devices.desk.color = '#f59e0b';
     appState.devices.desk.brightness = 60;
@@ -1307,7 +1356,15 @@ function resetPomodoro() {
     DOM.btnTogglePomodoro.textContent = 'Start 25m Focus Sprint';
     DOM.btnTogglePomodoro.classList.remove('active');
   }
-  if (DOM.pomoStatusLabel) DOM.pomoStatusLabel.textContent = 'READY FOR FOCUS SPRINT';
+  if (DOM.pomoStatusLabel) {
+    DOM.pomoStatusLabel.textContent = 'READY FOR SPRINT';
+    DOM.pomoStatusLabel.classList.remove('status-break');
+    DOM.pomoStatusLabel.classList.add('status-focus');
+  }
+  if (DOM.pomoTimerRing) {
+    DOM.pomoTimerRing.classList.remove('ring-break');
+    DOM.pomoTimerRing.classList.add('ring-focus');
+  }
   if (DOM.pomoTimeLeft) DOM.pomoTimeLeft.textContent = '25:00';
   renderAll();
   showToast('Focus Interval reset.');
