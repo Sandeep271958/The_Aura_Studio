@@ -338,6 +338,25 @@ const DOM = {
   ipDisplayWizRight: document.getElementById('ip-display-wiz-right'),
   toggleGamma: document.getElementById('toggle-gamma'),
 
+  // Wireless OTA Firmware Update
+  badgeFirmwareVersion: document.getElementById('badge-firmware-version'),
+  otaDropZone: document.getElementById('ota-drop-zone'),
+  inputOtaFile: document.getElementById('input-ota-file'),
+  btnSelectOtaFile: document.getElementById('btn-select-ota-file'),
+  btnStartOtaUpload: document.getElementById('btn-start-ota-upload'),
+  otaFileLabel: document.getElementById('ota-file-label'),
+  otaFileSize: document.getElementById('ota-file-size'),
+  otaProgressContainer: document.getElementById('ota-progress-container'),
+  otaProgressBar: document.getElementById('ota-progress-bar'),
+  otaStatusText: document.getElementById('ota-status-text'),
+  otaPctText: document.getElementById('ota-pct-text'),
+
+  // Hardware & Pixel Diagnostics
+  sliderPixelDiag: document.getElementById('slider-pixel-diag'),
+  valPixelDiag: document.getElementById('val-pixel-diag'),
+  btnPixelTest36: document.getElementById('btn-pixel-test-36'),
+  btnPixelDiagReset: document.getElementById('btn-pixel-diag-reset'),
+
   // Toast
   toastContainer: document.getElementById('toast-container')
 };
@@ -408,6 +427,17 @@ function connectWebSocket() {
 
 function dispatchStateChange(payload) {
   if (socket && socket.readyState === WebSocket.OPEN) {
+    if (payload && payload.state) {
+      payload = {
+        isMasterOn: payload.state.isMasterOn,
+        masterBrightness: payload.state.masterBrightness,
+        contrastRatio: payload.state.contrastRatio,
+        syncCorners: payload.state.syncCorners,
+        activePreset: payload.state.activePreset,
+        network: payload.state.network,
+        devices: payload.state.devices
+      };
+    }
     socket.send(JSON.stringify({
       type: 'update',
       payload: payload
@@ -415,9 +445,31 @@ function dispatchStateChange(payload) {
   }
 }
 
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (!socket || socket.readyState !== WebSocket.OPEN)) {
+    if (window.location.protocol.startsWith('http') &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1') {
+      connectWebSocket();
+    }
+  }
+});
+
 function handleIncomingMessage(msg) {
   if (msg.type === 'state') {
     Object.assign(appState, msg.payload);
+    if (msg.payload && msg.payload.firmwareVersion && DOM.badgeFirmwareVersion) {
+      DOM.badgeFirmwareVersion.textContent = `v${msg.payload.firmwareVersion}`;
+    }
+    // Preserve user assigned WiZ bulb IPs if ESP32 returns unconfigured factory defaults
+    const savedLeft = localStorage.getItem('aura_wiz_left_ip');
+    const savedRight = localStorage.getItem('aura_wiz_right_ip');
+    if (savedLeft && appState.network.wizLeftIp === '192.168.1.101') {
+      appState.network.wizLeftIp = savedLeft;
+    }
+    if (savedRight && appState.network.wizRightIp === '192.168.1.102') {
+      appState.network.wizRightIp = savedRight;
+    }
     renderAll();
   } else if (msg.type === 'wizDiscovery') {
     renderDiscoveredDevices(msg.devices);
@@ -1176,8 +1228,8 @@ function startGradientFluidSimulation() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     ctx.fillRect(0, ribbonHeight, width, 1);
 
-    // 3. 120 discrete WS2812B LED beads (1:1 physical desk fixture visualizer)
-    const numLeds = 120;
+    // 3. 60 discrete WS2812B LED beads (1:1 physical desk fixture visualizer)
+    const numLeds = 60;
     const ledStep = width / numLeds;
     const ledY = ribbonHeight + (height - ribbonHeight) / 2;
 
@@ -2015,6 +2067,223 @@ function bindEvents() {
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
   });
 
+  // --------------------------------------------------------------------------
+  // Wireless OTA Firmware Upload
+  // --------------------------------------------------------------------------
+  let selectedOtaFile = null;
+
+  function handleOtaFileSelection(file) {
+    if (!file) return;
+    if (!file.name.endsWith('.bin')) {
+      showToast('Please select a valid .bin firmware file.');
+      return;
+    }
+    selectedOtaFile = file;
+    if (DOM.otaFileLabel) DOM.otaFileLabel.textContent = file.name;
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+    if (DOM.otaFileSize) DOM.otaFileSize.textContent = `${sizeMb} MB • Ready to flash`;
+    if (DOM.btnStartOtaUpload) DOM.btnStartOtaUpload.disabled = false;
+    showToast(`Loaded firmware: ${file.name} (${sizeMb} MB)`);
+  }
+
+  if (DOM.btnSelectOtaFile && DOM.inputOtaFile) {
+    DOM.btnSelectOtaFile.addEventListener('click', (e) => {
+      e.stopPropagation();
+      DOM.inputOtaFile.click();
+    });
+  }
+
+  if (DOM.otaDropZone && DOM.inputOtaFile) {
+    DOM.otaDropZone.addEventListener('click', () => {
+      DOM.inputOtaFile.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(evtName => {
+      DOM.otaDropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        DOM.otaDropZone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(evtName => {
+      DOM.otaDropZone.addEventListener(evtName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        DOM.otaDropZone.classList.remove('dragover');
+      });
+    });
+
+    DOM.otaDropZone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files[0]) {
+        handleOtaFileSelection(dt.files[0]);
+      }
+    });
+  }
+
+  if (DOM.inputOtaFile) {
+    DOM.inputOtaFile.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleOtaFileSelection(e.target.files[0]);
+      }
+    });
+  }
+
+  if (DOM.btnStartOtaUpload) {
+    DOM.btnStartOtaUpload.addEventListener('click', () => {
+      if (!selectedOtaFile) {
+        showToast('Please choose a .bin file first.');
+        return;
+      }
+      triggerHaptic('heavy');
+      DOM.btnStartOtaUpload.disabled = true;
+      if (DOM.otaProgressContainer) DOM.otaProgressContainer.classList.remove('hidden');
+      if (DOM.otaProgressBar) DOM.otaProgressBar.style.width = '0%';
+      if (DOM.otaPctText) DOM.otaPctText.textContent = '0%';
+      if (DOM.otaStatusText) DOM.otaStatusText.textContent = 'Uploading firmware... 0%';
+
+      if (typeof FormData === 'undefined' || typeof XMLHttpRequest === 'undefined') {
+        showToast('OTA Upload simulation mode active.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('update', selectedOtaFile);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/update', true);
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          if (DOM.otaProgressBar) DOM.otaProgressBar.style.width = pct + '%';
+          if (DOM.otaPctText) DOM.otaPctText.textContent = pct + '%';
+          if (DOM.otaStatusText) {
+            DOM.otaStatusText.textContent = pct < 100 
+              ? `Uploading firmware... ${pct}%`
+              : 'Verifying image & writing to partition...';
+          }
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200 && xhr.responseText.includes('OK')) {
+          if (DOM.otaProgressBar) DOM.otaProgressBar.style.width = '100%';
+          if (DOM.otaPctText) DOM.otaPctText.textContent = '100%';
+          let countdown = 6;
+          if (DOM.otaStatusText) {
+            DOM.otaStatusText.style.color = '#00f2fe';
+            DOM.otaStatusText.textContent = `Flash complete! Rebooting in ${countdown}s...`;
+          }
+          const timer = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+              if (DOM.otaStatusText) {
+                DOM.otaStatusText.textContent = `Flash complete! Rebooting in ${countdown}s...`;
+              }
+            } else {
+              clearInterval(timer);
+              if (DOM.otaStatusText) {
+                DOM.otaStatusText.textContent = 'Reconnecting to Aura Hub...';
+              }
+              setTimeout(() => {
+                window.location.reload();
+              }, 1500);
+            }
+          }, 1000);
+        } else {
+          if (DOM.otaStatusText) {
+            DOM.otaStatusText.style.color = '#ef4444';
+            DOM.otaStatusText.textContent = `Update Failed: ${xhr.responseText || 'Server error'}`;
+          }
+          DOM.btnStartOtaUpload.disabled = false;
+          showToast('OTA Update failed. Check serial monitor.');
+        }
+      };
+
+      xhr.onerror = () => {
+        // In some browsers, rebooting closes TCP socket which may trigger onerror
+        if (DOM.otaProgressBar && DOM.otaProgressBar.style.width === '100%') {
+          if (DOM.otaStatusText) {
+            DOM.otaStatusText.style.color = '#00f2fe';
+            DOM.otaStatusText.textContent = 'Upload complete! Reconnecting in 5s...';
+          }
+          setTimeout(() => {
+            window.location.reload();
+          }, 5000);
+        } else {
+          if (DOM.otaStatusText) {
+            DOM.otaStatusText.style.color = '#ef4444';
+            DOM.otaStatusText.textContent = 'Network error during upload.';
+          }
+          DOM.btnStartOtaUpload.disabled = false;
+        }
+      };
+
+      xhr.send(formData);
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Hardware & Pixel Diagnostics
+  // --------------------------------------------------------------------------
+  function sendPixelInspect(index, r = 255, g = 255, b = 255) {
+    if (isSimulatedMode) {
+      if (index === -1) {
+        showToast('Diagnostics: Restored all LEDs.');
+      } else {
+        showToast(`Diagnostics: Inspecting LED #${index} [${r}, ${g}, ${b}].`);
+      }
+      return;
+    }
+    fetch(`/api/led/inspect?index=${index}&r=${r}&g=${g}&b=${b}`)
+      .then(res => res.json())
+      .then(data => {
+        if (index === -1) {
+          showToast('Hardware restored to normal animation mode.');
+        } else {
+          showToast(`Inspecting LED #${index}`);
+        }
+      })
+      .catch(err => {
+        console.warn('Inspect error:', err);
+      });
+  }
+
+  if (DOM.sliderPixelDiag) {
+    DOM.sliderPixelDiag.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (DOM.valPixelDiag) {
+        DOM.valPixelDiag.textContent = val === -1 ? 'None (Normal Mode)' : `LED #${val}`;
+      }
+    });
+
+    DOM.sliderPixelDiag.addEventListener('change', (e) => {
+      triggerHaptic('light');
+      const val = parseInt(e.target.value, 10);
+      sendPixelInspect(val, 255, 255, 255);
+    });
+  }
+
+  if (DOM.btnPixelTest36) {
+    DOM.btnPixelTest36.addEventListener('click', () => {
+      triggerHaptic('medium');
+      if (DOM.sliderPixelDiag) DOM.sliderPixelDiag.value = '36';
+      if (DOM.valPixelDiag) DOM.valPixelDiag.textContent = 'LED #36 (Suspect Solder Joint)';
+      sendPixelInspect(36, 255, 0, 0); // Warning red for suspect joint
+    });
+  }
+
+  if (DOM.btnPixelDiagReset) {
+    DOM.btnPixelDiagReset.addEventListener('click', () => {
+      triggerHaptic('medium');
+      if (DOM.sliderPixelDiag) DOM.sliderPixelDiag.value = '-1';
+      if (DOM.valPixelDiag) DOM.valPixelDiag.textContent = 'None (Normal Mode)';
+      sendPixelInspect(-1);
+    });
+  }
+
   // Interactive 2.5D Room Viewport Fixture Click Toggles
   const fixtureLeft = document.getElementById('fixture-wiz-left');
   const fixtureRight = document.getElementById('fixture-wiz-right');
@@ -2145,18 +2414,65 @@ function renderDiscoveredDevices(devices) {
       <div class="assign-btn-group">
         <button class="assign-btn" data-assign="left" data-ip="${dev.ip}">Set Left</button>
         <button class="assign-btn" data-assign="right" data-ip="${dev.ip}">Set Right</button>
+        <button class="assign-btn test-wiz-btn" data-ip="${dev.ip}" style="background:rgba(0,242,254,0.12); border-color:rgba(0,242,254,0.4); color:var(--accent-cyan)">⚡ Ping</button>
       </div>
     `;
 
-    item.querySelectorAll('.assign-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.assign === 'left') {
-          DOM.inputWizLeftIp.value = btn.dataset.ip;
-          showToast(`Assigned ${btn.dataset.ip} to Left WiZ`);
-        } else {
-          DOM.inputWizRightIp.value = btn.dataset.ip;
-          showToast(`Assigned ${btn.dataset.ip} to Right WiZ`);
+    item.querySelectorAll('.test-wiz-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        triggerHaptic('medium');
+        btn.textContent = 'Pinging...';
+        try {
+          const res = await fetch(`/api/wiz/test?ip=${btn.dataset.ip}&action=on`);
+          const data = await res.json();
+          if (data.rawBulbResponse && data.rawBulbResponse.includes('success')) {
+            showToast(`WiZ Bulb (${btn.dataset.ip}): Responded SUCCESS!`);
+            btn.textContent = '✓ Active';
+            btn.style.borderColor = 'var(--accent-emerald)';
+            btn.style.color = 'var(--accent-emerald)';
+          } else {
+            showToast(`WiZ Bulb: ${data.rawBulbResponse || 'No response'}`);
+            btn.textContent = 'Check App';
+            btn.style.borderColor = 'var(--accent-rose)';
+            btn.style.color = 'var(--accent-rose)';
+          }
+        } catch (e) {
+          showToast(`Ping error: ${e.message}`);
+          btn.textContent = 'Error';
         }
+      });
+    });
+
+    item.querySelectorAll('.assign-btn:not(.test-wiz-btn)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        triggerHaptic('medium');
+        const targetIp = btn.dataset.ip;
+        if (btn.dataset.assign === 'left') {
+          appState.network.wizLeftIp = targetIp;
+          DOM.inputWizLeftIp.value = targetIp;
+          if (DOM.ipDisplayWizLeft) DOM.ipDisplayWizLeft.textContent = targetIp;
+          localStorage.setItem('aura_wiz_left_ip', targetIp);
+          dispatchStateChange({
+            network: { wizLeftIp: targetIp, wizRightIp: appState.network.wizRightIp }
+          });
+          // Immediately power on & sync bulb as instant feedback
+          dispatchStateChange({ wizLeft: { power: true, brightness: 80 } });
+          showToast(`Assigned ${targetIp} to Left WiZ & Synced!`);
+        } else {
+          appState.network.wizRightIp = targetIp;
+          DOM.inputWizRightIp.value = targetIp;
+          if (DOM.ipDisplayWizRight) DOM.ipDisplayWizRight.textContent = targetIp;
+          localStorage.setItem('aura_wiz_right_ip', targetIp);
+          dispatchStateChange({
+            network: { wizLeftIp: appState.network.wizLeftIp, wizRightIp: targetIp }
+          });
+          // Immediately power on & sync bulb as instant feedback
+          dispatchStateChange({ wizRight: { power: true, brightness: 80 } });
+          showToast(`Assigned ${targetIp} to Right WiZ & Synced!`);
+        }
+        btn.textContent = '✓ Assigned';
+        btn.style.background = 'var(--accent-emerald)';
+        btn.style.color = '#fff';
       });
     });
 

@@ -389,7 +389,7 @@
             <div class="device-identity">
               <div class="device-chip chip-esp32">ESP32 GPIO 16</div>
               <h3 class="device-name">Desk WS2812B Strip</h3>
-              <p class="device-type">Addressable Bias Lighting (120 LEDs)</p>
+              <p class="device-type">Addressable Bias Lighting (60 LEDs)</p>
             </div>
             <label class="toggle-switch" aria-label="Toggle Desk Strip Power">
               <input type="checkbox" id="toggle-desk-power" checked>
@@ -420,6 +420,7 @@
                 <button class="effect-chip" data-effect="sunset-wave">Wave</button>
                 <button class="effect-chip" data-effect="aurora">Aurora</button>
                 <button class="effect-chip" data-effect="fire">Candle Fire</button>
+                <button class="effect-chip" data-effect="test-cycle" style="color:var(--accent-cyan); font-weight:600">⚡ Test</button>
               </div>
             </div>
 
@@ -934,7 +935,7 @@
           <div class="header-text">
             <span class="feature-badge">MULTI-ZONE ADDRESSABLE MATRIX &bull; REAL FLUID WAVE PHYSICS</span>
             <h2 class="suite-title">Gradient Colorway &amp; Dynamic Fluid Lab</h2>
-            <p class="suite-subtitle">Design multi-stop color transitions that stream fluidly across your 120 addressable WS2812B LEDs with real-world wave physics (soap bubble thin-film interference, deep sea bioluminescence, and chromatic opal dispersion), synced or harmonized with your corner WiZ bulbs.</p>
+            <p class="suite-subtitle">Design multi-stop color transitions that stream fluidly across your 60 addressable WS2812B LEDs with real-world wave physics (soap bubble thin-film interference, deep sea bioluminescence, and chromatic opal dispersion), synced or harmonized with your corner WiZ bulbs.</p>
           </div>
           <button id="btn-apply-gradient" class="primary-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon-svg"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -1236,6 +1237,56 @@
               <span class="telem-key">WS2812B FPS</span>
               <span id="telem-hub-fps" class="telem-val mono">60.2 FPS</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Wireless Firmware OTA Update Section -->
+        <div class="settings-section">
+          <div class="section-inline-header">
+            <h4>Wireless Firmware Update (OTA)</h4>
+            <span class="badge-ota-status" id="badge-firmware-version">v01.00.000</span>
+          </div>
+          <p class="section-note">Wirelessly flash <code>firmware_xx.xx.xxx.bin</code> to the secondary partition with zero downtime.</p>
+          
+          <div class="ota-compact-bar" id="ota-drop-zone">
+            <input type="file" id="input-ota-file" accept=".bin" style="display:none">
+            <div class="ota-file-info">
+              <span class="ota-status-dot"></span>
+              <span class="ota-file-name mono" id="ota-file-label">Choose or drag .bin file...</span>
+              <span class="ota-file-meta mono" id="ota-file-size">Dual Slot</span>
+            </div>
+            <div class="ota-btn-group">
+              <button type="button" id="btn-select-ota-file" class="action-btn">Browse</button>
+              <button type="button" id="btn-start-ota-upload" class="primary-btn btn-ota-compact" disabled>Flash OTA</button>
+            </div>
+          </div>
+
+          <!-- Real-time Progress Bar & Status -->
+          <div id="ota-progress-container" class="ota-progress-container hidden">
+            <div class="ota-progress-bar-bg">
+              <div id="ota-progress-bar" class="ota-progress-bar-fill"></div>
+            </div>
+            <div class="ota-progress-meta">
+              <span id="ota-status-text" class="ota-status-text">Uploading firmware... 0%</span>
+              <span id="ota-pct-text" class="ota-pct-text mono">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hardware & Pixel Diagnostics Section -->
+        <div class="settings-section">
+          <h4>Hardware &amp; Pixel Diagnostic</h4>
+          <p class="section-note">Inspect individual WS2812B LEDs (0 to 59) to test continuity and pinpoint physical solder glitches.</p>
+          <div class="pixel-diag-row">
+            <div class="row-header">
+              <span class="row-label">Pixel Under Test:</span>
+              <span id="val-pixel-diag" class="row-val mono">None (Normal Mode)</span>
+            </div>
+            <input type="range" id="slider-pixel-diag" class="custom-range" min="-1" max="59" value="-1" aria-label="Individual Pixel Diagnostic Index">
+          </div>
+          <div class="pixel-diag-actions">
+            <button type="button" id="btn-pixel-test-36" class="action-btn" title="Inspect suspect LED #36">Test LED #36</button>
+            <button type="button" id="btn-pixel-diag-reset" class="action-btn">Restore All LEDs</button>
           </div>
         </div>
 

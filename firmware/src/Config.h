@@ -2,21 +2,32 @@
 
 #include <Arduino.h>
 
+// Global FreeRTOS Mutex for thread-safe state access across Core 0 (WiFi/Web) and Core 1 (FastLED)
+extern SemaphoreHandle_t stateMutex;
+
+// ============================================================================
+// FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
+// ============================================================================
+#define FIRMWARE_VERSION "01.00.000"
+#define FIRMWARE_NAME    "firmware_01.00.000.bin"
+#define FIRMWARE_BUILD   "2026-11-14"
+
 // ============================================================================
 // WI-FI & NETWORK CONFIGURATION
 // ============================================================================
-#define DEFAULT_WIFI_SSID "YOUR_WIFI_SSID"
-#define DEFAULT_WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define DEFAULT_WIFI_SSID "1201_2.4G"
+#define DEFAULT_WIFI_PASSWORD "V@08101999g"
 #define HOSTNAME "aura-hub" // Accessible at http://aura-hub.local
 
 // ============================================================================
 // HARDWARE: WS2812B DESK STRIP
 // ============================================================================
-#define LED_PIN 16   // GPIO 16 (Safe pin, non-strapping)
-#define NUM_LEDS 120 // Adjust to match your strip length
+#define FASTLED_SHOW_CORE 1      // Bind FastLED show to Core 1 away from Wi-Fi interrupts
+#define LED_PIN 4                // Active: GPIO 4 (Labeled D4 on NodeMCU ESP32)
+#define NUM_LEDS 60              // 1 meter strip with 60 LEDs
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
-#define MAX_POWER_MILLIAMPS 3000 // Safety limit: 3000mA (3 Amps)
+#define MAX_POWER_MILLIAMPS 1500 // Safety power limit: 1.5A for 60 LEDs
 #define TARGET_FPS 60            // Smooth 60 FPS animation loop
 
 // ============================================================================
@@ -38,6 +49,7 @@ struct DeviceDesk {
   String effect = "cyberpulse";
   uint8_t speed = 60;
   uint8_t intensity = 75;
+  int inspectIndex = -1; // -1 for normal animation, 0 to NUM_LEDS-1 for single-LED diagnostic
 };
 
 struct DeviceWiz {
@@ -51,6 +63,7 @@ struct DeviceWiz {
 };
 
 struct HubState {
+  String firmwareVersion = FIRMWARE_VERSION;
   bool isMasterOn = true;
   uint8_t masterBrightness = 80;
   int8_t contrastRatio = 0; // -50 to +50

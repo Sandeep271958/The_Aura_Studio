@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <LittleFS.h>
+#include <ArduinoOTA.h>
 #include "Config.h"
 #include "WizController.h"
 #include "LedDriver.h"
@@ -13,14 +14,27 @@ WizController wizCtrl;
 LedDriver ledCtrl;
 WebServerManager webManager(hubState, wizCtrl);
 
-// Task handle for LED rendering on Core 1
+// FreeRTOS Mutex & Task handle for LED rendering on Core 1
+SemaphoreHandle_t stateMutex = NULL;
 TaskHandle_t LedTaskHandle = NULL;
 
 void LedTask(void *pvParameters) {
     Serial.printf("[Core 1] LED Task pinned to core %d\n", xPortGetCoreID());
+    DeviceDesk localDesk;
+    bool localMasterOn = true;
+    uint8_t localMasterBrightness = 80;
+    int8_t localContrastRatio = 0;
+
     for (;;) {
-        ledCtrl.update(hubState.desk, hubState.isMasterOn, hubState.masterBrightness, hubState.contrastRatio);
-        vTaskDelay(pdMS_TO_TICKS(16)); // Target 60 FPS
+        if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+            localDesk = hubState.desk;
+            localMasterOn = hubState.isMasterOn;
+            localMasterBrightness = hubState.masterBrightness;
+            localContrastRatio = hubState.contrastRatio;
+            xSemaphoreGive(stateMutex);
+        }
+        ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio);
+        vTaskDelay(pdMS_TO_TICKS(22)); // Fluid 45 FPS cinema-smooth animation loop (relieves bus contention & voltage sag)
     }
 }
 
@@ -31,6 +45,9 @@ void setup() {
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
     Serial.println("==========================================");
+
+    // Initialize Mutex
+    stateMutex = xSemaphoreCreateMutex();
 
     // 1. Initialize LittleFS
     if (!LittleFS.begin(true)) {
@@ -45,6 +62,8 @@ void setup() {
     // 3. Connect to Wi-Fi
     Serial.printf("[WiFi] Connecting to %s", DEFAULT_WIFI_SSID);
     WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.persistent(true);
     WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASSWORD);
 
     int attempts = 0;
@@ -57,12 +76,24 @@ void setup() {
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\n[WiFi] Connected successfully!");
         Serial.printf("[WiFi] IP Address: %s\n", WiFi.localIP().toString().c_str());
+        WiFi.setSleep(false); // Disable Wi-Fi power-save sleep to eliminate timing latency spikes
 
         // Setup mDNS (http://aura-hub.local)
         if (MDNS.begin(HOSTNAME)) {
             Serial.printf("[mDNS] Responder started at http://%s.local\n", HOSTNAME);
             MDNS.addService("http", "tcp", 80);
         }
+
+        // Initialize ArduinoOTA for wireless PlatformIO flashing
+        ArduinoOTA.setHostname(HOSTNAME);
+        ArduinoOTA.onStart([]() {
+            Serial.println("[OTA] Wireless flash in progress...");
+        });
+        ArduinoOTA.onEnd([]() {
+            Serial.println("\n[OTA] Wireless flash complete! Rebooting...");
+        });
+        ArduinoOTA.begin();
+        Serial.println("[OTA] ArduinoOTA service initialized and listening.");
     } else {
         Serial.println("\n[WiFi] Could not connect to AP. Starting SoftAP Fallback...");
         WiFi.mode(WIFI_AP);
@@ -91,16 +122,18 @@ void setup() {
 }
 
 void loop() {
+    // Handle background OTA requests
+    ArduinoOTA.handle();
+
     // Process WiZ discovery UDP packets
     wizCtrl.updateDiscovery();
 
-    // Periodic discovery broadcast check if devices found
-    static uint32_t lastDevCheck = 0;
-    if (millis() - lastDevCheck > 1000) {
-        lastDevCheck = millis();
-        if (wizCtrl.getDiscoveredBulbs().size() > 0) {
-            webManager.broadcastDiscoveredDevices();
-        }
+    // Broadcast discovered bulbs only when discovery count changes
+    static size_t lastReportedBulbCount = 0;
+    size_t currentBulbCount = wizCtrl.getDiscoveredBulbs().size();
+    if (currentBulbCount != lastReportedBulbCount) {
+        lastReportedBulbCount = currentBulbCount;
+        webManager.broadcastDiscoveredDevices();
     }
 
     // Clean up disconnected WebSocket clients periodically

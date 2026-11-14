@@ -24,6 +24,9 @@ public:
                     uint8_t dimming);
   void sendPower(const String &ipStr, bool state);
 
+  // Diagnostic dispatcher with synchronous response capture
+  String sendCommandWithResponse(const String &ipStr, const String &jsonPayload, uint32_t timeoutMs = 800);
+
   // Auto-discovery
   void broadcastDiscovery();
   void updateDiscovery();
@@ -32,6 +35,7 @@ public:
 
 private:
   WiFiUDP udp;
+  SemaphoreHandle_t udpMutex;
   std::vector<DiscoveredBulb> discoveredBulbs;
   void sendUdpPacket(const IPAddress &ip, const String &jsonPayload);
 };

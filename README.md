@@ -16,6 +16,8 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
+[![Version](https://img.shields.io/badge/Release-v01.00.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![PWA Responsive](https://img.shields.io/badge/PWA-MacBook%20%7C%20iPhone%2016-f59e0b?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -296,28 +298,82 @@ The Aura Studio is engineered to deliver a native app experience on both desktop
 ## 🛠️ Hardware Wiring & Schematic
 
 ```
-           +5V External Power Supply (e.g. 5V 4A)
+           +5V Clean Power Rail (e.g. 5V 3A / Realme Fast Charger)
           ┌───────────────────┴───────────────────┐
           │ (+)                                 (-)
           │  │                                   │
-          │  ├───[1000µF, 6.3V+] Capacitor───────┤
+          │  ├───[1000µF, 6.3V+ Capacitor]────────┤
           ▼  ▼                                   ▼
         ┌────────┐                            ┌────────┐
         │  +5V   │                            │  GND   │
-        │ WS2812B│                            │ WS2812B│
+        │ WS2812B│                            │ WS2812B│  (Common Ground)
         └────┬───┘                            └────┬───┘
              │                                     │
    Data In ──┼───[330Ω Resistor]───┐               │
              │                     │               │
              ▼                     ▼               ▼
-           [ 5V/VIN               GPIO 16         GND ]
+           [ 5V/VIN               GPIO 4 (D4)     GND ]
            [               ESP32 (NodeMCU)            ]
 ```
 
-### Power Calculation & Safety
-$$\text{Max Current (A)} \approx (\text{LED Count} \times 0.05\text{A}) + 0.5\text{A (ESP32)}$$
-* For **120 LEDs** (approx. 2 meters of 60 LEDs/m strip): $120 \times 0.05 + 0.5 \approx \mathbf{6.5\text{A}}$ at 100% full white.
-* FastLED includes a software safety power limiter configured at `MAX_POWER_MILLIAMPS = 3000` (3A).
+### Hardware Pinout & Specs:
+* **Active Data Pin:** `GPIO 4` (marked `D4` on ESP32 NodeMCU / Dev Module).
+* **LED Strip:** WS2812B Individual Addressable RGB (60 LEDs / 1 Meter).
+* **Power Distribution:** Clean 5V USB rail splitting into ESP32 `VIN` and LED strip `+5V`, sharing a unified common ground (`GND`) to eliminate signal drift and ground bouncing.
+
+---
+
+## ⚡ Dual-Partition Wireless OTA & Nomenclature Architecture
+
+The Aura Studio includes an industrial-grade **Over-The-Air (OTA) firmware delivery framework** allowing 100% wireless updates directly through the web dashboard without taking the ESP32 out of its enclosure.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  ESP32 Flash Memory Map (4MB Flash via partitions_ota.csv)             │
+│                                                                        │
+│  ┌──────────────┬──────────────┬──────────────┬─────────────────────┐  │
+│  │  Bootloader  │  App Slot 0  │  App Slot 1  │  LittleFS Storage   │  │
+│  │   & NVS      │   (ota_0)    │   (ota_1)    │   Web Dashboard     │  │
+│  │   (128 KB)   │  (1.44 MB)   │  (1.44 MB)   │     (1.06 MB)       │  │
+│  └──────────────┴──────────────┴──────────────┴─────────────────────┘  │
+│                         ▲              │                               │
+│                         │   Flashing   │                               │
+│                   Active Partition ───► Inactive Partition (Fail-Safe) │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 🏷️ Industry-Standard Nomenclature (`firmware_XX.YY.ZZZ.bin`)
+Every production firmware binary follows a strict 3-tier versioning format:
+$$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
+* **`XX` (Major Revision):** Core partition migrations (`partitions_ota.csv`), hardware pin redesigns.
+* **`YY` (Minor Release):** New lighting effects, circadian math adjustments, or integrated dashboard UI tools.
+* **`ZZZ` (Patch/Build):** Anti-flicker timing fixes, FreeRTOS task pacing, temporal low-pass filter tweaks.
+
+### 🌐 Minimalist In-Dashboard Web Flasher
+1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
+2. Scroll to the sleek **Wireless Firmware Update** section.
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.00.000.bin`).
+4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
+
+---
+
+## 🛡️ Anti-Flicker Hardware & Firmware Engineering
+
+To guarantee zero LED flicker, strobing, or AC shimmer across high-intensity fluid physics animations:
+
+1. **Temporal Dither Suppression (`FastLED.setDither(0)`):**
+   Disables FastLED's internal software dithering cycle, which typically manifests as a high-frequency 50Hz/60Hz AC-like shimmer on static and low-brightness colors.
+2. **Quiet Bus Protocol:**
+   The firmware tracks state hash changes and ceases transmission of WS2812B data frames when solid colors are stationary. Data packets are only transmitted upon state alterations or a 3-second heartbeat keepalive, keeping the data bus silent.
+3. **Dynamic Voltage Sag & Current Limiting:**
+   FastLED's power manager restricts draw to `1000mA` with a stable `45–60 FPS` frame cadence. This prevents sudden current spikes and voltage dips on USB chargers during rapid wave physics (`Cyberpulse`, `Candlefire`).
+4. **Repeater Joint Temporal Filtering (LED #36):**
+   WS2812B strips are factory-spliced at 0.5-meter increments (~LED index 30–36). LED #36 acts as the hardware signal repeater for downstream pixels (37–59). A temporal blending low-pass filter calms solder-joint noise:
+   ```cpp
+   leds[36] = blend(lastLed36, leds[36], 190);
+   ```
+5. **Interactive Pixel Diagnostic Tool:**
+   Accessible within Settings, allowing single-pixel isolation from index `0` to `59` with a dedicated one-click test for suspect repeater LED #36.
 
 ---
 
@@ -328,39 +384,31 @@ The_Aura_Studio/
 ├── assets/                        # Documentation & Branding Assets
 │   ├── sandy_logo.png             # Designed by Sandy Signature Logo
 │   └── screenshots/               # Full UI Suite Screenshots
-│       ├── 01_spatial_studio_viewport.png
-│       ├── 02_channel_hardware_matrix.png
-│       ├── 03_circadian_solar_rhythm.png
-│       ├── 04_ambilight_screen_sync.png
-│       ├── 05_soundsync_audio_visualizer.png
-│       ├── 06_gradient_fluid_physics_lab.png
-│       ├── 07_gradient_palettes_wiz_integration.png
-│       └── 08_focus_rhythm_pomodoro.png
 ├── dashboard/                     # Standalone Web Dashboard (Browser & Mobile PWA)
-│   ├── index.html                 # 6 Feature Suites, 2.5D Room Canvas & Sandy Signature
+│   ├── index.html                 # 6 Feature Suites, 2.5D Room Canvas, Minimalist OTA
 │   ├── style.css                  # Obsidian Glassmorphic Design System & Responsive Layout
-│   ├── app.js                     # Circadian, Ambilight, SoundSync & WebSocket Engine
-│   ├── Satisfy.ttf                # Bundled Offline Header Script Font (Option-2)
+│   ├── app.js                     # Circadian, Ambilight, SoundSync, OTA & WebSocket Engine
+│   ├── Satisfy.ttf                # Bundled Offline Header Script Font
 │   ├── sandy_logo.png             # Product Signature Branding
 │   ├── manifest.json              # Progressive Web App configuration
 │   └── icons/                     # High-res PWA application icons
 ├── firmware/                      # ESP32 FreeRTOS Firmware
-│   ├── platformio.ini             # PlatformIO build configuration
-│   ├── data/                      # LittleFS assets (automatically served by ESP32)
-│   │   ├── index.html
-│   │   ├── style.css
-│   │   ├── app.js
-│   │   ├── Satisfy.ttf
-│   │   ├── sandy_logo.png
-│   │   ├── manifest.json
-│   │   └── icons/
+│   ├── platformio.ini             # PlatformIO build configuration (-Os, -Wl,--gc-sections)
+│   ├── partitions_ota.csv         # Dual-partition table (ota_0 / ota_1 / littlefs)
+│   ├── data/                      # LittleFS assets (byte-for-byte synced with dashboard/)
 │   └── src/
-│       ├── Config.h               # Pins, Wi-Fi credentials, bulb IPs, defaults
-│       ├── LedDriver.h / .cpp     # FastLED 60FPS non-blocking animation driver
+│       ├── Config.h               # Versioning, pins, Wi-Fi credentials, bulb IPs
+│       ├── LedDriver.h / .cpp     # FastLED 60FPS non-blocking driver & anti-flicker filters
 │       ├── WizController.h / .cpp # WiZ local UDP driver & discovery parser
-│       ├── WebServerManager.h / .cpp # AsyncWebServer & WebSocket sync
+│       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
-├── test_suite.js                  # Automated verification test suite
+├── releases/                      # Numbered Production Firmware Binaries
+│   ├── firmware_01.00.000.bin     # Initial Dual-OTA Production Binary (v01.00.000)
+│   ├── firmware_latest.bin        # Symlink/copy of the latest production release
+│   └── README.md                  # Release log, checksums, and architecture notes
+├── scripts/                       # Developer Automation Utilities
+│   └── export_release.py          # Automated compiler and nomenclature packager
+├── test_suite.js                  # Automated verification test suite (139 DOM IDs verified)
 └── README.md                      # Comprehensive documentation & setup guide
 ```
 
@@ -417,9 +465,9 @@ The Aura Studio includes a comprehensive headless verification test suite:
 node test_suite.js
 ```
 Validates:
-- 17 core asset, font, and firmware files.
-- 124 unique DOM IDs across all 6 feature suites.
-- 106 interactive buttons with corresponding event bindings.
+- 26 core asset, font, and firmware files.
+- 139 unique DOM IDs across all 6 feature suites and diagnostics.
+- 111 interactive buttons with corresponding event bindings.
 - 34 range sliders with numeric feedback tags.
 - 10 world-class architectural presets.
 - 8 fluid dynamics and physics profiles.
