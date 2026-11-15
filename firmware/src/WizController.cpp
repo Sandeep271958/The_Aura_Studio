@@ -136,43 +136,45 @@ void WizController::updateDiscovery() {
       int len = udp.read(packetBuffer, sizeof(packetBuffer) - 1);
       if (len > 0) {
         packetBuffer[len] = '\0';
-      }
 
-      JsonDocument doc;
-      DeserializationError error = deserializeJson(doc, packetBuffer);
-      if (!error && doc["result"].is<JsonObject>()) {
-        JsonObject result = doc["result"];
-        if (!result["mac"].isNull()) {
-          discoveredMac = result["mac"].as<String>();
-          discoveredIp = udp.remoteIP().toString();
-          discoveredModel = result["moduleName"] | "Philips WiZ Device";
-          discoveredRssi = result["rssi"] | 0;
-          packetValid = true;
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, packetBuffer);
+        if (!error && doc["result"].is<JsonObject>()) {
+          JsonObject result = doc["result"];
+          if (!result["mac"].isNull()) {
+            discoveredMac = result["mac"].as<String>();
+            discoveredIp = udp.remoteIP().toString();
+            discoveredModel = result["moduleName"] | "Philips WiZ Device";
+            discoveredRssi = result["rssi"] | 0;
+            packetValid = true;
 
-          String cleanDiscoveredMac = normalizeMac(discoveredMac);
+            String cleanDiscoveredMac = normalizeMac(discoveredMac);
 
-          // Update existing or add new bulb in discovered list
-          bool exists = false;
-          for (auto &b : discoveredBulbs) {
-            if ((cleanDiscoveredMac.length() >= 6 && normalizeMac(b.mac) == cleanDiscoveredMac) || b.ip == discoveredIp) {
-              exists = true;
-              b.ip = discoveredIp;
-              b.mac = discoveredMac;
-              b.model = discoveredModel;
-              b.rssi = discoveredRssi;
-              break;
+            // Update existing or add new bulb in discovered list
+            bool exists = false;
+            for (auto &b : discoveredBulbs) {
+              if ((cleanDiscoveredMac.length() >= 6 && normalizeMac(b.mac) == cleanDiscoveredMac) || b.ip == discoveredIp) {
+                exists = true;
+                b.ip = discoveredIp;
+                b.mac = discoveredMac;
+                b.model = discoveredModel;
+                b.rssi = discoveredRssi;
+                break;
+              }
             }
-          }
 
-          if (!exists) {
-            DiscoveredBulb bulb;
-            bulb.ip = discoveredIp;
-            bulb.mac = discoveredMac;
-            bulb.model = discoveredModel;
-            bulb.rssi = discoveredRssi;
-            discoveredBulbs.push_back(bulb);
-            Serial.printf("[WiZ] Discovered bulb: %s (%s) at %s\n",
-                          bulb.model.c_str(), discoveredMac.c_str(), discoveredIp.c_str());
+            if (!exists) {
+              if (discoveredBulbs.size() < 32) {
+                DiscoveredBulb bulb;
+                bulb.ip = discoveredIp;
+                bulb.mac = discoveredMac;
+                bulb.model = discoveredModel;
+                bulb.rssi = discoveredRssi;
+                discoveredBulbs.push_back(bulb);
+                Serial.printf("[WiZ] Discovered bulb: %s (%s) at %s\n",
+                              bulb.model.c_str(), discoveredMac.c_str(), discoveredIp.c_str());
+              }
+            }
           }
         }
       }
@@ -238,27 +240,52 @@ void WizController::updateDiscovery() {
   }
 }
 
-const std::vector<DiscoveredBulb> &WizController::getDiscoveredBulbs() const {
-  return discoveredBulbs;
+std::vector<DiscoveredBulb> WizController::getDiscoveredBulbs() const {
+  std::vector<DiscoveredBulb> copy;
+  if (udpMutex != NULL && xSemaphoreTake(udpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    copy = discoveredBulbs;
+    xSemaphoreGive(udpMutex);
+  } else if (udpMutex == NULL) {
+    copy = discoveredBulbs;
+  }
+  return copy;
 }
 
-void WizController::clearDiscoveredBulbs() { discoveredBulbs.clear(); }
+void WizController::clearDiscoveredBulbs() {
+  if (udpMutex != NULL && xSemaphoreTake(udpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    discoveredBulbs.clear();
+    xSemaphoreGive(udpMutex);
+  } else if (udpMutex == NULL) {
+    discoveredBulbs.clear();
+  }
+}
 
 void WizController::sendUdpPacket(const IPAddress &ip,
                                   const String &jsonPayload) {
-  if (udpMutex != NULL) xSemaphoreTake(udpMutex, pdMS_TO_TICKS(100));
-  udp.beginPacket(ip, WIZ_UDP_PORT);
-  udp.write((const uint8_t *)jsonPayload.c_str(), jsonPayload.length());
-  int res = udp.endPacket();
-  if (udpMutex != NULL) xSemaphoreGive(udpMutex);
-  Serial.printf("[WiZ UDP TX] (status=%d) -> %s:38899 | %s\n", res, ip.toString().c_str(), jsonPayload.c_str());
+  if (udpMutex != NULL && xSemaphoreTake(udpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    udp.beginPacket(ip, WIZ_UDP_PORT);
+    udp.write((const uint8_t *)jsonPayload.c_str(), jsonPayload.length());
+    int res = udp.endPacket();
+    xSemaphoreGive(udpMutex);
+    Serial.printf("[WiZ UDP TX] (status=%d) -> %s:38899 | %s\n", res, ip.toString().c_str(), jsonPayload.c_str());
+  } else {
+    Serial.printf("[WiZ UDP TX] Mutex acquisition failed, dropped packet -> %s:38899\n", ip.toString().c_str());
+  }
 }
 
 String WizController::sendCommandWithResponse(const String &ipStr, const String &jsonPayload, uint32_t timeoutMs) {
   IPAddress ip;
   if (!ip.fromString(ipStr)) return "{\"error\":\"Invalid IP format\"}";
 
-  if (udpMutex != NULL) xSemaphoreTake(udpMutex, pdMS_TO_TICKS(200));
+  bool mutexTaken = false;
+  if (udpMutex != NULL) {
+    mutexTaken = (xSemaphoreTake(udpMutex, pdMS_TO_TICKS(200)) == pdTRUE);
+    if (!mutexTaken) {
+      return "{\"error\":\"UDP mutex timeout (busy)\"}";
+    }
+  } else {
+    mutexTaken = true;
+  }
 
   // Flush any pending incoming packets
   while (udp.parsePacket() > 0) {
@@ -271,7 +298,7 @@ String WizController::sendCommandWithResponse(const String &ipStr, const String 
   Serial.printf("[WiZ Test TX] (status=%d) -> %s:38899 | %s\n", res, ipStr.c_str(), jsonPayload.c_str());
 
   if (res != 1) {
-    if (udpMutex != NULL) xSemaphoreGive(udpMutex);
+    if (udpMutex != NULL && mutexTaken) xSemaphoreGive(udpMutex);
     return "{\"error\":\"UDP endPacket failed (socket send error)\"}";
   }
 
@@ -293,7 +320,7 @@ String WizController::sendCommandWithResponse(const String &ipStr, const String 
     delay(10);
   }
 
-  if (udpMutex != NULL) xSemaphoreGive(udpMutex);
+  if (udpMutex != NULL && mutexTaken) xSemaphoreGive(udpMutex);
 
   if (response.length() == 0) {
     return "{\"error\":\"Timeout - No UDP response from bulb on port 38899. Check if 'Allow local communication' is enabled in WiZ v2 app.\"}";

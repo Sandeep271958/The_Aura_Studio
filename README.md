@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.00.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.01.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.00.000.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.01.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -403,6 +403,7 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
+│   ├── firmware_01.01.000.bin     # Production Dual-OTA Release Binary (v01.01.000)
 │   ├── firmware_01.00.000.bin     # Initial Dual-OTA Production Binary (v01.00.000)
 │   ├── firmware_latest.bin        # Symlink/copy of the latest production release
 │   └── README.md                  # Release log, checksums, and architecture notes

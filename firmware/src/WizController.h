@@ -32,7 +32,7 @@ public:
   // Auto-discovery & auto-rebind
   void broadcastDiscovery();
   void updateDiscovery();
-  const std::vector<DiscoveredBulb> &getDiscoveredBulbs() const;
+  std::vector<DiscoveredBulb> getDiscoveredBulbs() const;
   void clearDiscoveredBulbs();
 
   bool checkAndClearRebound();
@@ -40,7 +40,7 @@ public:
 
 private:
   WiFiUDP udp;
-  SemaphoreHandle_t udpMutex;
+  mutable SemaphoreHandle_t udpMutex;
   std::vector<DiscoveredBulb> discoveredBulbs;
   HubState* hubState;
   volatile bool reboundOccurred;

@@ -54,9 +54,8 @@ void WebServerManager::onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *c
 void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
     AwsFrameInfo *info = (AwsFrameInfo*)arg;
     if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT) {
-        data[len] = 0;
         JsonDocument doc;
-        DeserializationError err = deserializeJson(doc, (char*)data);
+        DeserializationError err = deserializeJson(doc, (const char*)data, len);
         if (err) {
             Serial.printf("[WS] JSON parse error: %s\n", err.c_str());
             return;
@@ -73,7 +72,17 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                 payload = payload["state"];
             }
 
-            if (stateMutex != NULL) xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50));
+            bool mutexTaken = false;
+            if (stateMutex != NULL) {
+                mutexTaken = (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE);
+            } else {
+                mutexTaken = true;
+            }
+
+            if (!mutexTaken) {
+                Serial.println("[WS] Warning: stateMutex acquisition timed out (100ms), skipping unsynchronized update");
+                return;
+            }
 
             if (payload.containsKey("network")) {
                 JsonObject net = payload["network"];
@@ -241,7 +250,7 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             bool leftPower = state.isMasterOn && state.wizLeft.power && (state.masterBrightness > 0) && (state.wizLeft.brightness > 0);
             bool rightPower = state.isMasterOn && state.wizRight.power && (state.masterBrightness > 0) && (state.wizRight.brightness > 0);
 
-            if (stateMutex != NULL) xSemaphoreGive(stateMutex);
+            if (stateMutex != NULL && mutexTaken) xSemaphoreGive(stateMutex);
 
             // Sync WiZ bulbs over UDP outside mutex
             if (leftModeRgb) {
@@ -278,16 +287,26 @@ void WebServerManager::setupRoutes() {
 
     // REST API - Run instant LED Hardware Test Pattern
     server.on("/api/led/test", HTTP_GET, [this](AsyncWebServerRequest *request) {
-        if (stateMutex != NULL) xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50));
-        state.isMasterOn = true;
-        state.masterBrightness = 100;
-        state.desk.power = true;
-        state.desk.brightness = 100;
-        state.desk.inspectIndex = -1;
-        state.desk.effect = "test-cycle";
-        if (stateMutex != NULL) xSemaphoreGive(stateMutex);
-        broadcastState();
-        request->send(200, "application/json", "{\"status\":\"active\",\"message\":\"Hardware test pattern activated (Red-Green-Blue-White-Chase)\"}");
+        bool taken = false;
+        if (stateMutex != NULL) {
+            taken = (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE);
+        } else {
+            taken = true;
+        }
+
+        if (taken) {
+            state.isMasterOn = true;
+            state.masterBrightness = 100;
+            state.desk.power = true;
+            state.desk.brightness = 100;
+            state.desk.inspectIndex = -1;
+            state.desk.effect = "test-cycle";
+            if (stateMutex != NULL) xSemaphoreGive(stateMutex);
+            broadcastState();
+            request->send(200, "application/json", "{\"status\":\"active\",\"message\":\"Hardware test pattern activated (Red-Green-Blue-White-Chase)\"}");
+        } else {
+            request->send(503, "application/json", "{\"status\":\"error\",\"message\":\"stateMutex timeout\"}");
+        }
     });
 
     // REST API - Inspect single LED from index 0 to 59 (or -1 to reset to normal)
@@ -297,21 +316,31 @@ void WebServerManager::setupRoutes() {
         uint8_t g = request->hasParam("g") ? request->getParam("g")->value().toInt() : 255;
         uint8_t b = request->hasParam("b") ? request->getParam("b")->value().toInt() : 255;
 
-        if (stateMutex != NULL) xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50));
-        state.isMasterOn = true;
-        state.desk.power = true;
-        state.desk.inspectIndex = idx;
-        if (idx >= 0) {
-            state.desk.r = r;
-            state.desk.g = g;
-            state.desk.b = b;
+        bool taken = false;
+        if (stateMutex != NULL) {
+            taken = (xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE);
+        } else {
+            taken = true;
         }
-        if (stateMutex != NULL) xSemaphoreGive(stateMutex);
 
-        broadcastState();
-        char msg[128];
-        snprintf(msg, sizeof(msg), "{\"status\":\"ok\",\"inspectIndex\":%d,\"r\":%d,\"g\":%d,\"b\":%d}", idx, r, g, b);
-        request->send(200, "application/json", msg);
+        if (taken) {
+            state.isMasterOn = true;
+            state.desk.power = true;
+            state.desk.inspectIndex = idx;
+            if (idx >= 0) {
+                state.desk.r = r;
+                state.desk.g = g;
+                state.desk.b = b;
+            }
+            if (stateMutex != NULL) xSemaphoreGive(stateMutex);
+
+            broadcastState();
+            char msg[128];
+            snprintf(msg, sizeof(msg), "{\"status\":\"ok\",\"inspectIndex\":%d,\"r\":%d,\"g\":%d,\"b\":%d}", idx, r, g, b);
+            request->send(200, "application/json", msg);
+        } else {
+            request->send(503, "application/json", "{\"status\":\"error\",\"message\":\"stateMutex timeout\"}");
+        }
     });
 
     // Web OTA Firmware Update Interface (Enables 100% wireless flashing from any browser!)
