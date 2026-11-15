@@ -1187,7 +1187,7 @@
 
         <!-- Manual IP Configuration -->
         <div class="settings-section">
-          <h4>Manual IP Assignments</h4>
+          <h4>Manual IP &amp; Hub Assignments</h4>
           <div class="ip-form-grid">
             <div class="form-group">
               <label for="input-wiz-left-ip">Left Corner WiZ IP</label>
@@ -1199,6 +1199,32 @@
               <input type="text" id="input-wiz-right-ip" class="custom-input mono" placeholder="192.168.1.102"
                 value="192.168.1.102">
             </div>
+            <div class="form-group" style="grid-column: span 2">
+              <label for="input-hub-host">Smart Light Hub Address (mDNS or IP)</label>
+              <input type="text" id="input-hub-host" class="custom-input mono" placeholder="aura-hub.local"
+                value="aura-hub.local">
+              <p class="section-note" style="margin-top:4px">Target ESP32 host used when running the dashboard locally from <code>http://localhost</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Browser Security & Media Permissions (Secure Context) -->
+        <div class="settings-section">
+          <div class="section-inline-header">
+            <div>
+              <h4>Browser Security &amp; Permissions</h4>
+              <p class="section-note">W3C Secure Context status for Screen Share (Ambilight) and Microphone (SoundSync).</p>
+            </div>
+            <button id="btn-open-security-guide" class="action-btn-sm" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>Setup Guide</span>
+            </button>
+          </div>
+          <div class="security-mini-card">
+            <span class="security-mini-label">CURRENT CONTEXT:</span>
+            <span id="security-status-badge" class="badge-secure-status">Checking...</span>
           </div>
         </div>
 
@@ -1306,6 +1332,103 @@
         <!-- Test Ping Action -->
         <div class="settings-actions">
           <button id="btn-save-settings" class="primary-btn">Save &amp; Apply</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Browser Security & Media Permissions Dialog Modal -->
+  <dialog id="modal-security-guide" class="settings-dialog">
+    <div class="dialog-content glass-panel">
+      <div class="dialog-header">
+        <div class="dialog-title-group">
+          <div class="security-title-row">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="security-shield-icon">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            <h2 class="dialog-title">Browser Security &amp; Permissions</h2>
+          </div>
+          <p class="dialog-subtitle">Unlock Ambilight Screen Sync &amp; SoundSync Audio Reactive</p>
+        </div>
+        <button id="btn-close-security-guide" class="close-btn" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <div class="dialog-body">
+        <!-- Diagnostic Status Banner -->
+        <div id="security-status-banner" class="security-banner insecure">
+          <div class="security-banner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+              <line x1="12" y1="9" x2="12" y2="13"></line>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </div>
+          <div class="security-banner-text">
+            <strong id="security-status-title">Insecure Origin Restricted by Google Chrome</strong>
+            <p id="security-status-desc">Google Chrome requires a "Secure Context" before granting Screen Capture (Ambilight) and Microphone (SoundSync) permissions. Because <code>aura-hub.local</code> is served over local HTTP, Chrome restricts these sensitive media APIs.</p>
+          </div>
+        </div>
+
+        <!-- Two Quick Solutions -->
+        <div class="security-solutions-grid">
+          <!-- Solution 1: Chrome Flag (Recommended) -->
+          <div class="solution-card">
+            <div class="solution-header">
+              <span class="solution-tag">OPTION 1 &bull; RECOMMENDED FOR CHROME / EDGE</span>
+              <h4>Enable Chrome's Secure Origin Flag</h4>
+              <p class="solution-subtitle">Takes 30 seconds &bull; Zero downloads &bull; Permanently marks aura-hub.local as Safe &amp; Secure</p>
+            </div>
+            <ol class="solution-steps">
+              <li>
+                <span>Open this internal Chrome flags page in a new tab:</span>
+                <div class="code-copy-row">
+                  <code class="code-pill mono">chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>
+                  <button type="button" id="btn-copy-chrome-flag" class="btn-copy" title="Copy flag URL">Copy</button>
+                </div>
+              </li>
+              <li>Set the flag to <strong>Enabled</strong>.</li>
+              <li>
+                <span>Paste this hub origin into the text box:</span>
+                <div class="code-copy-row">
+                  <code id="val-chrome-origin" class="code-pill mono">http://aura-hub.local</code>
+                  <button type="button" id="btn-copy-chrome-origin" class="btn-copy" title="Copy origin URL">Copy</button>
+                </div>
+              </li>
+              <li>Click the blue <strong>Relaunch</strong> button at the bottom of Chrome.</li>
+            </ol>
+            <div class="solution-badge-row">
+              <span class="badge-solution-check">&#10003; Removes "Not Secure" warning in Chrome</span>
+              <span class="badge-solution-check">&#10003; Unlocks full Ambilight &amp; SoundSync</span>
+            </div>
+          </div>
+
+          <!-- Solution 2: Localhost Desktop Companion -->
+          <div class="solution-card">
+            <div class="solution-header">
+              <span class="solution-tag">OPTION 2 &bull; COMPANION RUNNER</span>
+              <h4>Run via Localhost Companion Mode</h4>
+              <p class="solution-subtitle">W3C standards define <code>localhost</code> as an automatic Secure Context with 0 warnings</p>
+            </div>
+            <ol class="solution-steps">
+              <li>
+                <span>Run the included zero-dependency companion script in terminal:</span>
+                <div class="code-copy-row">
+                  <code class="code-pill mono">python3 scripts/run_local.py</code>
+                  <button type="button" id="btn-copy-python-cmd" class="btn-copy" title="Copy terminal command">Copy</button>
+                </div>
+              </li>
+              <li>Or double-click <code>start_dashboard.command</code> on macOS.</li>
+              <li>Chrome immediately opens <code>http://localhost:8080</code> with 100% native Secure Context.</li>
+            </ol>
+            <div class="solution-badge-row">
+              <span class="badge-solution-check">&#10003; Native browser security (no flags needed)</span>
+              <span class="badge-solution-check">&#10003; Connects live to ws://aura-hub.local/ws</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="security-modal-footer">
+          <button type="button" id="btn-dismiss-security-guide" class="action-btn action-btn-primary">Got It, Let's Go</button>
         </div>
       </div>
     </div>

@@ -363,6 +363,23 @@ const DOM = {
   valPixelDiag: document.getElementById('val-pixel-diag'),
   btnPixelDiagReset: document.getElementById('btn-pixel-diag-reset'),
 
+  // Smart Hub Target (for Localhost / Companion Mode)
+  inputHubHost: document.getElementById('input-hub-host'),
+
+  // Browser Security & Media Permissions
+  btnOpenSecurityGuide: document.getElementById('btn-open-security-guide'),
+  securityStatusBadge: document.getElementById('security-status-badge'),
+  modalSecurityGuide: document.getElementById('modal-security-guide'),
+  btnCloseSecurityGuide: document.getElementById('btn-close-security-guide'),
+  btnDismissSecurityGuide: document.getElementById('btn-dismiss-security-guide'),
+  securityStatusBanner: document.getElementById('security-status-banner'),
+  securityStatusTitle: document.getElementById('security-status-title'),
+  securityStatusDesc: document.getElementById('security-status-desc'),
+  btnCopyChromeFlag: document.getElementById('btn-copy-chrome-flag'),
+  btnCopyChromeOrigin: document.getElementById('btn-copy-chrome-origin'),
+  btnCopyPythonCmd: document.getElementById('btn-copy-python-cmd'),
+  valChromeOrigin: document.getElementById('val-chrome-origin'),
+
   // Toast
   toastContainer: document.getElementById('toast-container')
 };
@@ -375,12 +392,16 @@ let socket = null;
 let isSimulatedMode = false;
 let socketReconnectTimer = null;
 
-function initCommunications() {
-  const isEsp32Host = window.location.protocol.startsWith('http') &&
-    window.location.hostname !== 'localhost' &&
-    window.location.hostname !== '127.0.0.1';
+function getTargetHubHost() {
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocalhost) {
+    return localStorage.getItem('aura_hub_host') || 'aura-hub.local';
+  }
+  return window.location.host;
+}
 
-  if (!isEsp32Host) {
+function initCommunications() {
+  if (window.location.protocol === 'file:') {
     activateSimulatedMode();
     return;
   }
@@ -395,15 +416,20 @@ function activateSimulatedMode() {
   showToast('Running in local simulated mode with live spatial preview.');
 }
 
+let wsRetryCount = 0;
 function connectWebSocket() {
-  const wsUrl = `ws://${window.location.host}/ws`;
+  const targetHost = getTargetHubHost();
+  const wsUrl = `ws://${targetHost}/ws`;
   try {
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+      wsRetryCount = 0;
+      isSimulatedMode = false;
       DOM.connectionBadge.className = 'status-chip connected';
-      DOM.connectionText.textContent = 'ESP32 ONLINE';
-      showToast('Connected to ESP32 Smart Hub.');
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      DOM.connectionText.textContent = isLocalhost ? `ESP32 (${targetHost})` : 'ESP32 ONLINE';
+      showToast(`Connected to ESP32 Smart Hub (${targetHost}).`);
       clearTimeout(socketReconnectTimer);
       socket.send(JSON.stringify({ type: 'getState' }));
     };
@@ -418,8 +444,13 @@ function connectWebSocket() {
     };
 
     socket.onclose = () => {
+      wsRetryCount++;
       DOM.connectionBadge.className = 'status-chip simulated';
       DOM.connectionText.textContent = 'RECONNECTING...';
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (isLocalhost && wsRetryCount > 2) {
+        DOM.connectionText.textContent = 'SIMULATOR / RETRYING';
+      }
       socketReconnectTimer = setTimeout(connectWebSocket, 3000);
     };
 
@@ -869,20 +900,131 @@ function applyCircadianToRoom() {
 }
 
 // ============================================================================
+// BROWSER SECURITY CONTEXT & MEDIA PERMISSIONS
+// ============================================================================
+
+function checkIsSecureContext() {
+  if (typeof window === 'undefined') return true;
+  if (window.isSecureContext) return true;
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') return true;
+  return false;
+}
+
+function updateSecurityContextUI() {
+  const isSecure = checkIsSecureContext();
+  const hasMediaDevices = typeof navigator !== 'undefined' && !!navigator.mediaDevices && !!navigator.mediaDevices.getDisplayMedia;
+
+  if (DOM.securityStatusBadge) {
+    if (isSecure && hasMediaDevices) {
+      DOM.securityStatusBadge.className = 'badge-secure-status secure';
+      DOM.securityStatusBadge.textContent = '✓ Secure Context (Unlocked)';
+    } else {
+      DOM.securityStatusBadge.className = 'badge-secure-status insecure';
+      DOM.securityStatusBadge.textContent = '⚠️ Insecure Origin (Restricted)';
+    }
+  }
+
+  if (DOM.securityStatusBanner && DOM.securityStatusTitle && DOM.securityStatusDesc) {
+    if (isSecure && hasMediaDevices) {
+      DOM.securityStatusBanner.className = 'security-banner secure';
+      DOM.securityStatusTitle.textContent = '✓ Secure Context Active (Safe & Verified)';
+      DOM.securityStatusDesc.textContent = 'Google Chrome has granted Safe & Secure status to this dashboard. Screen Sharing (Ambilight) and Microphone (SoundSync) access are fully unlocked and ready.';
+    } else {
+      DOM.securityStatusBanner.className = 'security-banner insecure';
+      DOM.securityStatusTitle.textContent = 'Insecure Origin Restricted by Google Chrome';
+      DOM.securityStatusDesc.textContent = 'Google Chrome requires a "Secure Context" before granting Screen Capture (Ambilight) and Microphone (SoundSync) permissions. Because aura-hub.local is served over local HTTP, Chrome restricts these sensitive media APIs.';
+    }
+  }
+
+  if (DOM.valChromeOrigin && typeof window !== 'undefined') {
+    const curOrigin = (window.location.protocol && window.location.protocol.startsWith('http') && window.location.origin) 
+      ? window.location.origin 
+      : 'http://aura-hub.local';
+    DOM.valChromeOrigin.textContent = curOrigin;
+  }
+}
+
+function openSecurityGuideModal() {
+  updateSecurityContextUI();
+  if (DOM.modalSecurityGuide && typeof DOM.modalSecurityGuide.showModal === 'function') {
+    DOM.modalSecurityGuide.showModal();
+  }
+}
+
+function closeSecurityGuideModal() {
+  if (DOM.modalSecurityGuide && typeof DOM.modalSecurityGuide.close === 'function') {
+    DOM.modalSecurityGuide.close();
+  }
+}
+
+function copyToClipboard(text, btnElement) {
+  function onSuccess() {
+    if (btnElement) {
+      const orig = btnElement.textContent;
+      btnElement.textContent = 'Copied!';
+      btnElement.classList.add('copied');
+      setTimeout(() => {
+        btnElement.textContent = orig;
+        btnElement.classList.remove('copied');
+      }, 2000);
+    }
+    showToast(`Copied: ${text}`);
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(onSuccess).catch(fallback);
+  } else {
+    fallback();
+  }
+
+  function fallback() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      onSuccess();
+    } catch (e) {
+      showToast(`Copy manually: ${text}`);
+    }
+  }
+}
+
+// ============================================================================
 // 6. FEATURE SUITE 2: AMBILIGHT REAL-TIME SCREEN SYNC
 // ============================================================================
 
 async function toggleAmbilight() {
   if (appState.ambilight.active) {
     stopAmbilight();
-  } else {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: 30, cursor: 'never' }
-      });
-      startAmbilight(stream);
-    } catch (err) {
-      showToast('Screen capture permission was not granted.');
+    return;
+  }
+
+  // Pre-flight check for Secure Context & mediaDevices support
+  const isSecure = checkIsSecureContext();
+  const hasMediaDevices = typeof navigator !== 'undefined' && !!navigator.mediaDevices && !!navigator.mediaDevices.getDisplayMedia;
+  if (!isSecure || !hasMediaDevices) {
+    openSecurityGuideModal();
+    showToast('Secure Context required: Chrome restricts Screen Share on local HTTP.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: 30, cursor: 'never' }
+    });
+    startAmbilight(stream);
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') {
+      showToast('Screen capture permission was cancelled.');
+    } else {
+      openSecurityGuideModal();
+      showToast('Screen capture permission was restricted by browser.');
     }
   }
 }
@@ -1024,12 +1166,27 @@ function lerpRGB(prev, target, alpha) {
 async function toggleSoundSync() {
   if (appState.soundsync.active) {
     stopSoundSync();
-  } else {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      startSoundSync(stream);
-    } catch (err) {
-      showToast('Microphone access was denied or unavailable.');
+    return;
+  }
+
+  // Pre-flight check for Secure Context & mediaDevices support
+  const isSecure = checkIsSecureContext();
+  const hasMediaDevices = typeof navigator !== 'undefined' && !!navigator.mediaDevices && !!navigator.mediaDevices.getUserMedia;
+  if (!isSecure || !hasMediaDevices) {
+    openSecurityGuideModal();
+    showToast('Secure Context required: Chrome restricts Microphone on local HTTP.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    startSoundSync(stream);
+  } catch (err) {
+    if (err && err.name === 'NotAllowedError') {
+      showToast('Microphone access permission was cancelled.');
+    } else {
+      openSecurityGuideModal();
+      showToast('Microphone access was restricted by browser.');
     }
   }
 }
@@ -2212,6 +2369,11 @@ function bindEvents() {
     DOM.modalSettings.showModal();
     DOM.inputWizLeftIp.value = appState.network.wizLeftIp;
     DOM.inputWizRightIp.value = appState.network.wizRightIp;
+    if (DOM.inputHubHost) {
+      DOM.inputHubHost.value = localStorage.getItem('aura_hub_host') || 
+        ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'aura-hub.local' : window.location.host);
+    }
+    updateSecurityContextUI();
   });
 
   DOM.btnCloseSettings.addEventListener('click', () => {
@@ -2224,6 +2386,59 @@ function bindEvents() {
       DOM.modalSettings.close();
     }
   });
+
+  // Browser Security & Permissions Guide Dialog
+  if (DOM.btnOpenSecurityGuide) {
+    DOM.btnOpenSecurityGuide.addEventListener('click', () => {
+      triggerHaptic('light');
+      openSecurityGuideModal();
+    });
+  }
+
+  if (DOM.btnCloseSecurityGuide) {
+    DOM.btnCloseSecurityGuide.addEventListener('click', () => {
+      triggerHaptic('light');
+      closeSecurityGuideModal();
+    });
+  }
+
+  if (DOM.btnDismissSecurityGuide) {
+    DOM.btnDismissSecurityGuide.addEventListener('click', () => {
+      triggerHaptic('light');
+      closeSecurityGuideModal();
+    });
+  }
+
+  if (DOM.modalSecurityGuide) {
+    DOM.modalSecurityGuide.addEventListener('click', (e) => {
+      const d = DOM.modalSecurityGuide.getBoundingClientRect();
+      if (e.clientX < d.left || e.clientX > d.right || e.clientY < d.top || e.clientY > d.bottom) {
+        closeSecurityGuideModal();
+      }
+    });
+  }
+
+  if (DOM.btnCopyChromeFlag) {
+    DOM.btnCopyChromeFlag.addEventListener('click', () => {
+      triggerHaptic('light');
+      copyToClipboard('chrome://flags/#unsafely-treat-insecure-origin-as-secure', DOM.btnCopyChromeFlag);
+    });
+  }
+
+  if (DOM.btnCopyChromeOrigin) {
+    DOM.btnCopyChromeOrigin.addEventListener('click', () => {
+      triggerHaptic('light');
+      const originText = (DOM.valChromeOrigin && DOM.valChromeOrigin.textContent) || 'http://aura-hub.local';
+      copyToClipboard(originText, DOM.btnCopyChromeOrigin);
+    });
+  }
+
+  if (DOM.btnCopyPythonCmd) {
+    DOM.btnCopyPythonCmd.addEventListener('click', () => {
+      triggerHaptic('light');
+      copyToClipboard('python3 scripts/run_local.py', DOM.btnCopyPythonCmd);
+    });
+  }
 
   DOM.btnScanWiz.addEventListener('click', () => {
     triggerHaptic('medium');
@@ -2244,6 +2459,17 @@ function bindEvents() {
     localStorage.setItem('aura_wiz_right_ip', appState.network.wizRightIp);
     DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
     DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
+
+    if (DOM.inputHubHost) {
+      const hubVal = DOM.inputHubHost.value.trim() || 'aura-hub.local';
+      const prevHub = localStorage.getItem('aura_hub_host');
+      localStorage.setItem('aura_hub_host', hubVal);
+      if (prevHub !== hubVal && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        if (socket) socket.close();
+        connectWebSocket();
+      }
+    }
+
     DOM.modalSettings.close();
     showToast('Network settings saved.');
     dispatchStateChange({ network: appState.network });
@@ -2825,6 +3051,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   bindEvents();
   initCommunications();
+  updateSecurityContextUI();
   renderAll();
   startGradientFluidSimulation();
 
