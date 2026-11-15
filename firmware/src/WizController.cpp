@@ -267,7 +267,9 @@ void WizController::sendUdpPacket(const IPAddress &ip,
     udp.write((const uint8_t *)jsonPayload.c_str(), jsonPayload.length());
     int res = udp.endPacket();
     xSemaphoreGive(udpMutex);
-    Serial.printf("[WiZ UDP TX] (status=%d) -> %s:38899 | %s\n", res, ip.toString().c_str(), jsonPayload.c_str());
+    if (res != 1) {
+      Serial.printf("[WiZ UDP TX Error] (status=%d) -> %s:38899\n", res, ip.toString().c_str());
+    }
   } else {
     Serial.printf("[WiZ UDP TX] Mutex acquisition failed, dropped packet -> %s:38899\n", ip.toString().c_str());
   }

@@ -996,6 +996,70 @@ function copyToClipboard(text, btnElement) {
 }
 
 // ============================================================================
+// BACKGROUND SYNC ENGINE (Inline Web Worker Ticker)
+// Keeps Ambilight Screen Sync and SoundSync Audio Reactive running continuously
+// at 30 FPS even when the dashboard tab is in the background or minimized.
+// ============================================================================
+
+let syncWorker = null;
+
+function initSyncWorker() {
+  if (syncWorker || typeof Worker === 'undefined' || typeof Blob === 'undefined') return;
+  try {
+    const workerScript = `
+      let timer = null;
+      self.onmessage = function(e) {
+        if (e.data === 'start') {
+          if (!timer) {
+            timer = setInterval(function() {
+              self.postMessage('tick');
+            }, 33);
+          }
+        } else if (e.data === 'stop') {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+        }
+      };
+    `;
+    const blob = new Blob([workerScript], { type: 'application/javascript' });
+    const workerUrl = URL.createObjectURL(blob);
+    syncWorker = new Worker(workerUrl);
+    syncWorker.onmessage = function(e) {
+      if (e.data === 'tick') {
+        onBackgroundSyncTick();
+      }
+    };
+  } catch (e) {
+    console.warn('[SyncWorker] Fallback to window timers:', e);
+  }
+}
+
+function updateSyncWorkerState() {
+  const needsWorker = (appState.ambilight && appState.ambilight.active) || 
+                      (appState.soundsync && appState.soundsync.active);
+  if (needsWorker) {
+    if (!syncWorker) initSyncWorker();
+    if (syncWorker) syncWorker.postMessage('start');
+  } else {
+    if (syncWorker) syncWorker.postMessage('stop');
+  }
+}
+
+function onBackgroundSyncTick() {
+  // Only execute via worker when tab is in background (requestAnimationFrame is paused by browser)
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    if (appState.ambilight && appState.ambilight.active && typeof appState.ambilight.processFrame === 'function') {
+      appState.ambilight.processFrame(false);
+    }
+    if (appState.soundsync && appState.soundsync.active && typeof appState.soundsync.processFrame === 'function') {
+      appState.soundsync.processFrame(false);
+    }
+  }
+}
+
+// ============================================================================
 // 6. FEATURE SUITE 2: AMBILIGHT REAL-TIME SCREEN SYNC
 // ============================================================================
 
@@ -1049,7 +1113,7 @@ function startAmbilight(stream) {
   let smoothedRight = [30, 64, 175];
   let lastAmbiDispatch = 0;
 
-  function loop() {
+  function processAmbilightFrame(updateUi) {
     if (!appState.ambilight.active) return;
     if (DOM.ambilightVideo.readyState >= 2) {
       ctx.drawImage(DOM.ambilightVideo, 0, 0, canvas.width, canvas.height);
@@ -1072,13 +1136,16 @@ function startAmbilight(stream) {
       const hexCenter = rgbToHex(smoothedCenter[0], smoothedCenter[1], smoothedCenter[2]);
       const hexRight = rgbToHex(smoothedRight[0], smoothedRight[1], smoothedRight[2]);
 
-      // Update UI Previews
-      DOM.hexZoneLeft.textContent = hexLeft;
-      DOM.hexZoneCenter.textContent = hexCenter;
-      DOM.hexZoneRight.textContent = hexRight;
-      DOM.zoneLeft.style.borderColor = hexLeft;
-      DOM.zoneCenter.style.borderColor = hexCenter;
-      DOM.zoneRight.style.borderColor = hexRight;
+      // Update UI Previews only when visible
+      if (updateUi) {
+        DOM.hexZoneLeft.textContent = hexLeft;
+        DOM.hexZoneCenter.textContent = hexCenter;
+        DOM.hexZoneRight.textContent = hexRight;
+        DOM.zoneLeft.style.borderColor = hexLeft;
+        DOM.zoneCenter.style.borderColor = hexCenter;
+        DOM.zoneRight.style.borderColor = hexRight;
+        renderVisualizer();
+      }
 
       // Apply to Room Devices
       appState.devices.wizLeft.mode = 'rgb';
@@ -1088,7 +1155,6 @@ function startAmbilight(stream) {
       appState.devices.wizRight.mode = 'rgb';
       appState.devices.wizRight.color = hexRight;
 
-      renderVisualizer();
       const nowMs = performance.now();
       if (nowMs - lastAmbiDispatch >= 60) {
         lastAmbiDispatch = nowMs;
@@ -1099,15 +1165,26 @@ function startAmbilight(stream) {
         });
       }
     }
+  }
+
+  appState.ambilight.processFrame = processAmbilightFrame;
+
+  function loop() {
+    if (!appState.ambilight.active) return;
+    if (document.visibilityState === 'visible') {
+      processAmbilightFrame(true);
+    }
     appState.ambilight.rafId = requestAnimationFrame(loop);
   }
 
   appState.ambilight.rafId = requestAnimationFrame(loop);
+  updateSyncWorkerState();
   showToast('Ambilight Screen Sync started (30 FPS)');
 }
 
 function stopAmbilight() {
   appState.ambilight.active = false;
+  appState.ambilight.processFrame = null;
   if (appState.ambilight.rafId) cancelAnimationFrame(appState.ambilight.rafId);
   if (appState.ambilight.stream) {
     appState.ambilight.stream.getTracks().forEach(t => t.stop());
@@ -1117,6 +1194,7 @@ function stopAmbilight() {
   DOM.ambilightPlaceholder.classList.remove('hidden');
   DOM.ambilightBtnLabel.textContent = 'Start Screen Sync';
   DOM.btnToggleAmbilight.classList.remove('active');
+  updateSyncWorkerState();
   renderAll();
   showToast('Ambilight Screen Sync stopped.');
 }
@@ -1209,7 +1287,7 @@ function startSoundSync(stream) {
   }
   const analyser = audioCtx.createAnalyser();
   analyser.fftSize = 128;
-  analyser.smoothingTimeConstant = 0.8;
+  analyser.smoothingTimeConstant = 0.35; // Fast transient response for crisp beat tracking
 
   const source = audioCtx.createMediaStreamSource(stream);
   source.connect(analyser);
@@ -1218,80 +1296,121 @@ function startSoundSync(stream) {
   appState.soundsync.analyser = analyser;
 
   const canvas = DOM.soundsyncCanvas;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas ? canvas.getContext('2d') : null;
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
   let lastSoundSyncDispatch = 0;
 
-  function draw() {
+  // Dynamic Beat Tracking & AGC State
+  let bassPulse = 0;
+  let midsPulse = 0;
+  let dynamicNoiseFloor = 15;
+  let dynamicPeak = 130;
+  let lastRaveHue = 0;
+
+  function processSoundSyncFrame(updateUi) {
     if (!appState.soundsync.active) return;
     analyser.getByteFrequencyData(dataArray);
 
-    ctx.fillStyle = '#090c14';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const barWidth = (canvas.width / bufferLength) * 2;
-    let x = 0;
-
-    // Split into bands: Sub-bass (0-4), Mids (5-18), Highs (19+)
-    let subBassSum = 0;
-    for (let i = 0; i < 4; i++) subBassSum += dataArray[i];
-    const avgBass = subBassSum / 4;
-
-    let midsSum = 0;
-    for (let i = 5; i < 18; i++) midsSum += dataArray[i];
-    const avgMids = midsSum / 13;
-
-    for (let i = 0; i < bufferLength; i++) {
-      const barHeight = (dataArray[i] / 255) * canvas.height;
-      const hue = (i / bufferLength) * 280 + 160;
-      ctx.fillStyle = `hsl(${hue}, 100%, 55%)`;
-      ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
-      x += barWidth;
-    }
-
-    // Audio reactive calculations based on active mode
     const sens = appState.soundsync.sensitivity / 100;
     const mode = appState.soundsync.mode;
 
+    // Sub-bass (bins 0-1), Low-mids (bins 2-4), Mids (bins 5-13), Highs (bins 14-28)
+    const avgSubBass = (dataArray[0] * 1.5 + dataArray[1] * 1.2) / 2.7;
+    let midsSum = 0;
+    for (let i = 4; i < 14; i++) midsSum += dataArray[i];
+    const avgMids = midsSum / 10;
+    let highsSum = 0;
+    for (let i = 14; i < 28; i++) highsSum += dataArray[i];
+    const avgHighs = highsSum / 14;
+
+    // Dynamic Noise Floor & Peak Adaptation (AGC)
+    if (avgSubBass < dynamicNoiseFloor) {
+      dynamicNoiseFloor = dynamicNoiseFloor * 0.95 + avgSubBass * 0.05;
+    } else {
+      dynamicNoiseFloor = dynamicNoiseFloor * 0.999 + avgSubBass * 0.001;
+    }
+    if (avgSubBass > dynamicPeak) {
+      dynamicPeak = avgSubBass;
+    } else {
+      dynamicPeak = Math.max(70, dynamicPeak * 0.996);
+    }
+
+    const cleanBass = Math.max(0, avgSubBass - dynamicNoiseFloor);
+    const normBass = Math.min(1.0, cleanBass / (dynamicPeak - dynamicNoiseFloor || 1.0));
+
+    // Attack / Exponential Decay Machine (signature snappy beat response)
+    if (normBass > bassPulse) {
+      bassPulse = normBass; // Instant punch attack!
+    } else {
+      bassPulse *= 0.86; // Exponential beat decay (~130ms half-life)
+    }
+
+    const cleanMids = Math.max(0, avgMids - 10);
+    const normMids = Math.min(1.0, cleanMids / 110);
+    if (normMids > midsPulse) {
+      midsPulse = normMids;
+    } else {
+      midsPulse *= 0.88;
+    }
+
+    // Audio reactive calculations based on active mode
     if (mode === 'spectrum' || mode === 'equalizer') {
-      const energy = ((avgBass + avgMids) / 2) * sens;
-      const hueShift = Math.round((energy / 255) * 360);
+      const totalEnergy = (bassPulse * 0.55 + midsPulse * 0.45) * sens;
+      const hueShift = Math.round((240 - normBass * 180 + avgHighs * 0.6) + 360) % 360;
       const color = hslToHex(hueShift, 100, 50);
+      const specBright = Math.min(100, Math.round(20 + 80 * totalEnergy));
+      appState.devices.desk.brightness = specBright;
       appState.devices.desk.color = color;
       appState.devices.wizLeft.mode = 'rgb';
       appState.devices.wizLeft.color = color;
+      appState.devices.wizLeft.brightness = specBright;
       appState.devices.wizRight.mode = 'rgb';
       appState.devices.wizRight.color = color;
+      appState.devices.wizRight.brightness = specBright;
     } else if (mode === 'ambient') {
-      const volume = (avgBass * 0.5 + avgMids * 0.5) * sens;
-      const ambientBright = Math.max(20, Math.min(90, Math.round((volume / 255) * 100)));
+      const smoothVol = (bassPulse * 0.35 + midsPulse * 0.65) * sens;
+      const ambientBright = Math.max(15, Math.min(95, Math.round(18 + 72 * smoothVol)));
       appState.devices.desk.brightness = ambientBright;
       appState.devices.wizLeft.brightness = ambientBright;
       appState.devices.wizRight.brightness = ambientBright;
     } else if (mode === 'rave') {
-      const volume = (avgBass * 0.6 + avgMids * 0.4) * sens;
-      const raveBright = Math.min(100, Math.round((volume / 255) * 100));
-      const hue = Math.round((avgBass / 255) * 360);
-      const color = hslToHex(hue, 100, 50);
-      appState.devices.desk.brightness = Math.max(30, raveBright);
+      const raveBright = Math.min(100, Math.round((25 + 75 * Math.max(bassPulse, midsPulse)) * sens));
+      if (normBass > 0.65) {
+        lastRaveHue = (lastRaveHue + 120) % 360;
+      }
+      const color = hslToHex(lastRaveHue, 100, 50);
+      appState.devices.desk.brightness = Math.max(20, raveBright);
       appState.devices.desk.color = color;
-      appState.devices.wizLeft.brightness = Math.max(30, raveBright);
+      appState.devices.wizLeft.brightness = Math.max(20, raveBright);
       appState.devices.wizLeft.color = color;
-      appState.devices.wizRight.brightness = Math.max(30, raveBright);
+      appState.devices.wizRight.brightness = Math.max(20, raveBright);
       appState.devices.wizRight.color = color;
-    } else { // default 'pulse'
-      if (avgBass * sens > 65) {
-        const bassFactor = Math.min(100, Math.round((avgBass / 255) * 100));
-        appState.devices.wizLeft.brightness = bassFactor;
-        appState.devices.wizRight.brightness = bassFactor;
-      }
-      if (avgMids * sens > 55) {
-        appState.devices.desk.brightness = Math.min(100, Math.round((avgMids / 255) * 100));
-      }
+    } else { // default 'pulse' - Snappy dynamic bass punch with kick decay
+      const targetDeskBright = Math.min(100, Math.round((15 + 85 * bassPulse) * sens));
+      const targetWizBright = Math.min(100, Math.round((10 + 90 * bassPulse) * sens));
+      const pulseHue = Math.round(180 + midsPulse * 140) % 360;
+      const pulseColor = hslToHex(pulseHue, 100, 50);
+      appState.devices.desk.brightness = targetDeskBright;
+      appState.devices.desk.color = pulseColor;
+      appState.devices.wizLeft.brightness = targetWizBright;
+      appState.devices.wizRight.brightness = targetWizBright;
     }
 
-    renderVisualizer();
+    if (updateUi && canvas && ctx) {
+      ctx.fillStyle = '#090c14';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const barWidth = (canvas.width / bufferLength) * 2;
+      let x = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * canvas.height;
+        const hue = (i / bufferLength) * 280 + 160;
+        ctx.fillStyle = `hsl(${hue}, 100%, 55%)`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+        x += barWidth;
+      }
+      renderVisualizer();
+    }
 
     const nowAudio = performance.now();
     if (nowAudio - lastSoundSyncDispatch >= 65) {
@@ -1302,16 +1421,26 @@ function startSoundSync(stream) {
         wizRight: { brightness: appState.devices.wizRight.brightness, color: appState.devices.wizRight.color, mode: appState.devices.wizRight.mode }
       });
     }
+  }
 
+  appState.soundsync.processFrame = processSoundSyncFrame;
+
+  function draw() {
+    if (!appState.soundsync.active) return;
+    if (document.visibilityState === 'visible') {
+      processSoundSyncFrame(true);
+    }
     appState.soundsync.rafId = requestAnimationFrame(draw);
   }
 
   appState.soundsync.rafId = requestAnimationFrame(draw);
+  updateSyncWorkerState();
   showToast('SoundSync active: Listening to audio stream');
 }
 
 function stopSoundSync() {
   appState.soundsync.active = false;
+  appState.soundsync.processFrame = null;
   if (appState.soundsync.rafId) cancelAnimationFrame(appState.soundsync.rafId);
   if (appState.soundsync.micStream) {
     appState.soundsync.micStream.getTracks().forEach(t => t.stop());
@@ -1340,6 +1469,7 @@ function stopSoundSync() {
   }
   DOM.soundsyncBtnLabel.textContent = 'Activate Microphone / Audio';
   DOM.btnToggleSoundSync.classList.remove('active');
+  updateSyncWorkerState();
   renderAll();
   showToast('SoundSync deactivated.');
 }
