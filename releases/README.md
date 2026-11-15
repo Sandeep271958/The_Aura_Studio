@@ -24,10 +24,24 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`firmware_01.02.001.bin`** | `v01.02.001` | 2026-11-15 | 1,458,224 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `5136d9a200afba1013bf15231dcc7586b3fd26a2d33bd84ca8ebbb3ed84b5459` |
+| **`firmware_01.02.001.bin`** | `v01.02.001` | 2026-11-15 | 1,458,928 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `9b1a86bdd3a085f82bed5db7708208ff5fdb3af3b8b44f0ff48b8dda9fd99ec4` |
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.02.001`:
+1. **Dual-Target Wireless OTA Flashing**:
+   - Web server automatically detects file type: updates firmware (`app0`/`app1` via `U_FLASH`) for `firmware_*.bin`, or filesystem (`spiffs` via `U_SPIFFS`) for `littlefs_*.bin`.
+   - Allows updating both the C++ backend and the rich web dashboard wirelessly without physical USB cables.
+2. **HTTP Cache Invalidation & Version Tagging**:
+   - Added HTTP response headers `Cache-Control: no-cache, no-store, must-revalidate` for static web assets.
+   - Asset URLs dynamically tagged with cache-busting query strings (`?v=01.02.001`) preventing stale browser cache retention.
+3. **1000ms LED & Lamp Transition Synchronization**:
+   - WS2812B desk strip turn-on and turn-off animation curves tuned to exactly 1000ms, perfectly synchronizing with the 1-second WiZ corner lamp dimming curve.
+4. **Hardware & Pixel Diagnostic Refinement**:
+   - Cleaned up redundant inspection buttons in the Settings panel; embedded the "Restore All LEDs" action seamlessly within the diagnostic slider scrub status readout.
+5. **Security & Permissions Assistant & Localhost Runner**:
+   - Built interactive in-dashboard modal guiding users to enable Chrome flags or utilize the zero-install `start_dashboard.command` companion runner for microphone and screen share synchronization without HTTPS certificate friction.
 
 ### Key Highlights of `v01.01.000`:
 1. **Permanent WiZ Bulb NVS Persistence**:

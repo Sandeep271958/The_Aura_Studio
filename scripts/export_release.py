@@ -221,17 +221,30 @@ def main():
     file_size_mb = file_size / (1024 * 1024)
     checksum = sha256sum(target_path)
 
+    # Build LittleFS filesystem image
+    print("▶ Building LittleFS filesystem image via PlatformIO...")
+    subprocess.run(["pio", "run", "--target", "buildfs", "-d", os.path.join(PROJECT_ROOT, "firmware")], check=True)
+    build_fs = os.path.join(PROJECT_ROOT, "firmware", ".pio", "build", "esp32dev", "littlefs.bin")
+    if os.path.exists(build_fs):
+        fs_target_path = os.path.join(RELEASES_DIR, f"littlefs_{version}.bin")
+        fs_latest_path = os.path.join(RELEASES_DIR, "littlefs_latest.bin")
+        shutil.copyfile(build_fs, fs_target_path)
+        shutil.copyfile(build_fs, fs_latest_path)
+        fs_size = os.path.getsize(fs_target_path)
+        fs_checksum = sha256sum(fs_target_path)
+        print(f"✔ LittleFS Web Dashboard Packaged: {fs_target_path} ({fs_size:,} bytes)")
+
     # Post-Packaging Guard 4: Registry Update
     guard_update_readme_registry(version, out_name, build_date, file_size, checksum)
 
     print("================================================================================")
-    print("✅ Firmware Release Packaged Successfully!")
+    print("✅ Firmware & Dashboard Release Packaged Successfully!")
     print("================================================================================")
-    print(f"  Artifact:  {target_path}")
-    print(f"  Latest:    {latest_path}")
-    print(f"  Size:      {file_size:,} bytes ({file_size_mb:.2f} MB)")
-    print(f"  SHA-256:   {checksum}")
-    print(f"  Format:    firmware_XX.YY.ZZZ.bin (Industry Standard)\n")
+    print(f"  Firmware:   {target_path} ({file_size:,} bytes)")
+    print(f"  SHA-256:    {checksum}")
+    if os.path.exists(build_fs):
+        print(f"  Filesystem: {os.path.join(RELEASES_DIR, 'littlefs_latest.bin')} ({os.path.getsize(build_fs):,} bytes)")
+    print(f"  Format:     firmware_XX.YY.ZZZ.bin & littlefs_latest.bin\n")
 
 if __name__ == "__main__":
     main()

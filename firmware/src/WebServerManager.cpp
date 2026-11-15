@@ -278,8 +278,8 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
 }
 
 void WebServerManager::setupRoutes() {
-    // Serve static files from LittleFS
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+    // Serve static files from LittleFS with Cache-Control to prevent stale client caching
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
 
     // REST API - Get current state
     server.on("/api/state", HTTP_GET, [this](AsyncWebServerRequest *request) {
@@ -371,7 +371,16 @@ void WebServerManager::setupRoutes() {
     }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
         if (!index) {
             Serial.printf("[OTA] Update Start: %s\n", filename.c_str());
-            if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+            int cmd = U_FLASH;
+            String lower = filename;
+            lower.toLowerCase();
+            if (lower.indexOf("littlefs") >= 0 || lower.indexOf("spiffs") >= 0 || lower.indexOf("filesystem") >= 0 || lower.indexOf("data") >= 0) {
+                cmd = U_SPIFFS;
+                Serial.println("[OTA] Target Partition: LittleFS Filesystem (U_SPIFFS)");
+            } else {
+                Serial.println("[OTA] Target Partition: Firmware Flash (U_FLASH)");
+            }
+            if (!Update.begin(UPDATE_SIZE_UNKNOWN, cmd)) {
                 Update.printError(Serial);
             }
         }
