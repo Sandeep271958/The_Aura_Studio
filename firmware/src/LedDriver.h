@@ -9,7 +9,7 @@ public:
   LedDriver();
   void begin();
   void update(const DeviceDesk &config, bool masterOn, uint8_t masterBrightness,
-              int8_t contrastRatio);
+              int8_t contrastRatio, bool useGammaCorrection = true);
 
 private:
   CRGB leds[NUM_LEDS];
@@ -25,6 +25,11 @@ private:
   int lastInspectIndex = -2;
   uint32_t lastSolidPush = 0;
   CRGB lastLed36 = CRGB::Black;
+  bool lastUseGamma = true;
+
+  // Helper functions
+  static CRGB interpolate4Stops(const CRGB stops[4], float t);
+  void effectGradientPhysics(const DeviceDesk &config);
 
   // Effect implementations
   void effectTestCycle();

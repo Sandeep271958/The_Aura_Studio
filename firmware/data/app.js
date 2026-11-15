@@ -156,7 +156,9 @@ const appState = {
   network: {
     hubIp: '192.168.1.99',
     wizLeftIp: localStorage.getItem('aura_wiz_left_ip') || '192.168.1.101',
-    wizRightIp: localStorage.getItem('aura_wiz_right_ip') || '192.168.1.102'
+    wizLeftMac: localStorage.getItem('aura_wiz_left_mac') || '',
+    wizRightIp: localStorage.getItem('aura_wiz_right_ip') || '192.168.1.102',
+    wizRightMac: localStorage.getItem('aura_wiz_right_mac') || ''
   },
 
   devices: {
@@ -336,6 +338,7 @@ const DOM = {
   btnSaveSettings: document.getElementById('btn-save-settings'),
   ipDisplayWizLeft: document.getElementById('ip-display-wiz-left'),
   ipDisplayWizRight: document.getElementById('ip-display-wiz-right'),
+  telemHubIp: document.getElementById('telem-hub-ip'),
   toggleGamma: document.getElementById('toggle-gamma'),
 
   // Wireless OTA Firmware Update
@@ -461,6 +464,16 @@ function handleIncomingMessage(msg) {
     if (msg.payload && msg.payload.firmwareVersion && DOM.badgeFirmwareVersion) {
       DOM.badgeFirmwareVersion.textContent = `v${msg.payload.firmwareVersion}`;
     }
+    if (msg.payload && msg.payload.network) {
+      if (msg.payload.network.wizLeftMac) {
+        appState.network.wizLeftMac = msg.payload.network.wizLeftMac;
+        localStorage.setItem('aura_wiz_left_mac', appState.network.wizLeftMac);
+      }
+      if (msg.payload.network.wizRightMac) {
+        appState.network.wizRightMac = msg.payload.network.wizRightMac;
+        localStorage.setItem('aura_wiz_right_mac', appState.network.wizRightMac);
+      }
+    }
     // Preserve user assigned WiZ bulb IPs if ESP32 returns unconfigured factory defaults
     const savedLeft = localStorage.getItem('aura_wiz_left_ip');
     const savedRight = localStorage.getItem('aura_wiz_right_ip');
@@ -469,6 +482,14 @@ function handleIncomingMessage(msg) {
     }
     if (savedRight && appState.network.wizRightIp === '192.168.1.102') {
       appState.network.wizRightIp = savedRight;
+    }
+    const savedLeftMac = localStorage.getItem('aura_wiz_left_mac');
+    const savedRightMac = localStorage.getItem('aura_wiz_right_mac');
+    if (savedLeftMac && !appState.network.wizLeftMac) {
+      appState.network.wizLeftMac = savedLeftMac;
+    }
+    if (savedRightMac && !appState.network.wizRightMac) {
+      appState.network.wizRightMac = savedRightMac;
     }
     renderAll();
   } else if (msg.type === 'wizDiscovery') {
@@ -546,11 +567,36 @@ function renderVisualizer() {
   const totalLux = Math.round(((effBrightDesk + effBrightWizLeft + effBrightWizRight) / 3) * 100);
   DOM.telemetryLux.innerHTML = `TOTAL LUMENS: <strong>${totalLux}%</strong>`;
 
-  const ratioVal = effBrightWizLeft > 0 ? (effBrightDesk / Math.max(0.1, effBrightWizLeft)).toFixed(1) : '∞';
-  DOM.telemetryContrast.innerHTML = `CONTRAST RATIO: <strong>${ratioVal}:1</strong>`;
+  let ratioDisplay;
+  if (!appState.isMasterOn || (effBrightDesk === 0 && effBrightWizLeft === 0)) {
+    ratioDisplay = 'OFF';
+  } else if (effBrightWizLeft > 0) {
+    ratioDisplay = `${(effBrightDesk / effBrightWizLeft).toFixed(1)}:1`;
+  } else {
+    ratioDisplay = effBrightDesk > 0 ? '10.0:1' : '1:1';
+  }
+  DOM.telemetryContrast.innerHTML = ratioDisplay === 'OFF'
+    ? 'CONTRAST RATIO: <strong>OFF</strong>'
+    : `CONTRAST RATIO: <strong>${ratioDisplay}</strong>`;
 }
 
 function syncAllInputs() {
+  if (DOM.ipDisplayWizLeft && appState.network && appState.network.wizLeftIp) {
+    DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
+  }
+  if (DOM.ipDisplayWizRight && appState.network && appState.network.wizRightIp) {
+    DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
+  }
+  if (DOM.inputWizLeftIp && appState.network && appState.network.wizLeftIp) {
+    DOM.inputWizLeftIp.value = appState.network.wizLeftIp;
+  }
+  if (DOM.inputWizRightIp && appState.network && appState.network.wizRightIp) {
+    DOM.inputWizRightIp.value = appState.network.wizRightIp;
+  }
+  if (DOM.telemHubIp && appState.network && appState.network.hubIp) {
+    DOM.telemHubIp.textContent = appState.network.hubIp;
+  }
+
   DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
   DOM.sliderMasterBrightness.value = appState.masterBrightness;
   DOM.valMasterBrightness.textContent = `${appState.masterBrightness}%`;
@@ -596,14 +642,16 @@ function syncAllInputs() {
   syncRangeProgress(DOM.sliderWizLeftBrightness);
 
   DOM.pickerWizLeftColor.value = appState.devices.wizLeft.color;
-  DOM.valWizLeftHex.textContent = appState.devices.wizLeft.color.toUpperCase();
+  DOM.valWizLeftHex.textContent = appState.devices.wizLeft.mode === 'cct'
+    ? `${appState.devices.wizLeft.kelvin}K`
+    : appState.devices.wizLeft.color.toUpperCase();
   const wizLeftHue = hexToHue(appState.devices.wizLeft.color);
   if (DOM.sliderWizLeftHue) {
     DOM.sliderWizLeftHue.value = wizLeftHue;
     DOM.sliderWizLeftHue.style.setProperty('--control-value', wizLeftHue);
   }
   if (DOM.valWizLeftHue) DOM.valWizLeftHue.textContent = `${wizLeftHue}\u00b0 Hue`;
-  syncActiveSwatches(document.getElementById('wiz-left-swatches'), appState.devices.wizLeft.color);
+  syncActiveSwatches(document.getElementById('wiz-left-swatches'), appState.devices.wizLeft.mode === 'cct' ? null : appState.devices.wizLeft.color);
 
   DOM.sliderWizLeftKelvin.value = appState.devices.wizLeft.kelvin;
   DOM.valWizLeftKelvin.textContent = `${appState.devices.wizLeft.kelvin}K`;
@@ -618,14 +666,16 @@ function syncAllInputs() {
   syncRangeProgress(DOM.sliderWizRightBrightness);
 
   DOM.pickerWizRightColor.value = appState.devices.wizRight.color;
-  DOM.valWizRightHex.textContent = appState.devices.wizRight.color.toUpperCase();
+  DOM.valWizRightHex.textContent = appState.devices.wizRight.mode === 'cct'
+    ? `${appState.devices.wizRight.kelvin}K`
+    : appState.devices.wizRight.color.toUpperCase();
   const wizRightHue = hexToHue(appState.devices.wizRight.color);
   if (DOM.sliderWizRightHue) {
     DOM.sliderWizRightHue.value = wizRightHue;
     DOM.sliderWizRightHue.style.setProperty('--control-value', wizRightHue);
   }
   if (DOM.valWizRightHue) DOM.valWizRightHue.textContent = `${wizRightHue}\u00b0 Hue`;
-  syncActiveSwatches(document.getElementById('wiz-right-swatches'), appState.devices.wizRight.color);
+  syncActiveSwatches(document.getElementById('wiz-right-swatches'), appState.devices.wizRight.mode === 'cct' ? null : appState.devices.wizRight.color);
 
   DOM.sliderWizRightKelvin.value = appState.devices.wizRight.kelvin;
   DOM.valWizRightKelvin.textContent = `${appState.devices.wizRight.kelvin}K`;
@@ -641,15 +691,20 @@ function syncAllInputs() {
     syncRangeProgress(DOM.sliderCircadianTime);
   }
   if (DOM.sliderAmbiSmoothing) {
-    DOM.sliderAmbiSmoothing.value = appState.ambilight.smoothing;
+    const sVal = Math.round(appState.ambilight.smoothing * 100);
+    DOM.sliderAmbiSmoothing.value = sVal;
+    if (DOM.valAmbiSmoothing) DOM.valAmbiSmoothing.textContent = `${sVal}% (Cinematic)`;
     syncRangeProgress(DOM.sliderAmbiSmoothing);
   }
   if (DOM.sliderAmbiBoost) {
-    DOM.sliderAmbiBoost.value = appState.ambilight.saturationBoost;
+    const bVal = Math.round(appState.ambilight.saturationBoost * 10);
+    DOM.sliderAmbiBoost.value = bVal;
+    if (DOM.valAmbiBoost) DOM.valAmbiBoost.textContent = `${(bVal / 10).toFixed(1)}× Vibrant`;
     syncRangeProgress(DOM.sliderAmbiBoost);
   }
   if (DOM.sliderAmbiBlackfloor) {
     DOM.sliderAmbiBlackfloor.value = appState.ambilight.blackFloor;
+    if (DOM.valAmbiBlackfloor) DOM.valAmbiBlackfloor.textContent = `${appState.ambilight.blackFloor}% Brightness`;
     syncRangeProgress(DOM.sliderAmbiBlackfloor);
   }
   if (DOM.sliderAudioSens) {
@@ -658,10 +713,16 @@ function syncAllInputs() {
   }
   if (DOM.sliderGradientSpeed) {
     DOM.sliderGradientSpeed.value = appState.gradient.speed;
+    if (DOM.valGradientSpeed) DOM.valGradientSpeed.textContent = `${appState.gradient.speed}% Velocity`;
     syncRangeProgress(DOM.sliderGradientSpeed);
   }
   if (DOM.sliderGradientTurbulence) {
     DOM.sliderGradientTurbulence.value = appState.gradient.turbulence;
+    const val = appState.gradient.turbulence;
+    let label = `${val}% (Organic Flow)`;
+    if (val < 30) label = `${val}% (Laminar Smooth)`;
+    else if (val > 70) label = `${val}% (Vortex Plasma)`;
+    if (DOM.valGradientTurbulence) DOM.valGradientTurbulence.textContent = label;
     syncRangeProgress(DOM.sliderGradientTurbulence);
   }
   if (DOM.selectTransitionSpeed) {
@@ -836,6 +897,7 @@ function startAmbilight(stream) {
   let smoothedLeft = [30, 64, 175];
   let smoothedCenter = [236, 72, 153];
   let smoothedRight = [30, 64, 175];
+  let lastAmbiDispatch = 0;
 
   function loop() {
     if (!appState.ambilight.active) return;
@@ -877,11 +939,15 @@ function startAmbilight(stream) {
       appState.devices.wizRight.color = hexRight;
 
       renderVisualizer();
-      dispatchStateChange({
-        desk: { color: hexCenter, effect: 'solid' },
-        wizLeft: { color: hexLeft, mode: 'rgb' },
-        wizRight: { color: hexRight, mode: 'rgb' }
-      });
+      const nowMs = performance.now();
+      if (nowMs - lastAmbiDispatch >= 60) {
+        lastAmbiDispatch = nowMs;
+        dispatchStateChange({
+          desk: { color: hexCenter, effect: 'solid' },
+          wizLeft: { color: hexLeft, mode: 'rgb' },
+          wizRight: { color: hexRight, mode: 'rgb' }
+        });
+      }
     }
     appState.ambilight.rafId = requestAnimationFrame(loop);
   }
@@ -901,6 +967,7 @@ function stopAmbilight() {
   DOM.ambilightPlaceholder.classList.remove('hidden');
   DOM.ambilightBtnLabel.textContent = 'Start Screen Sync';
   DOM.btnToggleAmbilight.classList.remove('active');
+  renderAll();
   showToast('Ambilight Screen Sync stopped.');
 }
 
@@ -962,6 +1029,11 @@ async function toggleSoundSync() {
 function startSoundSync(stream) {
   appState.soundsync.active = true;
   appState.soundsync.micStream = stream;
+  appState.soundsync.savedState = {
+    desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color },
+    wizLeft: { brightness: appState.devices.wizLeft.brightness, color: appState.devices.wizLeft.color, mode: appState.devices.wizLeft.mode },
+    wizRight: { brightness: appState.devices.wizRight.brightness, color: appState.devices.wizRight.color, mode: appState.devices.wizRight.mode }
+  };
   DOM.soundsyncBtnLabel.textContent = 'Deactivate Audio Reactive';
   DOM.btnToggleSoundSync.classList.add('active');
 
@@ -984,6 +1056,7 @@ function startSoundSync(stream) {
   const ctx = canvas.getContext('2d');
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
+  let lastSoundSyncDispatch = 0;
 
   function draw() {
     if (!appState.soundsync.active) return;
@@ -1012,18 +1085,57 @@ function startSoundSync(stream) {
       x += barWidth;
     }
 
-    // Audio reactive pulse mapping
+    // Audio reactive calculations based on active mode
     const sens = appState.soundsync.sensitivity / 100;
-    if (avgBass * sens > 75) {
-      const bassFactor = Math.min(100, Math.round((avgBass / 255) * 100));
-      appState.devices.wizLeft.brightness = bassFactor;
-      appState.devices.wizRight.brightness = bassFactor;
-      renderVisualizer();
+    const mode = appState.soundsync.mode;
+
+    if (mode === 'spectrum' || mode === 'equalizer') {
+      const energy = ((avgBass + avgMids) / 2) * sens;
+      const hueShift = Math.round((energy / 255) * 360);
+      const color = hslToHex(hueShift, 100, 50);
+      appState.devices.desk.color = color;
+      appState.devices.wizLeft.mode = 'rgb';
+      appState.devices.wizLeft.color = color;
+      appState.devices.wizRight.mode = 'rgb';
+      appState.devices.wizRight.color = color;
+    } else if (mode === 'ambient') {
+      const volume = (avgBass * 0.5 + avgMids * 0.5) * sens;
+      const ambientBright = Math.max(20, Math.min(90, Math.round((volume / 255) * 100)));
+      appState.devices.desk.brightness = ambientBright;
+      appState.devices.wizLeft.brightness = ambientBright;
+      appState.devices.wizRight.brightness = ambientBright;
+    } else if (mode === 'rave') {
+      const volume = (avgBass * 0.6 + avgMids * 0.4) * sens;
+      const raveBright = Math.min(100, Math.round((volume / 255) * 100));
+      const hue = Math.round((avgBass / 255) * 360);
+      const color = hslToHex(hue, 100, 50);
+      appState.devices.desk.brightness = Math.max(30, raveBright);
+      appState.devices.desk.color = color;
+      appState.devices.wizLeft.brightness = Math.max(30, raveBright);
+      appState.devices.wizLeft.color = color;
+      appState.devices.wizRight.brightness = Math.max(30, raveBright);
+      appState.devices.wizRight.color = color;
+    } else { // default 'pulse'
+      if (avgBass * sens > 65) {
+        const bassFactor = Math.min(100, Math.round((avgBass / 255) * 100));
+        appState.devices.wizLeft.brightness = bassFactor;
+        appState.devices.wizRight.brightness = bassFactor;
+      }
+      if (avgMids * sens > 55) {
+        appState.devices.desk.brightness = Math.min(100, Math.round((avgMids / 255) * 100));
+      }
     }
 
-    if (avgMids * sens > 60) {
-      appState.devices.desk.brightness = Math.min(100, Math.round((avgMids / 255) * 100));
-      renderVisualizer();
+    renderVisualizer();
+
+    const nowAudio = performance.now();
+    if (nowAudio - lastSoundSyncDispatch >= 65) {
+      lastSoundSyncDispatch = nowAudio;
+      dispatchStateChange({
+        desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color },
+        wizLeft: { brightness: appState.devices.wizLeft.brightness, color: appState.devices.wizLeft.color, mode: appState.devices.wizLeft.mode },
+        wizRight: { brightness: appState.devices.wizRight.brightness, color: appState.devices.wizRight.color, mode: appState.devices.wizRight.mode }
+      });
     }
 
     appState.soundsync.rafId = requestAnimationFrame(draw);
@@ -1044,8 +1156,26 @@ function stopSoundSync() {
     appState.soundsync.audioCtx.close();
     appState.soundsync.audioCtx = null;
   }
+  if (appState.soundsync.savedState) {
+    const s = appState.soundsync.savedState;
+    appState.devices.desk.brightness = s.desk.brightness;
+    appState.devices.desk.color = s.desk.color;
+    appState.devices.wizLeft.brightness = s.wizLeft.brightness;
+    appState.devices.wizLeft.color = s.wizLeft.color;
+    appState.devices.wizLeft.mode = s.wizLeft.mode;
+    appState.devices.wizRight.brightness = s.wizRight.brightness;
+    appState.devices.wizRight.color = s.wizRight.color;
+    appState.devices.wizRight.mode = s.wizRight.mode;
+    delete appState.soundsync.savedState;
+    dispatchStateChange({
+      desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color },
+      wizLeft: { brightness: appState.devices.wizLeft.brightness, color: appState.devices.wizLeft.color, mode: appState.devices.wizLeft.mode },
+      wizRight: { brightness: appState.devices.wizRight.brightness, color: appState.devices.wizRight.color, mode: appState.devices.wizRight.mode }
+    });
+  }
   DOM.soundsyncBtnLabel.textContent = 'Activate Microphone / Audio';
   DOM.btnToggleSoundSync.classList.remove('active');
+  renderAll();
   showToast('SoundSync deactivated.');
 }
 
@@ -1258,6 +1388,7 @@ function applyCustomGradientToDesk() {
   // 1. Desk WS2812B Strip configuration
   appState.devices.desk.color = c2;
   appState.devices.desk.effect = appState.gradient.motionMode;
+  appState.devices.desk.intensity = appState.gradient.turbulence;
   appState.devices.desk.gradientStops = [c1, c2, c3, c4];
 
   const payload = {
@@ -1265,6 +1396,7 @@ function applyCustomGradientToDesk() {
       color: c2,
       effect: appState.gradient.motionMode,
       speed: appState.gradient.speed,
+      intensity: appState.gradient.turbulence,
       turbulence: appState.gradient.turbulence,
       gradientStops: [c1, c2, c3, c4]
     }
@@ -1320,18 +1452,30 @@ function applyCustomGradientToDesk() {
 
 function togglePomodoro() {
   if (appState.pomodoro.active) {
-    clearInterval(appState.pomodoro.timerInterval);
+    if (appState.pomodoro.timerInterval) {
+      clearInterval(appState.pomodoro.timerInterval);
+      appState.pomodoro.timerInterval = null;
+    }
     appState.pomodoro.active = false;
-    DOM.btnTogglePomodoro.textContent = 'Start 25m Focus Sprint';
+    DOM.btnTogglePomodoro.textContent = appState.pomodoro.phase === 'focus' ? 'Resume Focus Sprint' : 'Resume Break Interval';
     DOM.btnTogglePomodoro.classList.remove('active');
     if (DOM.pomoStatusLabel) DOM.pomoStatusLabel.textContent = 'PAUSED';
     showToast('Focus Sprint paused.');
   } else {
     appState.pomodoro.active = true;
-    DOM.btnTogglePomodoro.textContent = 'Pause Focus Sprint';
+    DOM.btnTogglePomodoro.textContent = appState.pomodoro.phase === 'focus' ? 'Pause Focus Sprint' : 'Pause Break Interval';
     DOM.btnTogglePomodoro.classList.add('active');
-    startPomodoroPhase('focus');
 
+    // Only start fresh phase if at initial state or reset
+    if (appState.pomodoro.secondsRemaining === 25 * 60 && appState.pomodoro.phase === 'focus') {
+      startPomodoroPhase('focus');
+    } else {
+      if (DOM.pomoStatusLabel) {
+        DOM.pomoStatusLabel.textContent = appState.pomodoro.phase === 'focus' ? 'FOCUS SPRINT • 4500K' : 'REST INTERVAL • 2400K';
+      }
+    }
+
+    if (appState.pomodoro.timerInterval) clearInterval(appState.pomodoro.timerInterval);
     appState.pomodoro.timerInterval = setInterval(() => {
       appState.pomodoro.secondsRemaining--;
       if (appState.pomodoro.secondsRemaining <= 0) {
@@ -1481,6 +1625,7 @@ function bindEvents() {
   DOM.selectTransitionSpeed.addEventListener('change', (e) => {
     triggerHaptic('light');
     appState.transitionDuration = parseInt(e.target.value, 10);
+    localStorage.setItem('aura_transition_duration', appState.transitionDuration);
     document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
     showToast(`Fade transition set to ${e.target.options[e.target.selectedIndex].text}`);
     dispatchStateChange({ transitionDuration: appState.transitionDuration });
@@ -1664,14 +1809,18 @@ function bindEvents() {
 
   DOM.sliderWizLeftKelvin.addEventListener('input', (e) => {
     appState.devices.wizLeft.kelvin = parseInt(e.target.value, 10);
-    if (appState.syncCorners) appState.devices.wizRight.kelvin = appState.devices.wizLeft.kelvin;
+    appState.devices.wizLeft.mode = 'cct';
+    if (appState.syncCorners) {
+      appState.devices.wizRight.kelvin = appState.devices.wizLeft.kelvin;
+      appState.devices.wizRight.mode = 'cct';
+    }
     renderAll();
   });
   DOM.sliderWizLeftKelvin.addEventListener('change', () => {
     triggerHaptic('light');
     dispatchStateChange({
-      wizLeft: { kelvin: appState.devices.wizLeft.kelvin },
-      ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin } } : {})
+      wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' },
+      ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' } } : {})
     });
   });
 
@@ -1740,14 +1889,18 @@ function bindEvents() {
 
   DOM.sliderWizRightKelvin.addEventListener('input', (e) => {
     appState.devices.wizRight.kelvin = parseInt(e.target.value, 10);
-    if (appState.syncCorners) appState.devices.wizLeft.kelvin = appState.devices.wizRight.kelvin;
+    appState.devices.wizRight.mode = 'cct';
+    if (appState.syncCorners) {
+      appState.devices.wizLeft.kelvin = appState.devices.wizRight.kelvin;
+      appState.devices.wizLeft.mode = 'cct';
+    }
     renderAll();
   });
   DOM.sliderWizRightKelvin.addEventListener('change', () => {
     triggerHaptic('light');
     dispatchStateChange({
-      wizRight: { kelvin: appState.devices.wizRight.kelvin },
-      ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin } } : {})
+      wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' },
+      ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' } } : {})
     });
   });
 
@@ -1766,8 +1919,14 @@ function bindEvents() {
       }
       renderAll();
       dispatchStateChange({
-        wizLeft: { mode: appState.devices.wizLeft.mode },
-        wizRight: { mode: appState.devices.wizRight.mode }
+        wizLeft: {
+          mode: appState.devices.wizLeft.mode,
+          ...(appState.devices.wizLeft.mode === 'cct' ? { kelvin: appState.devices.wizLeft.kelvin } : { color: appState.devices.wizLeft.color })
+        },
+        wizRight: {
+          mode: appState.devices.wizRight.mode,
+          ...(appState.devices.wizRight.mode === 'cct' ? { kelvin: appState.devices.wizRight.kelvin } : { color: appState.devices.wizRight.color })
+        }
       });
     });
   });
@@ -1806,6 +1965,18 @@ function bindEvents() {
   DOM.sliderCircadianTime.addEventListener('input', (e) => {
     appState.circadian.simulatedMinutes = parseInt(e.target.value, 10);
     updateCircadianSolarDisplay();
+    const { targetKelvin, targetLux } = calculateCircadianSolar(appState.circadian.simulatedMinutes);
+    appState.masterBrightness = targetLux;
+    appState.devices.wizLeft.mode = 'cct';
+    appState.devices.wizLeft.kelvin = targetKelvin;
+    appState.devices.wizRight.mode = 'cct';
+    appState.devices.wizRight.kelvin = targetKelvin;
+    appState.devices.desk.color = kelvinToRgbHex(targetKelvin);
+    appState.devices.desk.effect = 'breathe';
+    renderAll();
+  });
+  DOM.sliderCircadianTime.addEventListener('change', () => {
+    triggerHaptic('light');
     applyCircadianToRoom();
   });
 
@@ -1909,6 +2080,7 @@ function bindEvents() {
     });
     DOM.sliderGradientSpeed.addEventListener('change', () => {
       triggerHaptic('light');
+      applyCustomGradientToDesk();
     });
   }
 
@@ -1925,6 +2097,7 @@ function bindEvents() {
     });
     DOM.sliderGradientTurbulence.addEventListener('change', () => {
       triggerHaptic('light');
+      applyCustomGradientToDesk();
     });
   }
 
@@ -1981,6 +2154,7 @@ function bindEvents() {
         if (DOM.wrapCustomBulbColor) {
           DOM.wrapCustomBulbColor.classList.toggle('hidden', mode !== 'custom');
         }
+        applyCustomGradientToDesk();
       });
     });
   }
@@ -2049,8 +2223,15 @@ function bindEvents() {
   });
   DOM.btnSaveSettings.addEventListener('click', () => {
     triggerHaptic('medium');
-    appState.network.wizLeftIp = DOM.inputWizLeftIp.value.trim();
-    appState.network.wizRightIp = DOM.inputWizRightIp.value.trim();
+    const leftIp = DOM.inputWizLeftIp.value.trim();
+    const rightIp = DOM.inputWizRightIp.value.trim();
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (!ipRegex.test(leftIp) || !ipRegex.test(rightIp)) {
+      showToast('Invalid IPv4 address format. Please check bulb IPs.');
+      return;
+    }
+    appState.network.wizLeftIp = leftIp;
+    appState.network.wizRightIp = rightIp;
     localStorage.setItem('aura_wiz_left_ip', appState.network.wizLeftIp);
     localStorage.setItem('aura_wiz_right_ip', appState.network.wizRightIp);
     DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
@@ -2063,6 +2244,7 @@ function bindEvents() {
   DOM.toggleGamma.addEventListener('change', (e) => {
     triggerHaptic('light');
     appState.useGammaCorrection = e.target.checked;
+    localStorage.setItem('aura_gamma_correction', appState.useGammaCorrection);
     renderAll();
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
   });
@@ -2071,11 +2253,21 @@ function bindEvents() {
   // Wireless OTA Firmware Upload
   // --------------------------------------------------------------------------
   let selectedOtaFile = null;
+  const MAX_OTA_SIZE = 1507328; // 0x170000 bytes (dual-partition OTA app0/app1 budget)
 
   function handleOtaFileSelection(file) {
     if (!file) return;
     if (!file.name.endsWith('.bin')) {
       showToast('Please select a valid .bin firmware file.');
+      if (DOM.btnStartOtaUpload) DOM.btnStartOtaUpload.disabled = true;
+      selectedOtaFile = null;
+      return;
+    }
+    if (file.size > MAX_OTA_SIZE) {
+      showToast(`Firmware exceeds partition capacity (${(file.size / 1024).toFixed(0)} KB > ${(MAX_OTA_SIZE / 1024).toFixed(0)} KB).`);
+      if (DOM.btnStartOtaUpload) DOM.btnStartOtaUpload.disabled = true;
+      selectedOtaFile = null;
+      if (DOM.otaFileSize) DOM.otaFileSize.textContent = 'File exceeds partition budget';
       return;
     }
     selectedOtaFile = file;
@@ -2348,8 +2540,8 @@ function setupBulbSwatches(containerId, deviceKey) {
       }
       renderAll();
       dispatchStateChange({
-        wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
-        wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' }
+        [deviceKey]: { color: color, mode: 'rgb' },
+        ...(appState.syncCorners ? { [deviceKey === 'wizLeft' ? 'wizRight' : 'wizLeft']: { color: color, mode: 'rgb' } } : {})
       });
     }
   });
@@ -2412,8 +2604,8 @@ function renderDiscoveredDevices(devices) {
         </div>
       </div>
       <div class="assign-btn-group">
-        <button class="assign-btn" data-assign="left" data-ip="${dev.ip}">Set Left</button>
-        <button class="assign-btn" data-assign="right" data-ip="${dev.ip}">Set Right</button>
+        <button class="assign-btn" data-assign="left" data-ip="${dev.ip}" data-mac="${dev.mac || ''}">Set Left</button>
+        <button class="assign-btn" data-assign="right" data-ip="${dev.ip}" data-mac="${dev.mac || ''}">Set Right</button>
         <button class="assign-btn test-wiz-btn" data-ip="${dev.ip}" style="background:rgba(0,242,254,0.12); border-color:rgba(0,242,254,0.4); color:var(--accent-cyan)">⚡ Ping</button>
       </div>
     `;
@@ -2437,8 +2629,10 @@ function renderDiscoveredDevices(devices) {
             btn.style.color = 'var(--accent-rose)';
           }
         } catch (e) {
-          showToast(`Ping error: ${e.message}`);
-          btn.textContent = 'Error';
+          showToast(`Offline mode / Simulator: Bulb ${btn.dataset.ip} ping simulated.`);
+          btn.textContent = '✓ Simulated';
+          btn.style.borderColor = 'var(--accent-amber)';
+          btn.style.color = 'var(--accent-amber)';
         }
       });
     });
@@ -2447,29 +2641,49 @@ function renderDiscoveredDevices(devices) {
       btn.addEventListener('click', () => {
         triggerHaptic('medium');
         const targetIp = btn.dataset.ip;
+        const targetMac = btn.dataset.mac || '';
         if (btn.dataset.assign === 'left') {
           appState.network.wizLeftIp = targetIp;
+          if (targetMac) appState.network.wizLeftMac = targetMac;
+          appState.devices.wizLeft.power = true;
+          appState.devices.wizLeft.brightness = 80;
           DOM.inputWizLeftIp.value = targetIp;
           if (DOM.ipDisplayWizLeft) DOM.ipDisplayWizLeft.textContent = targetIp;
           localStorage.setItem('aura_wiz_left_ip', targetIp);
+          if (targetMac) localStorage.setItem('aura_wiz_left_mac', targetMac);
           dispatchStateChange({
-            network: { wizLeftIp: targetIp, wizRightIp: appState.network.wizRightIp }
+            network: {
+              wizLeftIp: targetIp,
+              wizLeftMac: appState.network.wizLeftMac || '',
+              wizRightIp: appState.network.wizRightIp,
+              wizRightMac: appState.network.wizRightMac || ''
+            }
           });
           // Immediately power on & sync bulb as instant feedback
           dispatchStateChange({ wizLeft: { power: true, brightness: 80 } });
           showToast(`Assigned ${targetIp} to Left WiZ & Synced!`);
         } else {
           appState.network.wizRightIp = targetIp;
+          if (targetMac) appState.network.wizRightMac = targetMac;
+          appState.devices.wizRight.power = true;
+          appState.devices.wizRight.brightness = 80;
           DOM.inputWizRightIp.value = targetIp;
           if (DOM.ipDisplayWizRight) DOM.ipDisplayWizRight.textContent = targetIp;
           localStorage.setItem('aura_wiz_right_ip', targetIp);
+          if (targetMac) localStorage.setItem('aura_wiz_right_mac', targetMac);
           dispatchStateChange({
-            network: { wizLeftIp: appState.network.wizLeftIp, wizRightIp: targetIp }
+            network: {
+              wizLeftIp: appState.network.wizLeftIp,
+              wizLeftMac: appState.network.wizLeftMac || '',
+              wizRightIp: targetIp,
+              wizRightMac: appState.network.wizRightMac || ''
+            }
           });
           // Immediately power on & sync bulb as instant feedback
           dispatchStateChange({ wizRight: { power: true, brightness: 80 } });
           showToast(`Assigned ${targetIp} to Right WiZ & Synced!`);
         }
+        renderAll();
         btn.textContent = '✓ Assigned';
         btn.style.background = 'var(--accent-emerald)';
         btn.style.color = '#fff';
@@ -2582,6 +2796,16 @@ function showToast(message) {
 // ============================================================================
 
 window.addEventListener('DOMContentLoaded', () => {
+  const savedGamma = localStorage.getItem('aura_gamma_correction');
+  if (savedGamma !== null) {
+    appState.useGammaCorrection = savedGamma === 'true';
+  }
+  const savedTransition = localStorage.getItem('aura_transition_duration');
+  if (savedTransition !== null) {
+    appState.transitionDuration = parseInt(savedTransition, 10);
+    document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
+  }
+
   DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
   DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
 

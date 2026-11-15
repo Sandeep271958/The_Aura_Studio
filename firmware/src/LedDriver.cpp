@@ -1,13 +1,57 @@
 #include "LedDriver.h"
+#include <cmath>
+
+// 256-Entry CIE 1931 Perceptual Lightness Lookup Table: Y = ((L* + 16)/116)^3
+const uint8_t PROGMEM cie1931[256] = {
+      0,   0,   0,   0,   0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   2,   2,
+      2,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,   3,   3,   3,   4,
+      4,   4,   4,   4,   4,   5,   5,   5,   5,   5,   6,   6,   6,   6,   6,   7,
+      7,   7,   7,   8,   8,   8,   8,   9,   9,   9,  10,  10,  10,  10,  11,  11,
+     11,  12,  12,  12,  13,  13,  13,  14,  14,  15,  15,  15,  16,  16,  17,  17,
+     17,  18,  18,  19,  19,  20,  20,  21,  21,  22,  22,  23,  23,  24,  24,  25,
+     25,  26,  26,  27,  28,  28,  29,  29,  30,  31,  31,  32,  32,  33,  34,  34,
+     35,  36,  37,  37,  38,  39,  39,  40,  41,  42,  43,  43,  44,  45,  46,  47,
+     47,  48,  49,  50,  51,  52,  53,  54,  54,  55,  56,  57,  58,  59,  60,  61,
+     62,  63,  64,  65,  66,  67,  68,  70,  71,  72,  73,  74,  75,  76,  77,  79,
+     80,  81,  82,  83,  85,  86,  87,  88,  90,  91,  92,  94,  95,  96,  98,  99,
+    100, 102, 103, 105, 106, 108, 109, 110, 112, 113, 115, 116, 118, 120, 121, 123,
+    124, 126, 128, 129, 131, 132, 134, 136, 138, 139, 141, 143, 145, 146, 148, 150,
+    152, 154, 155, 157, 159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181,
+    183, 185, 187, 189, 191, 193, 196, 198, 200, 202, 204, 207, 209, 211, 214, 216,
+    218, 220, 223, 225, 228, 230, 232, 235, 237, 240, 242, 245, 247, 250, 252, 255
+};
+
+CRGB LedDriver::interpolate4Stops(const CRGB stops[4], float t) {
+    if (isnan(t)) return stops[0];
+    if (t <= 0.0f) return stops[0];
+    if (t >= 1.0f) return stops[3];
+    float f;
+    int idx0, idx1;
+    if (t <= 0.333333f) {
+        idx0 = 0; idx1 = 1;
+        f = t / 0.333333f;
+    } else if (t <= 0.666667f) {
+        idx0 = 1; idx1 = 2;
+        f = (t - 0.333333f) / 0.333334f;
+    } else {
+        idx0 = 2; idx1 = 3;
+        f = (t - 0.666667f) / 0.333333f;
+    }
+    uint8_t r = (uint8_t)(stops[idx0].r + (stops[idx1].r - stops[idx0].r) * f + 0.5f);
+    uint8_t g = (uint8_t)(stops[idx0].g + (stops[idx1].g - stops[idx0].g) * f + 0.5f);
+    uint8_t b = (uint8_t)(stops[idx0].b + (stops[idx1].b - stops[idx0].b) * f + 0.5f);
+    return CRGB(r, g, b);
+}
 
 LedDriver::LedDriver() {}
 
 void LedDriver::begin() {
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
     FastLED.setCorrection(TypicalLEDStrip);
+    FastLED.setTemperature(DirectSunlight); // Calibrate WS2812B raw blue phosphor to D65 daylight
     FastLED.setDither(0); // DISABLE TEMPORAL DITHERING: Completely kills 50Hz/60Hz AC-like glow shimmer!
-    FastLED.setMaxPowerInVoltsAndMilliamps(5, 1000); // 1.0A smart safety limiter - stops tail-end (LEDs 50-60) voltage sag on high-current effects!
-    FastLED.setBrightness(180);
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS); // 1500mA smart safety limiter
+    FastLED.setBrightness(255); // Global scaler kept at 255; dimming handled in software via CIE 1931
 
     Serial.println("\n=======================================================");
     Serial.println("   [LED HARDWARE TEST] RUNNING 4-STAGE STARTUP CHECK   ");
@@ -43,7 +87,6 @@ void LedDriver::begin() {
 }
 
 void LedDriver::effectTestCycle() {
-    FastLED.setBrightness(255);
     uint32_t sec = (millis() / 1000) % 5;
     if (sec == 0) {
         fill_solid(leds, NUM_LEDS, CRGB::Red);
@@ -64,7 +107,8 @@ void LedDriver::effectTestCycle() {
     }
 }
 
-void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBrightness, int8_t contrastRatio) {
+void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBrightness,
+                       int8_t contrastRatio, bool useGammaCorrection) {
     uint32_t now = millis();
     // 60 FPS update rate guard (approx 16ms interval, relaxed to 10ms for jitter-free scheduler)
     if (now - lastUpdate < 10) return;
@@ -93,13 +137,28 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
 
     // 1. Single LED Inspection Mode (Diagnose individual LEDs 0-59 one-by-one)
     if (config.inspectIndex >= 0 && config.inspectIndex < NUM_LEDS) {
-        if (config.inspectIndex != lastInspectIndex || baseColor != lastSolidColor || targetDim != lastDeskDim) {
+        if (config.inspectIndex != lastInspectIndex || baseColor != lastSolidColor ||
+            targetDim != lastDeskDim || useGammaCorrection != lastUseGamma) {
             lastInspectIndex = config.inspectIndex;
             lastSolidColor = baseColor;
             lastDeskDim = targetDim;
+            lastUseGamma = useGammaCorrection;
             FastLED.clear();
-            leds[config.inspectIndex] = baseColor;
-            FastLED.setBrightness(targetDim);
+
+            uint8_t r = scale8(baseColor.r, targetDim);
+            uint8_t g = scale8(baseColor.g, targetDim);
+            uint8_t b = scale8(baseColor.b, targetDim);
+            if (useGammaCorrection) {
+                leds[config.inspectIndex] = CRGB(pgm_read_byte(&cie1931[r]),
+                                                pgm_read_byte(&cie1931[g]),
+                                                pgm_read_byte(&cie1931[b]));
+            } else {
+                leds[config.inspectIndex] = CRGB(r, g, b);
+            }
+            if (config.inspectIndex == 36 && NUM_LEDS > 36) {
+                leds[36] = blend(lastLed36, leds[36], 190);
+                lastLed36 = leds[36];
+            }
             FastLED.show();
             Serial.printf("[LED Inspect] Solitary Pixel Active: LED #%d | RGB(%d,%d,%d)\n", 
                           config.inspectIndex, config.r, config.g, config.b);
@@ -111,61 +170,90 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     // 2. Static Solid Color Mode: Update ONLY on change or 3s keepalive (Stops 60Hz bus hammering & flicker!)
     if (config.effect == "solid") {
         bool changed = (baseColor != lastSolidColor || targetDim != lastDeskDim || 
+                        useGammaCorrection != lastUseGamma ||
                         !lastMasterOn || !lastDeskPower || lastEffect != "solid" || 
                         now - lastSolidPush > 3000);
-        if (changed) {
-            lastSolidColor = baseColor;
-            lastDeskDim = targetDim;
-            lastMasterOn = masterOn;
-            lastDeskPower = config.power;
-            lastEffect = "solid";
-            lastSolidPush = now;
-            effectSolid(baseColor, targetDim);
-            FastLED.show();
+        if (!changed) {
+            return;
         }
-        return;
-    }
-    lastEffect = config.effect;
-
-    // Periodic heartbeat to Serial to confirm Core 1 rendering
-    static uint32_t lastHeartbeat = 0;
-    if (now - lastHeartbeat > 3000) {
-        lastHeartbeat = now;
-        Serial.printf("[LED Task] Dynamic Rendering Active | Effect: %s | Dim: %d/255 | Step: %u\n", 
-                      config.effect.c_str(), targetDim, animationStep);
-    }
-
-    if (config.effect == "test-cycle") {
-        effectTestCycle();
-    } else if (config.effect == "breathe") {
-        effectBreathe(baseColor, targetDim, config.speed);
-    } else if (config.effect == "cyberpulse") {
-        effectCyberpulse(targetDim, config.speed, config.intensity);
-    } else if (config.effect == "sunset-wave") {
-        effectSunsetWave(targetDim, config.speed);
-    } else if (config.effect == "aurora") {
-        effectAurora(targetDim, config.speed);
-    } else if (config.effect == "fire") {
-        effectFire(targetDim, config.speed);
-    } else if (config.effect == "soap-bubble") {
-        effectSoapBubble(targetDim, config.speed);
-    } else if (config.effect == "wave") {
-        effectWave(baseColor, targetDim, config.speed);
-    } else if (config.effect == "shimmer") {
-        effectShimmer(baseColor, targetDim, config.speed);
-    } else if (config.effect == "caustics") {
-        effectCaustics(baseColor, targetDim, config.speed, config.intensity);
-    } else if (config.effect == "soliton") {
-        effectSoliton(baseColor, targetDim, config.speed, config.intensity);
-    } else if (config.effect == "thermal-plume") {
-        effectThermalPlume(baseColor, targetDim, config.speed, config.intensity);
-    } else if (config.effect == "marangoni") {
-        effectMarangoni(baseColor, targetDim, config.speed, config.intensity);
+        lastSolidColor = baseColor;
+        lastDeskDim = targetDim;
+        lastUseGamma = useGammaCorrection;
+        lastMasterOn = masterOn;
+        lastDeskPower = config.power;
+        lastEffect = "solid";
+        lastSolidPush = now;
+        fill_solid(leds, NUM_LEDS, baseColor);
+        // Falls through into unified post-processing pass below!
     } else {
-        effectSolid(baseColor, targetDim);
+        lastEffect = config.effect;
+        lastUseGamma = useGammaCorrection;
+        lastDeskDim = targetDim;
+        lastMasterOn = masterOn;
+        lastDeskPower = config.power;
+
+        // Periodic heartbeat to Serial to confirm Core 1 rendering
+        static uint32_t lastHeartbeat = 0;
+        if (now - lastHeartbeat > 3000) {
+            lastHeartbeat = now;
+            Serial.printf("[LED Task] Dynamic Rendering Active | Effect: %s | Dim: %d/255 | Step: %u\n", 
+                          config.effect.c_str(), targetDim, animationStep);
+        }
+
+        // Dynamic Animation Rendering into leds[i] in natural sRGB space
+        if (config.hasGradient) {
+            effectGradientPhysics(config);
+        } else if (config.effect == "test-cycle") {
+            effectTestCycle();
+        } else if (config.effect == "breathe") {
+            effectBreathe(baseColor, targetDim, config.speed);
+        } else if (config.effect == "cyberpulse") {
+            effectCyberpulse(targetDim, config.speed, config.intensity);
+        } else if (config.effect == "sunset-wave") {
+            effectSunsetWave(targetDim, config.speed);
+        } else if (config.effect == "aurora") {
+            effectAurora(targetDim, config.speed);
+        } else if (config.effect == "fire") {
+            effectFire(targetDim, config.speed);
+        } else if (config.effect == "soap-bubble") {
+            effectSoapBubble(targetDim, config.speed);
+        } else if (config.effect == "wave") {
+            effectWave(baseColor, targetDim, config.speed);
+        } else if (config.effect == "shimmer") {
+            effectShimmer(baseColor, targetDim, config.speed);
+        } else if (config.effect == "caustics") {
+            effectCaustics(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "soliton") {
+            effectSoliton(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "thermal-plume") {
+            effectThermalPlume(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "marangoni") {
+            effectMarangoni(baseColor, targetDim, config.speed, config.intensity);
+        } else {
+            fill_solid(leds, NUM_LEDS, baseColor);
+        }
     }
 
-    // Dampen jitter on pixel 36 to stabilize physical silicon micro-glitch
+    // ========================================================================
+    // UNIFIED POST-PROCESSING PASS: Dimming, CIE 1931 Gamma, Pixel 36 Dampener
+    // ========================================================================
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t r = scale8(leds[i].r, targetDim);
+        uint8_t g = scale8(leds[i].g, targetDim);
+        uint8_t b = scale8(leds[i].b, targetDim);
+
+        if (useGammaCorrection) {
+            leds[i].r = pgm_read_byte(&cie1931[r]);
+            leds[i].g = pgm_read_byte(&cie1931[g]);
+            leds[i].b = pgm_read_byte(&cie1931[b]);
+        } else {
+            leds[i].r = r;
+            leds[i].g = g;
+            leds[i].b = b;
+        }
+    }
+
+    // Hardware Silicon Micro-Glitch Stabilization for Pixel 36
     if (NUM_LEDS > 36) {
         leds[36] = blend(lastLed36, leds[36], 190);
         lastLed36 = leds[36];
@@ -174,20 +262,120 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     FastLED.show();
 }
 
+void LedDriver::effectGradientPhysics(const DeviceDesk &config) {
+    float speedNorm = (float)(config.speed > 0 ? config.speed : 45) / 100.0f;
+    float turbNorm = (float)(config.intensity > 0 ? config.intensity : 50) / 100.0f;
+    float phase = animationStep * (speedNorm * 0.12f);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        float normX = (float)i / (float)(NUM_LEDS - 1);
+
+        if (config.effect == "soap-bubble") {
+            float wave = sinf(normX * 6.28f * 2.0f - phase) * 0.5f +
+                         sinf(normX * 6.28f * 4.5f + phase * 0.8f) * turbNorm * 0.4f;
+            float sampleT = fmodf(normX + wave * 0.25f + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float r = constrain(base.r + cosf(wave * 3.0f * 3.14159f) * 45.0f * turbNorm, 0.0f, 255.0f);
+            float g = constrain(base.g + cosf(wave * 3.0f * 3.14159f - 2.0944f) * 45.0f * turbNorm, 0.0f, 255.0f);
+            float b = constrain(base.b + cosf(wave * 3.0f * 3.14159f - 4.1888f) * 45.0f * turbNorm, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        } else if (config.effect == "wave") {
+            float wave = sinf(normX * 6.28f * 1.8f - phase) * 0.15f * (0.5f + turbNorm);
+            float sampleT = fmodf(normX - (phase * 0.2f) + wave + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            leds[i] = interpolate4Stops(config.stops, sampleT);
+        } else if (config.effect == "caustics") {
+            float w1 = sinf(normX * 18.0f - phase * 1.8f);
+            float curvature = cosf(normX * 18.0f - phase * 1.8f) * 18.0f +
+                              cosf(normX * 28.0f + phase * 1.3f) * 28.0f;
+            float denom = fabsf(1.0f - 0.016f * turbNorm * curvature);
+            if (denom < 0.05f) denom = 0.05f;
+            float caustic = fmaxf(0.0f, (1.0f / denom) - 0.75f);
+            float sparkle = fminf(180.0f, caustic * 38.0f * (0.4f + turbNorm * 0.8f));
+            float sampleT = fmodf(normX - phase * 0.08f + w1 * 0.06f + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float r = constrain(base.r + sparkle * 0.75f, 0.0f, 255.0f);
+            float g = constrain(base.g + sparkle * 0.95f, 0.0f, 255.0f);
+            float b = constrain(base.b + sparkle * 1.15f, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        } else if (config.effect == "soliton") {
+            float p1 = fmodf(phase * 0.18f, 1.0f);
+            if (p1 < 0.0f) p1 += 1.0f;
+            float p2 = 1.0f - fmodf(phase * 0.24f, 1.0f);
+            if (p2 < 0.0f) p2 += 1.0f;
+            float d1 = fabsf(normX - p1);
+            if (d1 > 0.5f) d1 = 1.0f - d1;
+            float d2 = fabsf(normX - p2);
+            if (d2 > 0.5f) d2 = 1.0f - d2;
+            float c1 = coshf(d1 * 24.0f);
+            float c2 = coshf(d2 * 28.0f);
+            float e1 = 1.0f / (c1 * c1);
+            float e2 = 1.0f / (c2 * c2);
+            float totalEnergy = e1 + e2;
+            float sampleT = fmodf(normX + (e1 - e2) * 0.25f * turbNorm + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float boost = totalEnergy * 160.0f * (0.5f + turbNorm * 0.7f);
+            float r = constrain(base.r + boost * 0.9f, 0.0f, 255.0f);
+            float g = constrain(base.g + boost * 0.6f, 0.0f, 255.0f);
+            float b = constrain(base.b + boost * 1.2f, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        } else if (config.effect == "thermal-plume") {
+            float h1 = sinf(normX * 10.0f - phase * 1.6f);
+            float h2 = sinf(normX * 22.0f + phase * 2.4f) * 0.5f;
+            float h3 = sinf(normX * 42.0f - phase * 4.2f) * 0.25f;
+            float fbm = (h1 + h2 + h3) / 1.75f;
+            float sampleT = constrain(normX + fbm * 0.22f * turbNorm, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float thermalGlow = (fbm + 1.0f) * 36.0f * turbNorm;
+            float r = constrain(base.r + thermalGlow * 1.2f, 0.0f, 255.0f);
+            float g = constrain(base.g + thermalGlow * 0.6f, 0.0f, 255.0f);
+            float b = constrain(base.b + thermalGlow * 0.1f, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        } else if (config.effect == "marangoni") {
+            float cell = sinf(normX * 3.14159f * 6.0f);
+            float roll = cell * cosf(phase * 1.4f);
+            float shear = sinf(normX * 3.14159f * 12.0f + phase * 0.9f) * 0.1f * turbNorm;
+            float sampleT = fmodf(normX + roll * 0.16f + shear + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float vortexGlow = fabsf(cell) * 32.0f * turbNorm;
+            float r = constrain(base.r + vortexGlow * 0.5f, 0.0f, 255.0f);
+            float g = constrain(base.g + vortexGlow * 1.1f, 0.0f, 255.0f);
+            float b = constrain(base.b + vortexGlow * 0.9f, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        } else if (config.effect == "breathe") {
+            float pulse = sinf(phase * 1.5f) * 0.35f;
+            float sampleT = constrain(0.5f + (normX - 0.5f) * (1.0f + pulse), 0.0f, 1.0f);
+            leds[i] = interpolate4Stops(config.stops, sampleT);
+        } else { // shimmer or fallback
+            float sparkle = sinf(normX * 60.0f + phase * 8.0f) * turbNorm * 35.0f;
+            float sampleT = fmodf(normX - (phase * 0.15f) + 10.0f, 1.0f);
+            if (sampleT < 0.0f) sampleT += 1.0f;
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float r = constrain(base.r + sparkle, 0.0f, 255.0f);
+            float g = constrain(base.g + sparkle * 0.8f, 0.0f, 255.0f);
+            float b = constrain(base.b + sparkle * 1.2f, 0.0f, 255.0f);
+            leds[i] = CRGB((uint8_t)r, (uint8_t)g, (uint8_t)b);
+        }
+    }
+}
+
 void LedDriver::effectSolid(CRGB targetColor, uint8_t brightness) {
-    FastLED.setBrightness(brightness);
     fill_solid(leds, NUM_LEDS, targetColor);
 }
 
 void LedDriver::effectBreathe(CRGB baseColor, uint8_t brightness, uint8_t speed) {
     uint8_t breathWave = sin8(animationStep * (speed / 15 + 1));
-    uint8_t scaledDim = scale8(brightness, map(breathWave, 0, 255, 60, 255));
-    FastLED.setBrightness(scaledDim);
-    fill_solid(leds, NUM_LEDS, baseColor);
+    uint8_t breathFactor = map(breathWave, 0, 255, 60, 255);
+    CRGB c = baseColor;
+    c.nscale8(breathFactor);
+    fill_solid(leds, NUM_LEDS, c);
 }
 
 void LedDriver::effectCyberpulse(uint8_t brightness, uint8_t speed, uint8_t intensity) {
-    FastLED.setBrightness(brightness);
     CRGB magenta = CRGB(210, 50, 130);
     CRGB cyan = CRGB(0, 190, 210);
 
@@ -199,7 +387,6 @@ void LedDriver::effectCyberpulse(uint8_t brightness, uint8_t speed, uint8_t inte
 }
 
 void LedDriver::effectSunsetWave(uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     CRGB amber = CRGB(245, 158, 11);
     CRGB peach = CRGB(244, 63, 94);
     CRGB warmGold = CRGB(255, 180, 50);
@@ -213,7 +400,6 @@ void LedDriver::effectSunsetWave(uint8_t brightness, uint8_t speed) {
 }
 
 void LedDriver::effectAurora(uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     CRGB emerald = CRGB(16, 185, 129);
     CRGB violet = CRGB(139, 92, 246);
     CRGB deepTeal = CRGB(4, 120, 87);
@@ -227,7 +413,6 @@ void LedDriver::effectAurora(uint8_t brightness, uint8_t speed) {
 }
 
 void LedDriver::effectFire(uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     static uint8_t heat[NUM_LEDS];
 
     // Cool down every cell a little
@@ -254,7 +439,6 @@ void LedDriver::effectFire(uint8_t brightness, uint8_t speed) {
 }
 
 void LedDriver::effectSoapBubble(uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     uint8_t phaseShift = animationStep * (speed / 16 + 1);
 
     for (int i = 0; i < NUM_LEDS; i++) {
@@ -269,7 +453,6 @@ void LedDriver::effectSoapBubble(uint8_t brightness, uint8_t speed) {
 }
 
 void LedDriver::effectWave(CRGB baseColor, uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     uint8_t waveOffset = animationStep * (speed / 14 + 1);
 
     for (int i = 0; i < NUM_LEDS; i++) {
@@ -279,7 +462,6 @@ void LedDriver::effectWave(CRGB baseColor, uint8_t brightness, uint8_t speed) {
 }
 
 void LedDriver::effectShimmer(CRGB baseColor, uint8_t brightness, uint8_t speed) {
-    FastLED.setBrightness(brightness);
     fill_solid(leds, NUM_LEDS, baseColor);
 
     uint8_t sparkChance = map(speed, 0, 100, 15, 60);
@@ -291,7 +473,6 @@ void LedDriver::effectShimmer(CRGB baseColor, uint8_t brightness, uint8_t speed)
 }
 
 void LedDriver::effectCaustics(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
-    FastLED.setBrightness(brightness);
     uint8_t step = animationStep * (speed / 12 + 1);
     uint8_t turb = map(intensity, 0, 100, 20, 80);
 
@@ -312,7 +493,6 @@ void LedDriver::effectCaustics(CRGB baseColor, uint8_t brightness, uint8_t speed
 }
 
 void LedDriver::effectSoliton(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
-    FastLED.setBrightness(brightness);
     fill_solid(leds, NUM_LEDS, baseColor);
     for (int i = 0; i < NUM_LEDS; i++) {
         leds[i].nscale8_video(70); // Deep coherent base
@@ -336,13 +516,12 @@ void LedDriver::effectSoliton(CRGB baseColor, uint8_t brightness, uint8_t speed,
         int idx = pos2 + offset;
         if (idx >= 0 && idx < NUM_LEDS) {
             uint8_t mag = 255 - (abs(offset) * 55);
-            leds[idx] += CHSV(280, 200, mag);
+            leds[idx] += CHSV(24, 200, mag);
         }
     }
 }
 
 void LedDriver::effectThermalPlume(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
-    FastLED.setBrightness(brightness);
     uint16_t offset = animationStep * (speed / 8 + 1);
     uint8_t scale = map(intensity, 0, 100, 15, 60);
 
@@ -357,7 +536,6 @@ void LedDriver::effectThermalPlume(CRGB baseColor, uint8_t brightness, uint8_t s
 }
 
 void LedDriver::effectMarangoni(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
-    FastLED.setBrightness(brightness);
     uint8_t phase = animationStep * (speed / 14 + 1);
 
     for (int i = 0; i < NUM_LEDS; i++) {

@@ -1,13 +1,42 @@
 #include "WizController.h"
+#include <Preferences.h>
 
-WizController::WizController() : udpMutex(NULL) {}
+WizController::WizController(HubState* state) 
+  : udpMutex(NULL), hubState(state), reboundOccurred(false) {}
 
-void WizController::begin() {
+void WizController::begin(HubState* state) {
+  if (state != nullptr) {
+    hubState = state;
+  }
   if (udpMutex == NULL) {
     udpMutex = xSemaphoreCreateMutex();
   }
   udp.begin(WIZ_UDP_PORT);
   Serial.println("[WiZ] UDP listener initialized on port 38899");
+}
+
+void WizController::setState(HubState* state) {
+  hubState = state;
+}
+
+bool WizController::checkAndClearRebound() {
+  if (reboundOccurred) {
+    reboundOccurred = false;
+    return true;
+  }
+  return false;
+}
+
+String WizController::normalizeMac(const String &mac) {
+  String clean = "";
+  clean.reserve(mac.length());
+  for (size_t i = 0; i < mac.length(); i++) {
+    char c = mac[i];
+    if (c != ':' && c != '-' && c != ' ') {
+      clean += (char)tolower((unsigned char)c);
+    }
+  }
+  return clean;
 }
 
 void WizController::sendPilotRGB(const String &ipStr, bool state, uint8_t r,
@@ -91,48 +120,121 @@ void WizController::broadcastDiscovery() {
 }
 
 void WizController::updateDiscovery() {
+  String discoveredMac = "";
+  String discoveredIp = "";
+  String discoveredModel = "";
+  int discoveredRssi = 0;
+  bool packetValid = false;
+
+  // -------------------------------------------------------------
+  // Phase 1: Read UDP packet and maintain discoveredBulbs (udpMutex)
+  // -------------------------------------------------------------
   if (udpMutex != NULL && xSemaphoreTake(udpMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
     int packetSize = udp.parsePacket();
-    if (packetSize) {
+    if (packetSize > 0) {
       char packetBuffer[512];
       int len = udp.read(packetBuffer, sizeof(packetBuffer) - 1);
       if (len > 0) {
         packetBuffer[len] = '\0';
       }
 
-      Serial.printf("[WiZ UDP RX] <- %s:38899 | %s\n", udp.remoteIP().toString().c_str(), packetBuffer);
-
       JsonDocument doc;
       DeserializationError error = deserializeJson(doc, packetBuffer);
       if (!error && doc["result"].is<JsonObject>()) {
         JsonObject result = doc["result"];
-        if (result.containsKey("mac")) {
-          String mac = result["mac"] | "unknown";
-          String ipStr = udp.remoteIP().toString();
+        if (!result["mac"].isNull()) {
+          discoveredMac = result["mac"].as<String>();
+          discoveredIp = udp.remoteIP().toString();
+          discoveredModel = result["moduleName"] | "Philips WiZ Device";
+          discoveredRssi = result["rssi"] | 0;
+          packetValid = true;
 
-          // Check if already in list
+          String cleanDiscoveredMac = normalizeMac(discoveredMac);
+
+          // Update existing or add new bulb in discovered list
           bool exists = false;
-          for (const auto &b : discoveredBulbs) {
-            if (b.ip == ipStr) {
+          for (auto &b : discoveredBulbs) {
+            if ((cleanDiscoveredMac.length() >= 6 && normalizeMac(b.mac) == cleanDiscoveredMac) || b.ip == discoveredIp) {
               exists = true;
+              b.ip = discoveredIp;
+              b.mac = discoveredMac;
+              b.model = discoveredModel;
+              b.rssi = discoveredRssi;
               break;
             }
           }
 
           if (!exists) {
             DiscoveredBulb bulb;
-            bulb.ip = ipStr;
-            bulb.mac = mac;
-            bulb.model = result["moduleName"] | "Philips WiZ Device";
-            bulb.rssi = result["rssi"] | 0;
+            bulb.ip = discoveredIp;
+            bulb.mac = discoveredMac;
+            bulb.model = discoveredModel;
+            bulb.rssi = discoveredRssi;
             discoveredBulbs.push_back(bulb);
             Serial.printf("[WiZ] Discovered bulb: %s (%s) at %s\n",
-                          bulb.model.c_str(), mac.c_str(), ipStr.c_str());
+                          bulb.model.c_str(), discoveredMac.c_str(), discoveredIp.c_str());
           }
         }
       }
     }
     xSemaphoreGive(udpMutex);
+  }
+
+  // -------------------------------------------------------------
+  // Phase 2: Check Auto-Rebind under stateMutex (outside udpMutex)
+  // -------------------------------------------------------------
+  if (packetValid && hubState != nullptr && discoveredMac.length() >= 6) {
+    String cleanMac = normalizeMac(discoveredMac);
+    bool reboundLeft = false;
+    bool reboundRight = false;
+    String oldLeftIp = "";
+    String oldRightIp = "";
+
+    if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+      // Check Left WiZ Bulb
+      if (hubState->wizLeftMac.length() >= 6 && normalizeMac(hubState->wizLeftMac) == cleanMac) {
+        if (hubState->wizLeftIp != discoveredIp) {
+          oldLeftIp = hubState->wizLeftIp;
+          hubState->wizLeftIp = discoveredIp;
+          reboundLeft = true;
+        }
+      }
+
+      // Check Right WiZ Bulb
+      if (hubState->wizRightMac.length() >= 6 && normalizeMac(hubState->wizRightMac) == cleanMac) {
+        if (hubState->wizRightIp != discoveredIp) {
+          oldRightIp = hubState->wizRightIp;
+          hubState->wizRightIp = discoveredIp;
+          reboundRight = true;
+        }
+      }
+
+      // If IP changed, persist to NVS Preferences while stateMutex is held
+      if (reboundLeft || reboundRight) {
+        Preferences prefs;
+        if (prefs.begin("aura", false)) {
+          if (reboundLeft) {
+            prefs.putString("wizLeftIp", discoveredIp);
+          }
+          if (reboundRight) {
+            prefs.putString("wizRightIp", discoveredIp);
+          }
+          prefs.end();
+        }
+        reboundOccurred = true;
+      }
+
+      xSemaphoreGive(stateMutex);
+    }
+
+    if (reboundLeft) {
+      Serial.printf("[WiZ Auto-Rebind] Left bulb (%s) IP updated: %s -> %s (Persisted to NVS)\n",
+                    discoveredMac.c_str(), oldLeftIp.c_str(), discoveredIp.c_str());
+    }
+    if (reboundRight) {
+      Serial.printf("[WiZ Auto-Rebind] Right bulb (%s) IP updated: %s -> %s (Persisted to NVS)\n",
+                    discoveredMac.c_str(), oldRightIp.c_str(), discoveredIp.c_str());
+    }
   }
 }
 

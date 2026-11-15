@@ -11,9 +11,14 @@ WebServerManager::WebServerManager(HubState& stateRef, WizController& wizRef)
 void WebServerManager::begin() {
     prefs.begin("aura", false);
     state.wizLeftIp = prefs.getString("wizLeftIp", DEFAULT_WIZ_LEFT_IP);
+    state.wizLeftMac = prefs.getString("wizLeftMac", "");
     state.wizRightIp = prefs.getString("wizRightIp", DEFAULT_WIZ_RIGHT_IP);
-    Serial.printf("[NVS] Loaded WiZ Left IP: %s\n", state.wizLeftIp.c_str());
-    Serial.printf("[NVS] Loaded WiZ Right IP: %s\n", state.wizRightIp.c_str());
+    state.wizRightMac = prefs.getString("wizRightMac", "");
+    state.useGammaCorrection = prefs.getBool("useGamma", true);
+
+    Serial.printf("[NVS] Loaded WiZ Left: IP=%s MAC=%s\n", state.wizLeftIp.c_str(), state.wizLeftMac.c_str());
+    Serial.printf("[NVS] Loaded WiZ Right: IP=%s MAC=%s\n", state.wizRightIp.c_str(), state.wizRightMac.c_str());
+    Serial.printf("[NVS] Loaded Gamma Correction: %s\n", state.useGammaCorrection ? "ON" : "OFF");
 
     setupWebSocket();
     setupRoutes();
@@ -76,11 +81,21 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                     state.wizLeftIp = net["wizLeftIp"].as<String>();
                     prefs.putString("wizLeftIp", state.wizLeftIp);
                 }
+                if (net.containsKey("wizLeftMac")) {
+                    state.wizLeftMac = net["wizLeftMac"].as<String>();
+                    prefs.putString("wizLeftMac", state.wizLeftMac);
+                }
                 if (net.containsKey("wizRightIp")) {
                     state.wizRightIp = net["wizRightIp"].as<String>();
                     prefs.putString("wizRightIp", state.wizRightIp);
                 }
-                Serial.printf("[NVS] Persisted WiZ IPs -> Left: %s | Right: %s\n", state.wizLeftIp.c_str(), state.wizRightIp.c_str());
+                if (net.containsKey("wizRightMac")) {
+                    state.wizRightMac = net["wizRightMac"].as<String>();
+                    prefs.putString("wizRightMac", state.wizRightMac);
+                }
+                Serial.printf("[NVS] Persisted WiZ -> Left: %s (%s) | Right: %s (%s)\n",
+                              state.wizLeftIp.c_str(), state.wizLeftMac.c_str(),
+                              state.wizRightIp.c_str(), state.wizRightMac.c_str());
             }
 
             if (payload.containsKey("isMasterOn")) {
@@ -97,6 +112,12 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             }
             if (payload.containsKey("activePreset")) {
                 state.activePreset = payload["activePreset"].as<String>();
+                state.desk.hasGradient = false;
+            }
+            if (payload.containsKey("useGammaCorrection")) {
+                state.useGammaCorrection = payload["useGammaCorrection"].as<bool>();
+                prefs.putBool("useGamma", state.useGammaCorrection);
+                Serial.printf("[NVS] Persisted Gamma Correction: %s\n", state.useGammaCorrection ? "ON" : "OFF");
             }
 
             // Desk updates (support flat or nested devices.desk)
@@ -119,9 +140,37 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                         state.desk.b = number & 0xFF;
                     }
                 }
-                if (d.containsKey("effect")) state.desk.effect = d["effect"].as<String>();
+                if (d.containsKey("effect")) {
+                    state.desk.effect = d["effect"].as<String>();
+                    if (state.desk.effect == "solid" || state.desk.effect == "cyberpulse" ||
+                        state.desk.effect == "sunset-wave" || state.desk.effect == "aurora" ||
+                        state.desk.effect == "fire" || state.desk.effect == "test-cycle") {
+                        state.desk.hasGradient = false;
+                    }
+                }
                 if (d.containsKey("speed")) state.desk.speed = d["speed"];
                 if (d.containsKey("intensity")) state.desk.intensity = d["intensity"];
+                if (d.containsKey("turbulence")) state.desk.intensity = d["turbulence"];
+
+                if (d.containsKey("gradientStops") && d["gradientStops"].is<JsonArray>()) {
+                    JsonArray stopsArr = d["gradientStops"].as<JsonArray>();
+                    int stopIdx = 0;
+                    for (JsonVariant stopVal : stopsArr) {
+                        if (stopIdx >= 4) break;
+                        String hexStop = stopVal.as<String>();
+                        if (hexStop.startsWith("#") && hexStop.length() == 7) {
+                            long number = strtol(&hexStop[1], NULL, 16);
+                            uint8_t r = (number >> 16) & 0xFF;
+                            uint8_t g = (number >> 8) & 0xFF;
+                            uint8_t b = number & 0xFF;
+                            state.desk.stops[stopIdx] = CRGB(r, g, b);
+                            stopIdx++;
+                        }
+                    }
+                    if (stopIdx == 4) {
+                        state.desk.hasGradient = true;
+                    }
+                }
             }
 
             // WiZ Left updates (support flat or nested devices.wizLeft)
@@ -372,11 +421,14 @@ String WebServerManager::serializeState() {
     payload["syncCorners"] = localState.syncCorners;
     payload["activePreset"] = localState.activePreset;
     payload["firmwareVersion"] = localState.firmwareVersion;
+    payload["useGammaCorrection"] = localState.useGammaCorrection;
 
     JsonObject net = payload["network"].to<JsonObject>();
     net["hubIp"] = WiFi.localIP().toString();
     net["wizLeftIp"] = localState.wizLeftIp;
+    net["wizLeftMac"] = localState.wizLeftMac;
     net["wizRightIp"] = localState.wizRightIp;
+    net["wizRightMac"] = localState.wizRightMac;
 
     JsonObject dev = payload["devices"].to<JsonObject>();
 
@@ -390,6 +442,16 @@ String WebServerManager::serializeState() {
     deskObj["effect"] = localState.desk.effect;
     deskObj["speed"] = localState.desk.speed;
     deskObj["intensity"] = localState.desk.intensity;
+    deskObj["turbulence"] = localState.desk.intensity;
+    if (localState.desk.hasGradient) {
+        JsonArray stops = deskObj["gradientStops"].to<JsonArray>();
+        for (int i = 0; i < 4; i++) {
+            char hexStop[8];
+            snprintf(hexStop, sizeof(hexStop), "#%02x%02x%02x",
+                     localState.desk.stops[i].r, localState.desk.stops[i].g, localState.desk.stops[i].b);
+            stops.add(hexStop);
+        }
+    }
 
     // WiZ Left
     JsonObject wlObj = dev["wizLeft"].to<JsonObject>();

@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <WiFiUdp.h>
+#include <vector>
 
 struct DiscoveredBulb {
   String ip;
@@ -14,8 +15,9 @@ struct DiscoveredBulb {
 
 class WizController {
 public:
-  WizController();
-  void begin();
+  WizController(HubState* state = nullptr);
+  void begin(HubState* state = nullptr);
+  void setState(HubState* state);
 
   // Command dispatchers
   void sendPilotRGB(const String &ipStr, bool state, uint8_t r, uint8_t g,
@@ -27,15 +29,20 @@ public:
   // Diagnostic dispatcher with synchronous response capture
   String sendCommandWithResponse(const String &ipStr, const String &jsonPayload, uint32_t timeoutMs = 800);
 
-  // Auto-discovery
+  // Auto-discovery & auto-rebind
   void broadcastDiscovery();
   void updateDiscovery();
   const std::vector<DiscoveredBulb> &getDiscoveredBulbs() const;
   void clearDiscoveredBulbs();
 
+  bool checkAndClearRebound();
+  static String normalizeMac(const String &mac);
+
 private:
   WiFiUDP udp;
   SemaphoreHandle_t udpMutex;
   std::vector<DiscoveredBulb> discoveredBulbs;
+  HubState* hubState;
+  volatile bool reboundOccurred;
   void sendUdpPacket(const IPAddress &ip, const String &jsonPayload);
 };

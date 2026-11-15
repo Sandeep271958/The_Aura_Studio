@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <FastLED.h>
 
 // Global FreeRTOS Mutex for thread-safe state access across Core 0 (WiFi/Web) and Core 1 (FastLED)
 extern SemaphoreHandle_t stateMutex;
@@ -8,9 +9,9 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.00.000"
-#define FIRMWARE_NAME    "firmware_01.00.000.bin"
-#define FIRMWARE_BUILD   "2026-11-14"
+#define FIRMWARE_VERSION "01.01.000"
+#define FIRMWARE_NAME    "firmware_01.01.000.bin"
+#define FIRMWARE_BUILD   "2026-11-15"
 
 // ============================================================================
 // WI-FI & NETWORK CONFIGURATION
@@ -50,6 +51,15 @@ struct DeviceDesk {
   uint8_t speed = 60;
   uint8_t intensity = 75;
   int inspectIndex = -1; // -1 for normal animation, 0 to NUM_LEDS-1 for single-LED diagnostic
+
+  // 4-Stop Luxury Gradient Lab Palette Support
+  bool hasGradient = false;
+  CRGB stops[4] = {
+    CRGB(165, 243, 252), // Stop 1 (#a5f3fc)
+    CRGB(244, 114, 182), // Stop 2 (#f472b6)
+    CRGB(192, 132, 252), // Stop 3 (#c084fc)
+    CRGB(254, 240, 138)  // Stop 4 (#fef08a)
+  };
 };
 
 struct DeviceWiz {
@@ -69,9 +79,12 @@ struct HubState {
   int8_t contrastRatio = 0; // -50 to +50
   bool syncCorners = true;
   String activePreset = "cyberpunk";
+  bool useGammaCorrection = true;
 
   String wizLeftIp = DEFAULT_WIZ_LEFT_IP;
   String wizRightIp = DEFAULT_WIZ_RIGHT_IP;
+  String wizLeftMac = "";
+  String wizRightMac = "";
 
   DeviceDesk desk;
   DeviceWiz wizLeft;

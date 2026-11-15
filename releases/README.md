@@ -24,7 +24,21 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,449,552 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `6d27515e227604e49242f9d733052d35e444c8b676ad00fca91c9e0400fffbce` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.01.000`:
+1. **Permanent WiZ Bulb NVS Persistence**:
+   - Saves assigned Left and Right WiZ bulb IPs and MAC addresses to ESP32 Non-Volatile Storage (namespace `"aura"` via `Preferences.h`).
+   - Bulbs remain permanently assigned across ESP32 power cuts, reboots, and router restarts.
+   - Intelligent DHCP tracking: auto-detects if a bulb's IP shifts on the local Wi-Fi router by matching normalized MAC addresses and automatically updates NVS.
+2. **Hardware Optical Tuning & CIE 1931 Gamma Calibration**:
+   - Implements 256-step CIE 1931 perceptual lightness curve ($Y = (L^* / 100)^3 \approx X^{2.2}$) PROGMEM lookup table.
+   - FastLED color correction tuned for physical WS2812B diodes (GRB order) to ensure real-world colors, modes, and gradients faithfully mirror the web dashboard preview.
+   - Integer-bound transition math eliminating secular color drift over extended operation.
+3. **Dashboard Hardening & Parity**:
+   - 25 identified functional edge cases resolved across presets, spectrum pickers, Pomodoro interval timer, and slider synchronizers.
+   - 100% byte-for-byte synchronization guaranteed between `dashboard/` and `firmware/data/` LittleFS storage.
 
 ### Key Highlights of `v01.00.000`:
 1. **Wireless In-Dashboard OTA Flashing**: Integrated directly inside the Settings modal on `http://aura-hub.local` with real-time progress tracking, 6-second auto-reboot countdown, and automatic page reconnection.

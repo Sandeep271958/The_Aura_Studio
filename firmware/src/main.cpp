@@ -24,6 +24,7 @@ void LedTask(void *pvParameters) {
     bool localMasterOn = true;
     uint8_t localMasterBrightness = 80;
     int8_t localContrastRatio = 0;
+    bool localUseGammaCorrection = true;
 
     for (;;) {
         if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
@@ -31,9 +32,10 @@ void LedTask(void *pvParameters) {
             localMasterOn = hubState.isMasterOn;
             localMasterBrightness = hubState.masterBrightness;
             localContrastRatio = hubState.contrastRatio;
+            localUseGammaCorrection = hubState.useGammaCorrection;
             xSemaphoreGive(stateMutex);
         }
-        ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio);
+        ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio, localUseGammaCorrection);
         vTaskDelay(pdMS_TO_TICKS(22)); // Fluid 45 FPS cinema-smooth animation loop (relieves bus contention & voltage sag)
     }
 }
@@ -101,11 +103,17 @@ void setup() {
         Serial.printf("[WiFi] SoftAP started! IP: %s (Connect and open 192.168.4.1)\n", WiFi.softAPIP().toString().c_str());
     }
 
-    // 4. Initialize WiZ Controller (UDP)
-    wizCtrl.begin();
+    // 4. Initialize WiZ Controller (UDP) with HubState binding
+    wizCtrl.begin(&hubState);
 
     // 5. Initialize Web Server and WebSockets
     webManager.begin();
+
+    // Trigger background UDP discovery on boot to auto-rebind known bulb MACs
+    if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast for auto-rebind...");
+        wizCtrl.broadcastDiscovery();
+    }
 
     // 6. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering
     xTaskCreatePinnedToCore(
@@ -134,6 +142,12 @@ void loop() {
     if (currentBulbCount != lastReportedBulbCount) {
         lastReportedBulbCount = currentBulbCount;
         webManager.broadcastDiscoveredDevices();
+    }
+
+    // Broadcast updated state if bulb IP auto-rebound via DHCP
+    if (wizCtrl.checkAndClearRebound()) {
+        Serial.println("[WiZ] Bulb IP auto-rebound complete. Broadcasting updated state to dashboard...");
+        webManager.broadcastState();
     }
 
     // Clean up disconnected WebSocket clients periodically
