@@ -2507,9 +2507,16 @@ function bindEvents() {
     selectedOtaFile = file;
     if (DOM.otaFileLabel) DOM.otaFileLabel.textContent = file.name;
     const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-    if (DOM.otaFileSize) DOM.otaFileSize.textContent = `${sizeMb} MB • Ready to flash`;
+    const lowerName = file.name.toLowerCase();
+    let targetLabel = 'Dual OTA Ready';
+    if (lowerName.includes('littlefs') || lowerName.includes('spiffs') || lowerName.includes('filesystem') || lowerName.includes('data')) {
+      targetLabel = 'Web Dashboard (LittleFS)';
+    } else {
+      targetLabel = 'C++ Firmware (Dual OTA)';
+    }
+    if (DOM.otaFileSize) DOM.otaFileSize.textContent = `${sizeMb} MB • ${targetLabel}`;
     if (DOM.btnStartOtaUpload) DOM.btnStartOtaUpload.disabled = false;
-    showToast(`Loaded firmware: ${file.name} (${sizeMb} MB)`);
+    showToast(`Loaded ${targetLabel}: ${file.name} (${sizeMb} MB)`);
   }
 
   if (DOM.btnSelectOtaFile && DOM.inputOtaFile) {
