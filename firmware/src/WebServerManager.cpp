@@ -15,10 +15,12 @@ void WebServerManager::begin() {
     state.wizRightIp = prefs.getString("wizRightIp", DEFAULT_WIZ_RIGHT_IP);
     state.wizRightMac = prefs.getString("wizRightMac", "");
     state.useGammaCorrection = prefs.getBool("useGamma", true);
+    state.onOffAnimation = prefs.getString("onOffAnim", "gaussian-ripple");
 
     Serial.printf("[NVS] Loaded WiZ Left: IP=%s MAC=%s\n", state.wizLeftIp.c_str(), state.wizLeftMac.c_str());
     Serial.printf("[NVS] Loaded WiZ Right: IP=%s MAC=%s\n", state.wizRightIp.c_str(), state.wizRightMac.c_str());
     Serial.printf("[NVS] Loaded Gamma Correction: %s\n", state.useGammaCorrection ? "ON" : "OFF");
+    Serial.printf("[NVS] Loaded On/Off Animation: %s\n", state.onOffAnimation.c_str());
 
     setupWebSocket();
     setupRoutes();
@@ -127,6 +129,11 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                 state.useGammaCorrection = payload["useGammaCorrection"].as<bool>();
                 prefs.putBool("useGamma", state.useGammaCorrection);
                 Serial.printf("[NVS] Persisted Gamma Correction: %s\n", state.useGammaCorrection ? "ON" : "OFF");
+            }
+            if (payload.containsKey("onOffAnimation")) {
+                state.onOffAnimation = payload["onOffAnimation"].as<String>();
+                prefs.putString("onOffAnim", state.onOffAnimation);
+                Serial.printf("[NVS] Persisted On/Off Animation: %s\n", state.onOffAnimation.c_str());
             }
 
             // Desk updates (support flat or nested devices.desk)
@@ -451,6 +458,7 @@ String WebServerManager::serializeState() {
     payload["activePreset"] = localState.activePreset;
     payload["firmwareVersion"] = localState.firmwareVersion;
     payload["useGammaCorrection"] = localState.useGammaCorrection;
+    payload["onOffAnimation"] = localState.onOffAnimation;
 
     JsonObject net = payload["network"].to<JsonObject>();
     net["hubIp"] = WiFi.localIP().toString();

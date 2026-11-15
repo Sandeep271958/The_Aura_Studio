@@ -9,8 +9,8 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.01.000"
-#define FIRMWARE_NAME    "firmware_01.01.000.bin"
+#define FIRMWARE_VERSION "01.02.000"
+#define FIRMWARE_NAME    "firmware_01.02.000.bin"
 #define FIRMWARE_BUILD   "2026-11-15"
 
 // ============================================================================
@@ -80,6 +80,7 @@ struct HubState {
   bool syncCorners = true;
   String activePreset = "cyberpunk";
   bool useGammaCorrection = true;
+  String onOffAnimation = "gaussian-ripple";
 
   String wizLeftIp = DEFAULT_WIZ_LEFT_IP;
   String wizRightIp = DEFAULT_WIZ_RIGHT_IP;

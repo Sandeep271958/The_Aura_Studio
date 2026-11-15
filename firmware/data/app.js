@@ -102,6 +102,7 @@ const appState = {
   activeTab: 'studio',
   transitionDuration: 800,
   useGammaCorrection: true,
+  onOffAnimation: 'gaussian-ripple',
   
   // Circadian HCL Engine
   circadian: {
@@ -354,10 +355,12 @@ const DOM = {
   otaStatusText: document.getElementById('ota-status-text'),
   otaPctText: document.getElementById('ota-pct-text'),
 
+  // Desk Strip On/Off Transition Animation
+  selectOnOffAnim: document.getElementById('select-onoff-anim'),
+
   // Hardware & Pixel Diagnostics
   sliderPixelDiag: document.getElementById('slider-pixel-diag'),
   valPixelDiag: document.getElementById('val-pixel-diag'),
-  btnPixelTest36: document.getElementById('btn-pixel-test-36'),
   btnPixelDiagReset: document.getElementById('btn-pixel-diag-reset'),
 
   // Toast
@@ -437,6 +440,7 @@ function dispatchStateChange(payload) {
         contrastRatio: payload.state.contrastRatio,
         syncCorners: payload.state.syncCorners,
         activePreset: payload.state.activePreset,
+        onOffAnimation: payload.state.onOffAnimation,
         network: payload.state.network,
         devices: payload.state.devices
       };
@@ -463,6 +467,10 @@ function handleIncomingMessage(msg) {
     Object.assign(appState, msg.payload);
     if (msg.payload && msg.payload.firmwareVersion && DOM.badgeFirmwareVersion) {
       DOM.badgeFirmwareVersion.textContent = `v${msg.payload.firmwareVersion}`;
+    }
+    if (msg.payload && msg.payload.onOffAnimation) {
+      appState.onOffAnimation = msg.payload.onOffAnimation;
+      if (DOM.selectOnOffAnim) DOM.selectOnOffAnim.value = appState.onOffAnimation;
     }
     if (msg.payload && msg.payload.network) {
       if (msg.payload.network.wizLeftMac) {
@@ -2458,12 +2466,18 @@ function bindEvents() {
     });
   }
 
-  if (DOM.btnPixelTest36) {
-    DOM.btnPixelTest36.addEventListener('click', () => {
+  if (DOM.selectOnOffAnim) {
+    const savedAnim = localStorage.getItem('aura_onoff_anim');
+    if (savedAnim) appState.onOffAnimation = savedAnim;
+    DOM.selectOnOffAnim.value = appState.onOffAnimation || 'gaussian-ripple';
+    DOM.selectOnOffAnim.addEventListener('change', (e) => {
       triggerHaptic('medium');
-      if (DOM.sliderPixelDiag) DOM.sliderPixelDiag.value = '36';
-      if (DOM.valPixelDiag) DOM.valPixelDiag.textContent = 'LED #36 (Suspect Solder Joint)';
-      sendPixelInspect(36, 255, 0, 0); // Warning red for suspect joint
+      appState.onOffAnimation = e.target.value;
+      localStorage.setItem('aura_onoff_anim', appState.onOffAnimation);
+      dispatchStateChange({ onOffAnimation: appState.onOffAnimation });
+      const opt = e.target.options && e.target.selectedIndex >= 0 ? e.target.options[e.target.selectedIndex] : null;
+      const optName = opt ? opt.text : e.target.value;
+      showToast(`Desk Transition: ${optName}`);
     });
   }
 

@@ -822,17 +822,17 @@ assert.strictEqual(simDOM.valPixelDiag.textContent, 'LED #35', 'Slider input 35 
 simDOM.sliderPixelDiag.triggerChange(35);
 recordPass('[Tier 1] Pixel diagnostic slider scrub & change events verified.');
 
-// Tier 1 - Check 4: Test LED #36 Button
-simDOM.btnPixelTest36.click();
-assert.strictEqual(simDOM.sliderPixelDiag.value, '36', 'Test 36 button failed to set slider to 36');
-assert.strictEqual(simDOM.valPixelDiag.textContent, 'LED #36 (Suspect Solder Joint)', 'Test 36 label mismatch');
-recordPass('[Tier 1] Suspect LED #36 diagnostic inspection button verified.');
+// Tier 1 - Check 4: Pixel Inspection Direct Scrub to LED #36
+simDOM.sliderPixelDiag.triggerInput(36);
+assert.strictEqual(simDOM.sliderPixelDiag.value, '36', 'Slider failed to set to 36');
+assert.strictEqual(simDOM.valPixelDiag.textContent, 'LED #36', 'LED 36 label mismatch');
+recordPass('[Tier 1] Suspect LED #36 diagnostic inspection via slider scrub verified.');
 
-// Tier 1 - Check 5: Restore All LEDs Button
+// Tier 1 - Check 5: Restore All LEDs Button (Beside status readout)
 simDOM.btnPixelDiagReset.click();
 assert.strictEqual(simDOM.sliderPixelDiag.value, '-1', 'Reset button failed to set slider to -1');
 assert.strictEqual(simDOM.valPixelDiag.textContent, 'None (Normal Mode)', 'Reset label mismatch');
-recordPass('[Tier 1] Pixel diagnostic reset button verified.');
+recordPass('[Tier 1] Pixel diagnostic reset button beside status readout verified.');
 
 // Tier 2 - Boundary Checks for F3 (Pixel Diagnostics)
 // Check 1: Normal mode lower boundary (-1)
@@ -847,12 +847,24 @@ assert.strictEqual(simDOM.valPixelDiag.textContent, 'LED #59', 'Index 59 boundar
 // Check 4: Attribute range assertions matching physical strip (min=-1, max=59)
 assert.strictEqual(simDOM.sliderPixelDiag.getAttribute('min'), '-1', 'Slider min must be -1');
 assert.strictEqual(simDOM.sliderPixelDiag.getAttribute('max'), '59', 'Slider max must be 59');
-// Check 5: Alternating test 36 and reset
-simDOM.btnPixelTest36.click();
+// Check 5: Alternating slider scrub to 36 and reset
+simDOM.sliderPixelDiag.triggerInput(36);
 assert.strictEqual(simDOM.sliderPixelDiag.value, '36');
 simDOM.btnPixelDiagReset.click();
 assert.strictEqual(simDOM.sliderPixelDiag.value, '-1');
 recordPass('[Tier 2] Pixel diagnostic boundary values (-1, 0, 59) and attributes verified.');
+
+// ----------------------------------------------------------------------------
+// Feature F3.5: Desk WS2812B Power Transition Animation UI
+// ----------------------------------------------------------------------------
+assert(simDOM.selectOnOffAnim, 'DOM selectOnOffAnim missing');
+assert.strictEqual(simDOM.selectOnOffAnim.value, 'gaussian-ripple', 'Default onOffAnimation must be gaussian-ripple');
+assert.strictEqual(simAppState.onOffAnimation, 'gaussian-ripple', 'appState.onOffAnimation default must be gaussian-ripple');
+simDOM.selectOnOffAnim.triggerChange('quantum-sweep');
+assert.strictEqual(simAppState.onOffAnimation, 'quantum-sweep', 'Changing selector should update appState');
+simDOM.selectOnOffAnim.triggerChange('gaussian-ripple');
+assert.strictEqual(simAppState.onOffAnimation, 'gaussian-ripple', 'Resetting selector should restore gaussian-ripple');
+recordPass('[Tier 1] Desk WS2812B On/Off transition animation dropdown and state synchronization verified.');
 
 // ----------------------------------------------------------------------------
 // Feature F4: Wireless OTA UI Simulation & Validation
@@ -1283,14 +1295,16 @@ assert(/state\.wizLeftIp\s*=\s*prefs\.getString\(\s*"wizLeftIp"\s*,\s*DEFAULT_WI
 assert(/state\.wizLeftMac\s*=\s*prefs\.getString\(\s*"wizLeftMac"\s*,\s*""\s*\)/.test(fwWsmSrc), 'NVS wizLeftMac boot load contract violated');
 assert(/state\.wizRightIp\s*=\s*prefs\.getString\(\s*"wizRightIp"\s*,\s*DEFAULT_WIZ_RIGHT_IP\s*\)/.test(fwWsmSrc), 'NVS wizRightIp boot load contract violated');
 assert(/state\.wizRightMac\s*=\s*prefs\.getString\(\s*"wizRightMac"\s*,\s*""\s*\)/.test(fwWsmSrc), 'NVS wizRightMac boot load contract violated');
-recordPass('[Tier 1] WebServerManager.cpp initializes NVS namespace "aura" and loads persisted WiZ IPs/MACs.');
+assert(/state\.onOffAnimation\s*=\s*prefs\.getString\(\s*"onOffAnim"\s*,\s*"gaussian-ripple"\s*\)/.test(fwWsmSrc), 'NVS onOffAnim boot load contract violated');
+recordPass('[Tier 1] WebServerManager.cpp initializes NVS namespace "aura" and loads persisted WiZ IPs/MACs and On/Off animation.');
 
 // T1.4: WebServerManager.cpp NVS Persistence on WebSocket Update
 assert(/prefs\.putString\(\s*"wizLeftIp"\s*,\s*state\.wizLeftIp\s*\)/.test(fwWsmSrc), 'WebServerManager missing NVS putString for wizLeftIp');
 assert(/prefs\.putString\(\s*"wizLeftMac"\s*,\s*state\.wizLeftMac\s*\)/.test(fwWsmSrc), 'WebServerManager missing NVS putString for wizLeftMac');
 assert(/prefs\.putString\(\s*"wizRightIp"\s*,\s*state\.wizRightIp\s*\)/.test(fwWsmSrc), 'WebServerManager missing NVS putString for wizRightIp');
 assert(/prefs\.putString\(\s*"wizRightMac"\s*,\s*state\.wizRightMac\s*\)/.test(fwWsmSrc), 'WebServerManager missing NVS putString for wizRightMac');
-recordPass('[Tier 1] WebServerManager.cpp handles WebSocket network updates and persists custom WiZ IPs and MACs to NVS.');
+assert(/prefs\.putString\(\s*"onOffAnim"\s*,\s*state\.onOffAnimation\s*\)/.test(fwWsmSrc), 'WebServerManager missing NVS putString for onOffAnim');
+recordPass('[Tier 1] WebServerManager.cpp handles WebSocket updates and persists custom WiZ IPs, MACs, and On/Off animation to NVS.');
 
 // T1.5: WizController.cpp normalizeMac & Auto-Rebind NVS Commit Contract
 assert(/String\s+WizController::normalizeMac\s*\(\s*const\s+String\s*&\s*mac\s*\)/.test(fwWizSrc), 'WizController missing normalizeMac implementation');
@@ -1329,12 +1343,12 @@ assert(fwWizSrc.includes('hubState->wizRightMac.length() >= 6'), 'Right auto-reb
 recordPass('[Tier 2] Discovery auto-rebind enforces length >= 6 guard preventing false-positive rebinds on unassigned MACs.');
 
 // T2.3: ESP32 NVS Namespace and Key Length Limits (Max 15 chars)
-const nvsKeys = ['wizLeftIp', 'wizLeftMac', 'wizRightIp', 'wizRightMac', 'useGamma'];
+const nvsKeys = ['wizLeftIp', 'wizLeftMac', 'wizRightIp', 'wizRightMac', 'useGamma', 'onOffAnim'];
 nvsKeys.forEach(k => {
   assert(k.length <= 15, `NVS key "${k}" exceeds ESP32 15-character limit`);
 });
 assert('aura'.length <= 15, 'NVS namespace "aura" exceeds 15-character limit');
-recordPass('[Tier 2] ESP32 NVS key lengths (max 15 chars) verified for namespace "aura" and all WiZ persistence keys.');
+recordPass('[Tier 2] ESP32 NVS key lengths (max 15 chars) verified for namespace "aura" and all WiZ/Desk persistence keys.');
 
 // T2.4: Dual-Channel WiZ Isolation and IPv4 Format Validation
 const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
@@ -1345,8 +1359,9 @@ recordPass('[Tier 2] Dual-channel WiZ isolation and IPv4 address boundary valida
 // T2.5: State Serialization Packaging Contract
 assert(/net\["wizLeftMac"\]\s*=\s*localState\.wizLeftMac/.test(fwWsmSrc), 'serializeState missing wizLeftMac');
 assert(/net\["wizRightMac"\]\s*=\s*localState\.wizRightMac/.test(fwWsmSrc), 'serializeState missing wizRightMac');
+assert(/payload\["onOffAnimation"\]\s*=\s*localState\.onOffAnimation/.test(fwWsmSrc), 'serializeState missing onOffAnimation');
 assert(/obj\["mac"\]\s*=\s*b\.mac/.test(fwWsmSrc), 'broadcastDiscoveredDevices missing mac field');
-recordPass('[Tier 2] WebServerManager.cpp serializeState packages wizLeftMac and wizRightMac for client synchronization.');
+recordPass('[Tier 2] WebServerManager.cpp serializeState packages wizLeftMac, wizRightMac, and onOffAnimation for client synchronization.');
 
 // ----------------------------------------------------------------------------
 // Tier 3: Pairwise Subsystem Validation (Genuine UI Discovery -> WebSocket Intercept)

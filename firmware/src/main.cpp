@@ -25,6 +25,7 @@ void LedTask(void *pvParameters) {
     uint8_t localMasterBrightness = 80;
     int8_t localContrastRatio = 0;
     bool localUseGammaCorrection = true;
+    String localOnOffAnimation = "gaussian-ripple";
 
     for (;;) {
         if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
@@ -33,9 +34,10 @@ void LedTask(void *pvParameters) {
             localMasterBrightness = hubState.masterBrightness;
             localContrastRatio = hubState.contrastRatio;
             localUseGammaCorrection = hubState.useGammaCorrection;
+            localOnOffAnimation = hubState.onOffAnimation;
             xSemaphoreGive(stateMutex);
         }
-        ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio, localUseGammaCorrection);
+        ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio, localUseGammaCorrection, localOnOffAnimation);
         vTaskDelay(pdMS_TO_TICKS(22)); // Fluid 45 FPS cinema-smooth animation loop (relieves bus contention & voltage sag)
     }
 }

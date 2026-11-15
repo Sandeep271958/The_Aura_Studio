@@ -107,36 +107,156 @@ void LedDriver::effectTestCycle() {
     }
 }
 
+void LedDriver::renderOnAnimation(float t, const String &mode) {
+    if (mode == "bilateral-bloom") {
+        float s = t * t * (3.0f - 2.0f * t);
+        float E = s * 32.0f;
+        float W = 6.0f;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float dist = fabsf((float)i - 29.5f);
+            float alpha = constrain((E - dist + W * 0.5f) / W, 0.0f, 1.0f);
+            alpha = alpha * alpha * (3.0f - 2.0f * alpha);
+            float coronaDist = dist - E;
+            float corona = expf(-(coronaDist * coronaDist) / 8.0f) * (1.0f - t * 0.3f) * 0.5f;
+            float factor = constrain(alpha + corona, 0.0f, 1.0f);
+            if (t > 0.88f) {
+                float settle = (t - 0.88f) / 0.12f;
+                factor = factor * (1.0f - settle) + 1.0f * settle;
+            }
+            leds[i].r = (uint8_t)(leds[i].r * factor);
+            leds[i].g = (uint8_t)(leds[i].g * factor);
+            leds[i].b = (uint8_t)(leds[i].b * factor);
+        }
+    } else if (mode == "thermal-warmup") {
+        float tempT = powf(t, 1.35f);
+        CRGB filament(255, (uint8_t)(60 + tempT * 125), (uint8_t)(6 + tempT * 40));
+        float brightFactor = powf(t, 1.25f);
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float jitter = 1.0f + 0.1f * sinf(i * 1.6f);
+            float localT = constrain(tempT * jitter, 0.0f, 1.0f);
+            CRGB blended = blend(filament, leds[i], (uint8_t)(localT * 255));
+            leds[i].r = (uint8_t)(blended.r * brightFactor);
+            leds[i].g = (uint8_t)(blended.g * brightFactor);
+            leds[i].b = (uint8_t)(blended.b * brightFactor);
+        }
+    } else if (mode == "quantum-sweep") {
+        float headPos = t * 68.0f;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float dist = headPos - (float)i;
+            float factor = 0.0f;
+            if (dist >= 0.0f) {
+                factor = 1.0f;
+                if (dist < 5.0f) {
+                    float pulse = (1.0f - dist / 5.0f) * 0.5f;
+                    factor = constrain(1.0f + pulse, 0.0f, 1.5f);
+                }
+            } else if (dist > -2.5f) {
+                factor = (dist + 2.5f) / 2.5f * 0.35f;
+            }
+            leds[i].r = constrain((int)(leds[i].r * factor), 0, 255);
+            leds[i].g = constrain((int)(leds[i].g * factor), 0, 255);
+            leds[i].b = constrain((int)(leds[i].b * factor), 0, 255);
+        }
+    } else {
+        // Option 4: Gaussian Harmonic Ripple (DEFAULT)
+        float R = 33.0f * sqrtf(t);
+        float sigma = 4.5f + 16.0f * t;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float dist = fabsf((float)i - 29.5f);
+            float u = (R - dist) / 2.8f;
+            float stepFill = 1.0f / (1.0f + expf(-u));
+            float waveDelta = dist - R;
+            float crest = expf(-(waveDelta * waveDelta) / (2.0f * sigma * sigma)) * 
+                          cosf(waveDelta * (6.28318f / 7.5f));
+            crest *= (1.0f - t * 0.45f) * 0.55f;
+            float modFactor = constrain(stepFill + crest, 0.0f, 1.0f);
+            if (t > 0.85f) {
+                float settle = (t - 0.85f) / 0.15f;
+                modFactor = modFactor * (1.0f - settle) + 1.0f * settle;
+            }
+            leds[i].r = (uint8_t)(leds[i].r * modFactor);
+            leds[i].g = (uint8_t)(leds[i].g * modFactor);
+            leds[i].b = (uint8_t)(leds[i].b * modFactor);
+        }
+    }
+}
+
+void LedDriver::renderOffAnimation(float t, const String &mode, bool useGammaCorrection) {
+    if (mode == "bilateral-bloom") {
+        float s = t * t * (3.0f - 2.0f * t);
+        float collapseRadius = (1.0f - s) * 31.0f;
+        float W = 5.0f;
+        float overallFade = 1.0f - t * 0.5f;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float dist = fabsf((float)i - 29.5f);
+            float diff = collapseRadius - dist;
+            float alpha = constrain((diff + W * 0.5f) / W, 0.0f, 1.0f);
+            alpha = alpha * alpha * (3.0f - 2.0f * alpha);
+            float factor = alpha * overallFade;
+            leds[i].r = (uint8_t)(snapshotLeds[i].r * factor);
+            leds[i].g = (uint8_t)(snapshotLeds[i].g * factor);
+            leds[i].b = (uint8_t)(snapshotLeds[i].b * factor);
+        }
+    } else if (mode == "thermal-warmup") {
+        float blueGreenDecay = powf(constrain(1.0f - t * 2.2f, 0.0f, 1.0f), 2.0f);
+        float redDecay = powf(1.0f - t, 1.8f);
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i].r = (uint8_t)(snapshotLeds[i].r * redDecay);
+            leds[i].g = (uint8_t)(snapshotLeds[i].g * blueGreenDecay);
+            leds[i].b = (uint8_t)(snapshotLeds[i].b * blueGreenDecay);
+        }
+    } else if (mode == "quantum-sweep") {
+        float voidHead = (1.0f - t) * 65.0f;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float dist = (float)i - voidHead;
+            float factor = 1.0f;
+            if (dist >= 0.0f) {
+                factor = 0.0f;
+            } else if (dist > -4.5f) {
+                float trans = (-dist) / 4.5f;
+                factor = trans * trans;
+            }
+            leds[i].r = (uint8_t)(snapshotLeds[i].r * factor);
+            leds[i].g = (uint8_t)(snapshotLeds[i].g * factor);
+            leds[i].b = (uint8_t)(snapshotLeds[i].b * factor);
+        }
+    } else {
+        // Option 4: Cosine-damped logarithmic fade (DEFAULT)
+        float cosProgress = 0.5f * (1.0f + cosf(t * 3.14159265f));
+        float decay = powf(cosProgress, 1.8f);
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i].r = (uint8_t)(snapshotLeds[i].r * decay);
+            leds[i].g = (uint8_t)(snapshotLeds[i].g * decay);
+            leds[i].b = (uint8_t)(snapshotLeds[i].b * decay);
+        }
+    }
+}
+
 void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBrightness,
-                       int8_t contrastRatio, bool useGammaCorrection) {
+                       int8_t contrastRatio, bool useGammaCorrection, const String &onOffAnimation) {
     uint32_t now = millis();
     // 60 FPS update rate guard (approx 16ms interval, relaxed to 10ms for jitter-free scheduler)
     if (now - lastUpdate < 10) return;
     lastUpdate = now;
     animationStep++;
 
-    // Calculate effective brightness based on Master power, Master brightness, and Contrast ratio
-    if (!masterOn || !config.power) {
-        if (lastMasterOn || lastDeskPower) {
-            FastLED.clear(true);
-            lastMasterOn = false;
-            lastDeskPower = false;
-        }
-        return;
-    }
-
-    float masterFactor = (float)masterBrightness / 100.0f;
-    float contrastFactor = 1.0f + ((float)contrastRatio / 100.0f);
-    if (contrastFactor < 0.0f) contrastFactor = 0.0f;
-    if (contrastFactor > 1.5f) contrastFactor = 1.5f;
-
-    float effective = ((float)config.brightness / 100.0f) * masterFactor * contrastFactor;
-    uint8_t targetDim = constrain((int)(effective * 255.0f), 0, 255);
-
-    CRGB baseColor = CRGB(config.r, config.g, config.b);
+    bool targetPower = (masterOn && config.power);
 
     // 1. Single LED Inspection Mode (Diagnose individual LEDs 0-59 one-by-one)
     if (config.inspectIndex >= 0 && config.inspectIndex < NUM_LEDS) {
+        pwrState = targetPower ? PWR_ON : PWR_OFF;
+        if (!targetPower) {
+            FastLED.clear(true);
+            return;
+        }
+        float masterFactor = (float)masterBrightness / 100.0f;
+        float contrastFactor = 1.0f + ((float)contrastRatio / 100.0f);
+        if (contrastFactor < 0.0f) contrastFactor = 0.0f;
+        if (contrastFactor > 1.5f) contrastFactor = 1.5f;
+        float effective = ((float)config.brightness / 100.0f) * masterFactor * contrastFactor;
+        uint8_t targetDim = constrain((int)(effective * 255.0f), 0, 255);
+        CRGB baseColor = CRGB(config.r, config.g, config.b);
+
         if (config.inspectIndex != lastInspectIndex || baseColor != lastSolidColor ||
             targetDim != lastDeskDim || useGammaCorrection != lastUseGamma) {
             lastInspectIndex = config.inspectIndex;
@@ -167,9 +287,77 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     }
     lastInspectIndex = -1;
 
-    // 2. Static Solid Color Mode: Update ONLY on change or 3s keepalive (Stops 60Hz bus hammering & flicker!)
+    // Power Transition State Machine Management
+    if (targetPower && (pwrState == PWR_OFF || pwrState == PWR_TURNING_OFF)) {
+        pwrState = PWR_TURNING_ON;
+        transitionStartTime = now;
+        currentAnimMode = onOffAnimation.length() > 0 ? onOffAnimation : "gaussian-ripple";
+        if (currentAnimMode == "quantum-sweep") transitionDuration = 320;
+        else if (currentAnimMode == "thermal-warmup") transitionDuration = 800;
+        else if (currentAnimMode == "bilateral-bloom") transitionDuration = 650;
+        else transitionDuration = 500;
+        Serial.printf("[LED Power] Transition ON -> Mode: %s (%u ms)\n", currentAnimMode.c_str(), transitionDuration);
+    } else if (!targetPower && (pwrState == PWR_ON || pwrState == PWR_TURNING_ON)) {
+        pwrState = PWR_TURNING_OFF;
+        transitionStartTime = now;
+        for (int i = 0; i < NUM_LEDS; i++) {
+            snapshotLeds[i] = leds[i];
+        }
+        currentAnimMode = onOffAnimation.length() > 0 ? onOffAnimation : "gaussian-ripple";
+        if (currentAnimMode == "quantum-sweep") transitionDuration = 350;
+        else if (currentAnimMode == "thermal-warmup") transitionDuration = 450;
+        else if (currentAnimMode == "bilateral-bloom") transitionDuration = 500;
+        else transitionDuration = 450;
+        Serial.printf("[LED Power] Transition OFF -> Mode: %s (%u ms)\n", currentAnimMode.c_str(), transitionDuration);
+    }
+
+    if (pwrState == PWR_OFF) {
+        if (lastMasterOn || lastDeskPower) {
+            FastLED.clear(true);
+            lastMasterOn = false;
+            lastDeskPower = false;
+        }
+        return;
+    }
+
+    if (pwrState == PWR_TURNING_OFF) {
+        float elapsed = (float)(now - transitionStartTime);
+        float t = elapsed / (float)transitionDuration;
+        if (t >= 1.0f) {
+            pwrState = PWR_OFF;
+            FastLED.clear(true);
+            lastMasterOn = false;
+            lastDeskPower = false;
+            return;
+        }
+
+        renderOffAnimation(t, currentAnimMode, useGammaCorrection);
+
+        // Hardware Silicon Micro-Glitch Stabilization for Pixel 36
+        if (NUM_LEDS > 36) {
+            leds[36] = blend(lastLed36, leds[36], 190);
+            lastLed36 = leds[36];
+        }
+
+        FastLED.show();
+        return;
+    }
+
+    // Active Rendering (PWR_TURNING_ON or PWR_ON)
+    float masterFactor = (float)masterBrightness / 100.0f;
+    float contrastFactor = 1.0f + ((float)contrastRatio / 100.0f);
+    if (contrastFactor < 0.0f) contrastFactor = 0.0f;
+    if (contrastFactor > 1.5f) contrastFactor = 1.5f;
+
+    float effective = ((float)config.brightness / 100.0f) * masterFactor * contrastFactor;
+    uint8_t targetDim = constrain((int)(effective * 255.0f), 0, 255);
+    CRGB baseColor = CRGB(config.r, config.g, config.b);
+
+    bool inTransition = (pwrState == PWR_TURNING_ON);
+
+    // 2. Static Solid Color Mode: Update ONLY on change, transition, or 3s keepalive
     if (config.effect == "solid") {
-        bool changed = (baseColor != lastSolidColor || targetDim != lastDeskDim || 
+        bool changed = inTransition || (baseColor != lastSolidColor || targetDim != lastDeskDim || 
                         useGammaCorrection != lastUseGamma ||
                         !lastMasterOn || !lastDeskPower || lastEffect != "solid" || 
                         now - lastSolidPush > 3000);
@@ -235,21 +423,32 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     }
 
     // ========================================================================
-    // UNIFIED POST-PROCESSING PASS: Dimming, CIE 1931 Gamma, Pixel 36 Dampener
+    // UNIFIED POST-PROCESSING PASS: Dimming, On-Animation, Gamma, Pixel 36 Dampener
     // ========================================================================
     for (int i = 0; i < NUM_LEDS; i++) {
         uint8_t r = scale8(leds[i].r, targetDim);
         uint8_t g = scale8(leds[i].g, targetDim);
         uint8_t b = scale8(leds[i].b, targetDim);
+        leds[i] = CRGB(r, g, b);
+    }
 
-        if (useGammaCorrection) {
-            leds[i].r = pgm_read_byte(&cie1931[r]);
-            leds[i].g = pgm_read_byte(&cie1931[g]);
-            leds[i].b = pgm_read_byte(&cie1931[b]);
+    // Apply Turn-On Animation Modulation
+    if (pwrState == PWR_TURNING_ON) {
+        float elapsed = (float)(now - transitionStartTime);
+        float t = elapsed / (float)transitionDuration;
+        if (t >= 1.0f) {
+            pwrState = PWR_ON;
         } else {
-            leds[i].r = r;
-            leds[i].g = g;
-            leds[i].b = b;
+            renderOnAnimation(t, currentAnimMode);
+        }
+    }
+
+    // CIE 1931 Perceptual Lightness
+    if (useGammaCorrection) {
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i].r = pgm_read_byte(&cie1931[leds[i].r]);
+            leds[i].g = pgm_read_byte(&cie1931[leds[i].g]);
+            leds[i].b = pgm_read_byte(&cie1931[leds[i].b]);
         }
     }
 

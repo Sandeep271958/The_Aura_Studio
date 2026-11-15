@@ -9,12 +9,24 @@ public:
   LedDriver();
   void begin();
   void update(const DeviceDesk &config, bool masterOn, uint8_t masterBrightness,
-              int8_t contrastRatio, bool useGammaCorrection = true);
+              int8_t contrastRatio, bool useGammaCorrection = true,
+              const String &onOffAnimation = "gaussian-ripple");
 
 private:
   CRGB leds[NUM_LEDS];
+  CRGB snapshotLeds[NUM_LEDS];
   uint32_t lastUpdate = 0;
   uint16_t animationStep = 0;
+
+  // Power transition animation state machine
+  enum PowerTransitionState { PWR_OFF, PWR_TURNING_ON, PWR_ON, PWR_TURNING_OFF };
+  PowerTransitionState pwrState = PWR_OFF;
+  uint32_t transitionStartTime = 0;
+  uint16_t transitionDuration = 500;
+  String currentAnimMode = "gaussian-ripple";
+
+  void renderOnAnimation(float t, const String &mode);
+  void renderOffAnimation(float t, const String &mode, bool useGammaCorrection);
 
   // Anti-flicker state tracking for static/solid rendering
   bool lastMasterOn = false;

@@ -1217,6 +1217,20 @@
           </div>
         </div>
 
+        <!-- Desk Strip On/Off Transition Animation Section -->
+        <div class="settings-section">
+          <h4>Desk Strip On/Off Transition</h4>
+          <p class="section-note">Select the physical ignition &amp; collapse animation for the WS2812B desktop strip.</p>
+          <div class="setting-select-wrap">
+            <select id="select-onoff-anim" class="custom-select mono" aria-label="Desk Strip On/Off Animation">
+              <option value="gaussian-ripple" selected>Option 4: Gaussian Harmonic Ripple (Default)</option>
+              <option value="bilateral-bloom">Option 1: Bilateral Bloom &amp; Horizon Collapse</option>
+              <option value="thermal-warmup">Option 2: Planckian Thermal Glow (Halogen Filament)</option>
+              <option value="quantum-sweep">Option 3: Fluid Quantum Ion Sweep</option>
+            </select>
+          </div>
+        </div>
+
         <!-- ESP32 Hub Diagnostics -->
         <div class="settings-section">
           <h4>ESP32 Hub Telemetry</h4>
@@ -1244,7 +1258,7 @@
         <div class="settings-section">
           <div class="section-inline-header">
             <h4>Wireless Firmware Update (OTA)</h4>
-            <span class="badge-ota-status" id="badge-firmware-version">v01.01.000</span>
+            <span class="badge-ota-status" id="badge-firmware-version">v01.02.000</span>
           </div>
           <p class="section-note">Wirelessly flash <code>firmware_xx.xx.xxx.bin</code> to the secondary partition with zero downtime.</p>
           
@@ -1280,13 +1294,12 @@
           <div class="pixel-diag-row">
             <div class="row-header">
               <span class="row-label">Pixel Under Test:</span>
-              <span id="val-pixel-diag" class="row-val mono">None (Normal Mode)</span>
+              <div class="pixel-diag-status-wrap">
+                <span id="val-pixel-diag" class="row-val mono">None (Normal Mode)</span>
+                <button type="button" id="btn-pixel-diag-reset" class="action-btn-sm" title="Restore normal lighting mode">Restore All LEDs</button>
+              </div>
             </div>
             <input type="range" id="slider-pixel-diag" class="custom-range" min="-1" max="59" value="-1" aria-label="Individual Pixel Diagnostic Index">
-          </div>
-          <div class="pixel-diag-actions">
-            <button type="button" id="btn-pixel-test-36" class="action-btn" title="Inspect suspect LED #36">Test LED #36</button>
-            <button type="button" id="btn-pixel-diag-reset" class="action-btn">Restore All LEDs</button>
           </div>
         </div>
 
