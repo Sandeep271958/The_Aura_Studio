@@ -22,7 +22,7 @@ private:
   enum PowerTransitionState { PWR_OFF, PWR_TURNING_ON, PWR_ON, PWR_TURNING_OFF };
   PowerTransitionState pwrState = PWR_OFF;
   uint32_t transitionStartTime = 0;
-  uint16_t transitionDuration = 500;
+  uint16_t transitionDuration = 1000;
   String currentAnimMode = "gaussian-ripple";
 
   void renderOnAnimation(float t, const String &mode);

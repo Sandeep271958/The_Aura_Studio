@@ -287,15 +287,12 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     }
     lastInspectIndex = -1;
 
-    // Power Transition State Machine Management
+    // Power Transition State Machine Management (1000ms On / 1000ms Off Synchronized to Lamps)
     if (targetPower && (pwrState == PWR_OFF || pwrState == PWR_TURNING_OFF)) {
         pwrState = PWR_TURNING_ON;
         transitionStartTime = now;
         currentAnimMode = onOffAnimation.length() > 0 ? onOffAnimation : "gaussian-ripple";
-        if (currentAnimMode == "quantum-sweep") transitionDuration = 320;
-        else if (currentAnimMode == "thermal-warmup") transitionDuration = 800;
-        else if (currentAnimMode == "bilateral-bloom") transitionDuration = 650;
-        else transitionDuration = 500;
+        transitionDuration = 1000; // Synchronized with 1.0s lamp fade-in
         Serial.printf("[LED Power] Transition ON -> Mode: %s (%u ms)\n", currentAnimMode.c_str(), transitionDuration);
     } else if (!targetPower && (pwrState == PWR_ON || pwrState == PWR_TURNING_ON)) {
         pwrState = PWR_TURNING_OFF;
@@ -304,10 +301,7 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
             snapshotLeds[i] = leds[i];
         }
         currentAnimMode = onOffAnimation.length() > 0 ? onOffAnimation : "gaussian-ripple";
-        if (currentAnimMode == "quantum-sweep") transitionDuration = 350;
-        else if (currentAnimMode == "thermal-warmup") transitionDuration = 450;
-        else if (currentAnimMode == "bilateral-bloom") transitionDuration = 500;
-        else transitionDuration = 450;
+        transitionDuration = 1000; // Synchronized with 1.0s lamp fade-out
         Serial.printf("[LED Power] Transition OFF -> Mode: %s (%u ms)\n", currentAnimMode.c_str(), transitionDuration);
     }
 
