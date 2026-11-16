@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.03.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.04.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.03.000.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.04.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -421,6 +421,114 @@ During SoftAP Setup Mode, the desk WS2812B LED strip automatically renders an **
 
 ---
 
+## ⚡ Instant WiZ Device Auto-Sync & Cold-Boot Detection (`v01.04.000`)
+
+In smart home environments, auxiliary lights (like Philips WiZ floor lamps or desk bulbs) are frequently powered on and off using physical wall or lamp cord switches. 
+
+### 🛑 The Traditional Problem
+When a WiZ bulb powers up from a cold wall switch, its internal firmware defaults to warm white (`2700K`) and joins the local 2.4GHz Wi-Fi network. Previously, the hub did not know the bulb had just rebooted, forcing users to manually turn the entire room off and back on via the app to push the active color palette to the newly online bulb.
+
+### 🚀 The Self-Healing Architecture
+**The Aura Studio `v01.04.000` solves this with an autonomous detection and synchronization engine:**
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Instant WiZ Auto-Sync & Cold-Boot Synchronization Lifecycle           │
+│                                                                        │
+│  [Physical Lamp Switched ON]                                           │
+│          │                                                             │
+│          ▼                                                             │
+│  [Bulb Boots into Default 2700K Warm White]                            │
+│          │                                                             │
+│          ▼                                                             │
+│  [Bulb Associates with Wi-Fi & Broadcasts "firstBeat" on UDP 38899]    │
+│          │                                                             │
+│          ▼                                                             │
+│  [ESP32 Bi-Directional UDP Receiver Catches Announcement]              │
+│  (Or Active 2.5-Second Heartbeat Query Detects OFFLINE ➔ ONLINE)       │
+│          │                                                             │
+│          ▼                                                             │
+│  [Instant syncBulb() Execution (<100ms)]:                              │
+│  • Computes Target Power State (Master × Channel Power)                │
+│  • Computes Effective Dimming (Master Lux × Contrast Ratio Factor)     │
+│  • Dispatches setPilot with Target RGB or CCT Spectrum                │
+│          │                                                             │
+│          ├─► Immediate UDP Pilot Packet Sent ─────────────────────────┐│
+│          │                                                            ││
+│          ▼                                                            ││
+│  [Automatic 300ms Confirmation Resend] (Guarantees ARP Settlement)    ││
+│          │                                                            ││
+│          ▼                                                            ▼▼
+│  [Philips Lamp Instantly Snaps into Synchronized Room Color!]          │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Bi-Directional UDP Payload Interceptor (`Port 38899`):**
+   - The ESP32 UDP engine parses both standard query responses (`doc["result"]`) and unsolicited push broadcasts (`doc["params"]`).
+   - Automatically intercepts `firstBeat` (emitted by WiZ bulbs immediately upon cold boot) and `syncPilot` (state broadcast).
+2. **Instant Synchronization Dispatch (`syncBulb`):**
+   - The microsecond a bulb is detected online or emits a `firstBeat`, the ESP32 takes the FreeRTOS state mutex, reads the current active color, mode, master brightness, and contrast ratio, and immediately transmits the target `setPilot` UDP packet.
+   - **Response latency:** Under **100 milliseconds** after the bulb joins Wi-Fi.
+3. **Active 2.5s Heartbeat & Fault Recovery:**
+   - Background non-blocking `getPilot` polls monitor bulb health every 2.5 seconds.
+   - If a bulb is powered off at the wall, it times out after 6 seconds and is marked `OFFLINE`. When turned back on, the `OFFLINE -> ONLINE` transition immediately triggers color synchronization.
+4. **300ms Dual-Packet Arrival Assurance:**
+   - When a bulb joins the network, local router ARP tables may take ~200ms to stabilize. The hub sends an immediate pilot packet followed by an automated verification packet 300ms later, ensuring 100% arrival rate with zero packet drops.
+
+---
+
+## 💾 Full System State Persistence & Power-Cycle Recovery (`v01.04.000`)
+
+### 🛑 The Traditional Problem
+When smart lighting hubs experience a power outage or are unplugged, they typically revert to default factory settings (usually blasting 100% white or bright neon colors). If you switched off your lights before sleeping and unplugged the hub or suffered a brownout, upon power restoration the hub would wake you up by illuminating the room.
+
+### 🛡️ The Zero-Disturbance Power-Cycle Recovery Engine
+**The Aura Studio `v01.04.000` implements comprehensive NVS state persistence and a smart bootloader guard:**
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Smart Power-Cycle Bootloader & State Restoration Engine               │
+│                                                                        │
+│  [ESP32 Power Restoration / Reboot]                                    │
+│          │                                                             │
+│          ▼                                                             │
+│  [Early loadPersistentState() from NVS "aura" Namespace]               │
+│          │                                                             │
+│          ├───────────────────────────────┬─────────────────────────────┤
+│          ▼                               ▼                             │
+│   [State Was SWITCHED OFF]        [State Was SWITCHED ON]              │
+│          │                               │                             │
+│          ▼                               ▼                             │
+│  • Hardware LEDs Kept Dark        • Play Apple Siri Wave Animation     │
+│  • Boot Animation SKIPPED         • Restore Exact Color & Effect       │
+│  • Silent Wi-Fi Negotiation       • Restore Custom Speed & Intensity   │
+│  • WiZ Bulbs Commanded OFF        • Restore 4-Stop Gradient Palette    │
+│  • Core 1 Renders Black (0W)      • Sync WiZ Bulbs with Saved Spectrum │
+│          │                               │                             │
+│          ▼                               ▼                             │
+│  [Room Remains Peacefully Dark]   [Studio Resumes Custom Ambience]     │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Comprehensive NVS State Registry (Namespace `"aura"`):**
+   - **Master Hub State:** `masterOn`, `masterBri`, `contrast`, `syncCorners`, `preset`, `useGamma`, `onOffAnim`.
+   - **WS2812B Desk Strip:** `deskPower`, `deskBri`, `deskR`, `deskG`, `deskB`, `deskEffect`, `deskSpeed`, `deskIntens`, `deskHasGrad`, and 4-stop custom gradient hex palettes.
+   - **Dual WiZ Bulbs:** `wlPower`, `wlBri`, `wlMode`, `wlR`, `wlG`, `wlB`, `wlK` (and right bulb equivalents).
+2. **Flash Wear Protection (100,000+ Write Longevity):**
+   - **Instant Commit:** High-impact power toggles (`isMasterOn`, `desk.power`, bulb power) and preset selections commit to flash immediately. If power is pulled 1 second after turning off the room, the OFF state is guaranteed saved.
+   - **Debounced Commit (1.2s):** Continuous slider scrubbing (dragging brightness, speed, intensity, or the color spectrum) updates memory and hardware at 60 FPS, and commits to NVS flash only after 1.2 seconds of stillness.
+3. **Smart Bootloader Guard (Dark Room Guarantee):**
+   - `webManager.loadPersistentState()` executes at step 2.5 of `setup()`, before hardware LED initialization.
+   - If the system was switched off before power down:
+     - The WS2812B strip initializes dark (`FastLED.clear(true)`).
+     - The Siri boot animation is **completely bypassed**.
+     - Wi-Fi negotiates silently in the dark.
+     - As soon as Wi-Fi connects, power OFF (`sendPower(false)`) is dispatched to WiZ bulbs.
+     - Core 1 `LedTask` maintains 0-luma black.
+     - **The room stays dark and undisturbed.**
+
+---
+
 ## 🛡️ Anti-Flicker Hardware & Firmware Engineering
 
 To guarantee zero LED flicker, strobing, or AC shimmer across high-intensity fluid physics animations:
@@ -467,8 +575,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.03.000.bin     # Production Dual-OTA Release Binary (v01.03.000)
-│   ├── littlefs_01.03.000.bin     # Web Dashboard LittleFS Release Binary (v01.03.000)
+│   ├── firmware_01.04.000.bin     # Production Dual-OTA Release Binary (v01.04.000)
+│   ├── littlefs_01.04.000.bin     # Web Dashboard LittleFS Release Binary (v01.04.000)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes

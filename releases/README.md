@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.04.000.bin`** | `v01.04.000` | 2026-11-16 | 1,492,912 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `9dab85cb14635b18c89ec95bbfcfa1ba5a579189042a13766b0983c4ba2ef2a3` |
 | **`firmware_01.03.000.bin`** | `v01.03.000` | 2026-11-16 | 1,486,128 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `97f0f81bcb92ab2e8adc50bb09d80c2c91c1b68b453a6b035c3b6b5b29288b8c` |
 | **`firmware_01.02.005.bin`** | `v01.02.005` | 2026-11-16 | 1,461,408 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `8464c07717e1286eaccf6c3a3c2ce2ab0e08b85b3ff5af27dc620bf376b45701` |
 | **`firmware_01.02.004.bin`** | `v01.02.004` | 2026-11-16 | 1,461,216 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `a6faa97283cf36768d946bdbbc8b23d350c4bd58be6994c0a9d32bb37d88176e` |
@@ -33,6 +34,20 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.04.000`:
+1. **Instant WiZ Auto-Sync & Cold-Boot Detection**:
+   - Bi-directional UDP payload parser intercepts `firstBeat` boot announcements and `syncPilot` status updates alongside query responses.
+   - When a WiZ bulb powers up at a wall switch, the ESP32 intercepts its network arrival and immediately commands its target color state in under 100ms.
+   - Active 2.5-second heartbeat poll (`getPilot`) with offline timeout and 300ms confirmation resend guarantees 100% arrival reliability even across restrictive Wi-Fi routers.
+   - Completely eliminates the manual room off/on power-cycle workaround.
+2. **Full State Persistence & Switched-Off Power-Cycle Recovery**:
+   - Persists all core state in NVS (`masterOn`, `masterBri`, `contrast`, `syncCorners`, `preset`, desk effect/colors/speed/intensity/gradient stops, and dual WiZ power/dim/RGB/kelvin).
+   - Smart Bootloader Guard: if the system was switched off before power down, the ESP32 boots with hardware LEDs dark, skips the boot animation, connects to Wi-Fi silently, and commands WiZ bulbs to remain off.
+   - Flash Wear Protection: immediate commit for power toggles, and debounced 1.2s commit for continuous slider adjustments.
+3. **Partition Memory Budget & Zero Regression**:
+   - Cleanly fits within the 1.44 MB dual-OTA partition budget (`1,492,912 B` used).
+   - Verified with 134/134 automated checks in `test_suite.js`.
 
 ### Key Highlights of `v01.03.000`:
 1. **Autonomous SoftAP Captive Portal & Dynamic NVS Provisioning**:

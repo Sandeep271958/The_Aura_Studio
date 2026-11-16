@@ -20,11 +20,19 @@ public:
     void processDns();
     bool isCaptivePortalActive() const { return captiveActive; }
 
+    // Full State Persistence across Power Cycles
+    void loadPersistentState();
+    void savePersistentState(bool immediate = false);
+    void updatePersistence();
+    void commitStateToNvs();
+
 private:
     AsyncWebServer server;
     AsyncWebSocket ws;
     DNSServer dnsServer;
     bool captiveActive = false;
+    bool nvsDirty = false;
+    uint32_t lastNvsDirtyTime = 0;
     HubState& state;
     WizController& wiz;
 

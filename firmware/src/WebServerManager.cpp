@@ -8,7 +8,7 @@ static Preferences prefs;
 WebServerManager::WebServerManager(HubState& stateRef, WizController& wizRef)
     : server(80), ws("/ws"), state(stateRef), wiz(wizRef) {}
 
-void WebServerManager::begin() {
+void WebServerManager::loadPersistentState() {
     prefs.begin("aura", false);
     state.wizLeftIp = prefs.getString("wizLeftIp", DEFAULT_WIZ_LEFT_IP);
     state.wizLeftMac = prefs.getString("wizLeftMac", "");
@@ -17,11 +17,159 @@ void WebServerManager::begin() {
     state.useGammaCorrection = prefs.getBool("useGamma", true);
     state.onOffAnimation = prefs.getString("onOffAnim", "gaussian-ripple");
 
-    Serial.printf("[NVS] Loaded WiZ Left: IP=%s MAC=%s\n", state.wizLeftIp.c_str(), state.wizLeftMac.c_str());
-    Serial.printf("[NVS] Loaded WiZ Right: IP=%s MAC=%s\n", state.wizRightIp.c_str(), state.wizRightMac.c_str());
-    Serial.printf("[NVS] Loaded Gamma Correction: %s\n", state.useGammaCorrection ? "ON" : "OFF");
-    Serial.printf("[NVS] Loaded On/Off Animation: %s\n", state.onOffAnimation.c_str());
+    // Core Hub State
+    state.isMasterOn = prefs.getBool("masterOn", true);
+    state.masterBrightness = prefs.getUChar("masterBri", 80);
+    state.contrastRatio = prefs.getChar("contrast", 0);
+    state.syncCorners = prefs.getBool("syncCorners", true);
+    state.activePreset = prefs.getString("preset", "cyberpunk");
 
+    // Desk WS2812B Hardware Strip State
+    state.desk.power = prefs.getBool("deskPower", true);
+    state.desk.brightness = prefs.getUChar("deskBri", 85);
+    state.desk.r = prefs.getUChar("deskR", 236);
+    state.desk.g = prefs.getUChar("deskG", 72);
+    state.desk.b = prefs.getUChar("deskB", 153);
+    state.desk.effect = prefs.getString("deskEffect", "cyberpulse");
+    state.desk.speed = prefs.getUChar("deskSpeed", 60);
+    state.desk.intensity = prefs.getUChar("deskIntens", 75);
+    state.desk.hasGradient = prefs.getBool("deskHasGrad", false);
+
+    String stopsStr = prefs.getString("deskStops", "");
+    if (stopsStr.length() >= 27) {
+        int sIdx = 0;
+        int start = 0;
+        while (sIdx < 4 && start < (int)stopsStr.length()) {
+            int comma = stopsStr.indexOf(',', start);
+            String hex = (comma == -1) ? stopsStr.substring(start) : stopsStr.substring(start, comma);
+            hex.trim();
+            if (hex.startsWith("#") && hex.length() == 7) {
+                long val = strtol(&hex[1], NULL, 16);
+                state.desk.stops[sIdx] = CRGB((val >> 16) & 0xFF, (val >> 8) & 0xFF, val & 0xFF);
+                sIdx++;
+            }
+            if (comma == -1) break;
+            start = comma + 1;
+        }
+        if (sIdx == 4) state.desk.hasGradient = true;
+    }
+
+    // WiZ Left Bulb State
+    state.wizLeft.power = prefs.getBool("wlPower", true);
+    state.wizLeft.brightness = prefs.getUChar("wlBri", 75);
+    state.wizLeft.mode = prefs.getString("wlMode", "rgb");
+    state.wizLeft.r = prefs.getUChar("wlR", 30);
+    state.wizLeft.g = prefs.getUChar("wlG", 64);
+    state.wizLeft.b = prefs.getUChar("wlB", 175);
+    state.wizLeft.kelvin = prefs.getUShort("wlK", 2700);
+
+    // WiZ Right Bulb State
+    state.wizRight.power = prefs.getBool("wrPower", true);
+    state.wizRight.brightness = prefs.getUChar("wrBri", 75);
+    state.wizRight.mode = prefs.getString("wrMode", "rgb");
+    state.wizRight.r = prefs.getUChar("wrR", 30);
+    state.wizRight.g = prefs.getUChar("wrG", 64);
+    state.wizRight.b = prefs.getUChar("wrB", 175);
+    state.wizRight.kelvin = prefs.getUShort("wrK", 2700);
+
+    Serial.println("[NVS] ===================================================");
+    Serial.printf("[NVS] Restored Power State: Master=%s | Desk=%s\n",
+                  state.isMasterOn ? "ON" : "OFF", state.desk.power ? "ON" : "OFF");
+    Serial.printf("[NVS] Restored Desk Strip: Mode=%s | Dim=%u | Color=#%02x%02x%02x\n",
+                  state.desk.effect.c_str(), state.desk.brightness, state.desk.r, state.desk.g, state.desk.b);
+    Serial.printf("[NVS] Restored WiZ Left: IP=%s MAC=%s | Power=%s Dim=%u\n",
+                  state.wizLeftIp.c_str(), state.wizLeftMac.c_str(), state.wizLeft.power ? "ON" : "OFF", state.wizLeft.brightness);
+    Serial.printf("[NVS] Restored WiZ Right: IP=%s MAC=%s | Power=%s Dim=%u\n",
+                  state.wizRightIp.c_str(), state.wizRightMac.c_str(), state.wizRight.power ? "ON" : "OFF", state.wizRight.brightness);
+    Serial.printf("[NVS] Restored Gamma Correction: %s | On/Off Anim: %s\n",
+                  state.useGammaCorrection ? "ON" : "OFF", state.onOffAnimation.c_str());
+    Serial.println("[NVS] ===================================================");
+}
+
+void WebServerManager::commitStateToNvs() {
+    HubState localState;
+    if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        localState = state;
+        xSemaphoreGive(stateMutex);
+    } else {
+        localState = state;
+    }
+
+    prefs.putBool("masterOn", localState.isMasterOn);
+    prefs.putUChar("masterBri", localState.masterBrightness);
+    prefs.putChar("contrast", localState.contrastRatio);
+    prefs.putBool("syncCorners", localState.syncCorners);
+    prefs.putString("preset", localState.activePreset);
+    prefs.putBool("useGamma", localState.useGammaCorrection);
+    prefs.putString("onOffAnim", localState.onOffAnimation);
+
+    // WiZ Network Config
+    prefs.putString("wizLeftIp", localState.wizLeftIp);
+    prefs.putString("wizLeftMac", localState.wizLeftMac);
+    prefs.putString("wizRightIp", localState.wizRightIp);
+    prefs.putString("wizRightMac", localState.wizRightMac);
+
+    // Desk WS2812B Hardware Strip
+    prefs.putBool("deskPower", localState.desk.power);
+    prefs.putUChar("deskBri", localState.desk.brightness);
+    prefs.putUChar("deskR", localState.desk.r);
+    prefs.putUChar("deskG", localState.desk.g);
+    prefs.putUChar("deskB", localState.desk.b);
+    prefs.putString("deskEffect", localState.desk.effect);
+    prefs.putUChar("deskSpeed", localState.desk.speed);
+    prefs.putUChar("deskIntens", localState.desk.intensity);
+    prefs.putBool("deskHasGrad", localState.desk.hasGradient);
+
+    if (localState.desk.hasGradient) {
+        char sBuf[36];
+        snprintf(sBuf, sizeof(sBuf), "#%02x%02x%02x,#%02x%02x%02x,#%02x%02x%02x,#%02x%02x%02x",
+                 localState.desk.stops[0].r, localState.desk.stops[0].g, localState.desk.stops[0].b,
+                 localState.desk.stops[1].r, localState.desk.stops[1].g, localState.desk.stops[1].b,
+                 localState.desk.stops[2].r, localState.desk.stops[2].g, localState.desk.stops[2].b,
+                 localState.desk.stops[3].r, localState.desk.stops[3].g, localState.desk.stops[3].b);
+        prefs.putString("deskStops", sBuf);
+    }
+
+    // Left WiZ Bulb
+    prefs.putBool("wlPower", localState.wizLeft.power);
+    prefs.putUChar("wlBri", localState.wizLeft.brightness);
+    prefs.putString("wlMode", localState.wizLeft.mode);
+    prefs.putUChar("wlR", localState.wizLeft.r);
+    prefs.putUChar("wlG", localState.wizLeft.g);
+    prefs.putUChar("wlB", localState.wizLeft.b);
+    prefs.putUShort("wlK", localState.wizLeft.kelvin);
+
+    // Right WiZ Bulb
+    prefs.putBool("wrPower", localState.wizRight.power);
+    prefs.putUChar("wrBri", localState.wizRight.brightness);
+    prefs.putString("wrMode", localState.wizRight.mode);
+    prefs.putUChar("wrR", localState.wizRight.r);
+    prefs.putUChar("wrG", localState.wizRight.g);
+    prefs.putUChar("wrB", localState.wizRight.b);
+    prefs.putUShort("wrK", localState.wizRight.kelvin);
+
+    Serial.println("[NVS] Full system state persisted to flash memory.");
+}
+
+void WebServerManager::savePersistentState(bool immediate) {
+    if (immediate) {
+        commitStateToNvs();
+        nvsDirty = false;
+    } else {
+        nvsDirty = true;
+        lastNvsDirtyTime = millis();
+    }
+}
+
+void WebServerManager::updatePersistence() {
+    if (nvsDirty && (millis() - lastNvsDirtyTime >= 1200)) {
+        commitStateToNvs();
+        nvsDirty = false;
+    }
+}
+
+void WebServerManager::begin() {
+    loadPersistentState();
     setupWebSocket();
     setupRoutes();
     server.begin();
@@ -337,6 +485,18 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                 lastBroadcastTime = nowMs;
                 broadcastState();
             }
+
+            // Full State Persistence across Power Cycles (Immediate on power toggle, debounced on sliders)
+            bool isImmediateChange = payload.containsKey("isMasterOn") ||
+                                     payload.containsKey("activePreset") ||
+                                     (payload.containsKey("desk") && payload["desk"].containsKey("power")) ||
+                                     (payload.containsKey("devices") && payload["devices"].containsKey("desk") && payload["devices"]["desk"].containsKey("power")) ||
+                                     (payload.containsKey("wizLeft") && payload["wizLeft"].containsKey("power")) ||
+                                     (payload.containsKey("devices") && payload["devices"].containsKey("wizLeft") && payload["devices"]["wizLeft"].containsKey("power")) ||
+                                     (payload.containsKey("wizRight") && payload["wizRight"].containsKey("power")) ||
+                                     (payload.containsKey("devices") && payload["devices"].containsKey("wizRight") && payload["devices"]["wizRight"].containsKey("power"));
+
+            savePersistentState(isImmediateChange);
         }
     }
 }

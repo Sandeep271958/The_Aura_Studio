@@ -32,11 +32,18 @@ public:
   // Auto-discovery & auto-rebind
   void broadcastDiscovery();
   void updateDiscovery();
+  void updateHeartbeat();
   std::vector<DiscoveredBulb> getDiscoveredBulbs() const;
   void clearDiscoveredBulbs();
 
   bool checkAndClearRebound();
   static String normalizeMac(const String &mac);
+
+  // Instant State Synchronization for newly online bulbs
+  void syncBulb(int bulbIndex); // 0 = Left, 1 = Right, -1 = Both
+  void syncAllBulbs();
+  bool isLeftOnline() const { return leftHealth.isOnline; }
+  bool isRightOnline() const { return rightHealth.isOnline; }
 
 private:
   WiFiUDP udp;
@@ -45,4 +52,14 @@ private:
   HubState* hubState;
   volatile bool reboundOccurred;
   void sendUdpPacket(const IPAddress &ip, const String &jsonPayload);
+
+  struct BulbHealth {
+    bool isOnline = false;
+    uint32_t lastSeenMs = 0;
+    uint32_t pendingResendMs = 0;
+    int pendingResendIndex = -1;
+  };
+  BulbHealth leftHealth;
+  BulbHealth rightHealth;
+  uint32_t lastHeartbeatPoll = 0;
 };

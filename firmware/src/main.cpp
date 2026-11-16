@@ -88,8 +88,14 @@ void setup() {
         activePass = DEFAULT_WIFI_PASSWORD;
     }
 
+    // 2.5 Load Full Persistent State from NVS (Ensures Hub returns to exact previous state)
+    webManager.loadPersistentState();
+
     // 3. Initialize Hardware LED Strip
     ledCtrl.initHardware();
+
+    // Check if system was switched off before power down
+    bool systemWasSwitchedOff = (!hubState.isMasterOn || !hubState.desk.power);
 
     // 4. Wi-Fi Negotiation or SoftAP Setup
     bool wifiConnected = false;
@@ -100,17 +106,29 @@ void setup() {
         WiFi.persistent(true);
         WiFi.begin(activeSsid.c_str(), activePass.c_str());
 
-        // Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
-        // Wi-Fi handshake negotiates concurrently during the fluid wave!
-        ledCtrl.playSiriBootupAnimation(2500);
+        if (systemWasSwitchedOff) {
+            Serial.println("[Boot] Restored previous power state: SWITCHED OFF. Keeping hardware LEDs dark.");
+            FastLED.clear(true);
+            int attempts = 0;
+            while (WiFi.status() != WL_CONNECTED && attempts < 25) {
+                delay(100);
+                Serial.print(".");
+                attempts++;
+            }
+            wifiConnected = (WiFi.status() == WL_CONNECTED);
+        } else {
+            // Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
+            // Wi-Fi handshake negotiates concurrently during the fluid wave!
+            ledCtrl.playSiriBootupAnimation(2500);
 
-        int attempts = 0;
-        while (WiFi.status() != WL_CONNECTED && attempts < 15) {
-            delay(150);
-            Serial.print(".");
-            attempts++;
+            int attempts = 0;
+            while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+                delay(150);
+                Serial.print(".");
+                attempts++;
+            }
+            wifiConnected = (WiFi.status() == WL_CONNECTED);
         }
-        wifiConnected = (WiFi.status() == WL_CONNECTED);
     }
 
     if (wifiConnected) {
@@ -171,8 +189,9 @@ void setup() {
 
     // Trigger background UDP discovery on boot if connected to local LAN
     if (wifiConnected) {
-        Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast for auto-rebind...");
+        Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast & initial state sync...");
         wizCtrl.broadcastDiscovery();
+        wizCtrl.syncAllBulbs();
     }
 
     // 7. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering
@@ -219,6 +238,9 @@ void loop() {
     // Process WiZ discovery UDP packets
     wizCtrl.updateDiscovery();
 
+    // Active health heartbeat & periodic status poll to detect newly powered bulbs
+    wizCtrl.updateHeartbeat();
+
     // Broadcast discovered bulbs only when discovery count changes
     static size_t lastReportedBulbCount = 0;
     size_t currentBulbCount = wizCtrl.getDiscoveredBulbs().size();
@@ -235,6 +257,9 @@ void loop() {
 
     // Clean up disconnected WebSocket clients periodically
     webManager.cleanupClients();
+
+    // Commit debounced state changes to NVS if dirty
+    webManager.updatePersistence();
 
     delay(20);
 }

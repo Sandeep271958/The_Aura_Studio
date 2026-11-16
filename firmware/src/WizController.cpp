@@ -123,6 +123,7 @@ void WizController::updateDiscovery() {
   String discoveredMac = "";
   String discoveredIp = "";
   String discoveredModel = "";
+  String packetMethod = "";
   int discoveredRssi = 0;
   bool packetValid = false;
 
@@ -139,13 +140,21 @@ void WizController::updateDiscovery() {
 
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, packetBuffer);
-        if (!error && doc["result"].is<JsonObject>()) {
-          JsonObject result = doc["result"];
-          if (!result["mac"].isNull()) {
-            discoveredMac = result["mac"].as<String>();
+        if (!error) {
+          JsonObject dataObj;
+          if (doc["result"].is<JsonObject>()) {
+            dataObj = doc["result"].as<JsonObject>();
+          } else if (doc["params"].is<JsonObject>()) {
+            dataObj = doc["params"].as<JsonObject>();
+          }
+
+          packetMethod = doc["method"] | "";
+
+          if (!dataObj.isNull()) {
+            discoveredMac = dataObj["mac"] | "";
             discoveredIp = udp.remoteIP().toString();
-            discoveredModel = result["moduleName"] | "Philips WiZ Device";
-            discoveredRssi = result["rssi"] | 0;
+            discoveredModel = dataObj["moduleName"] | "Philips WiZ Device";
+            discoveredRssi = dataObj["rssi"] | 0;
             packetValid = true;
 
             String cleanDiscoveredMac = normalizeMac(discoveredMac);
@@ -156,7 +165,7 @@ void WizController::updateDiscovery() {
               if ((cleanDiscoveredMac.length() >= 6 && normalizeMac(b.mac) == cleanDiscoveredMac) || b.ip == discoveredIp) {
                 exists = true;
                 b.ip = discoveredIp;
-                b.mac = discoveredMac;
+                if (discoveredMac.length() >= 6) b.mac = discoveredMac;
                 b.model = discoveredModel;
                 b.rssi = discoveredRssi;
                 break;
@@ -237,6 +246,145 @@ void WizController::updateDiscovery() {
       Serial.printf("[WiZ Auto-Rebind] Right bulb (%s) IP updated: %s -> %s (Persisted to NVS)\n",
                     discoveredMac.c_str(), oldRightIp.c_str(), discoveredIp.c_str());
     }
+  }
+
+  // -------------------------------------------------------------
+  // Phase 3: Immediate Auto-Sync on Bulb Arrival / Cold Boot
+  // -------------------------------------------------------------
+  if (packetValid && hubState != nullptr) {
+    String cleanMac = (discoveredMac.length() >= 6) ? normalizeMac(discoveredMac) : "";
+    bool isLeft = (hubState->wizLeftIp == discoveredIp) || (cleanMac.length() >= 6 && hubState->wizLeftMac.length() >= 6 && normalizeMac(hubState->wizLeftMac) == cleanMac);
+    bool isRight = (hubState->wizRightIp == discoveredIp) || (cleanMac.length() >= 6 && hubState->wizRightMac.length() >= 6 && normalizeMac(hubState->wizRightMac) == cleanMac);
+    bool isFirstBeat = (packetMethod == "firstBeat");
+
+    if (isLeft) {
+      bool wasOffline = !leftHealth.isOnline;
+      leftHealth.isOnline = true;
+      leftHealth.lastSeenMs = millis();
+      if (wasOffline || isFirstBeat) {
+        Serial.printf("[WiZ Auto-Sync] Left bulb (%s) online (firstBeat=%d, wasOffline=%d) -> Immediately putting bulb into system color!\n",
+                      discoveredIp.c_str(), isFirstBeat, wasOffline);
+        syncBulb(0);
+        leftHealth.pendingResendIndex = 0;
+        leftHealth.pendingResendMs = millis() + 300; // Follow-up resend for 100% UDP arrival assurance
+      }
+    }
+
+    if (isRight) {
+      bool wasOffline = !rightHealth.isOnline;
+      rightHealth.isOnline = true;
+      rightHealth.lastSeenMs = millis();
+      if (wasOffline || isFirstBeat) {
+        Serial.printf("[WiZ Auto-Sync] Right bulb (%s) online (firstBeat=%d, wasOffline=%d) -> Immediately putting bulb into system color!\n",
+                      discoveredIp.c_str(), isFirstBeat, wasOffline);
+        syncBulb(1);
+        rightHealth.pendingResendIndex = 1;
+        rightHealth.pendingResendMs = millis() + 300; // Follow-up resend for 100% UDP arrival assurance
+      }
+    }
+  }
+}
+
+void WizController::syncBulb(int bulbIndex) {
+  if (hubState == nullptr) return;
+
+  String targetIp = "";
+  bool masterOn = true;
+  uint8_t masterBri = 80;
+  int8_t contrast = 0;
+  DeviceWiz dev;
+
+  if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    masterOn = hubState->isMasterOn;
+    masterBri = hubState->masterBrightness;
+    contrast = hubState->contrastRatio;
+    if (bulbIndex == 0 || bulbIndex == -1) {
+      targetIp = hubState->wizLeftIp;
+      dev = hubState->wizLeft;
+    }
+    if (bulbIndex == 1) {
+      targetIp = hubState->wizRightIp;
+      dev = hubState->wizRight;
+    }
+    xSemaphoreGive(stateMutex);
+  } else {
+    return;
+  }
+
+  if (targetIp.length() >= 7 && targetIp != "0.0.0.0") {
+    float masterFactor = masterOn ? (masterBri / 100.0f) : 0.0f;
+    float cornerFactor = 1.0f - ((float)contrast / 100.0f);
+    if (cornerFactor < 0.0f) cornerFactor = 0.0f;
+    if (cornerFactor > 1.5f) cornerFactor = 1.5f;
+
+    uint8_t effectiveDim = constrain((int)(dev.brightness * masterFactor * cornerFactor), 10, 100);
+    bool effectivePower = masterOn && dev.power && (masterBri > 0) && (dev.brightness > 0);
+
+    Serial.printf("[WiZ Sync Dispatch] %s (Bulb %s): Power=%s Mode=%s Dim=%u Color=(%u,%u,%u, %uK)\n",
+                  targetIp.c_str(), (bulbIndex == 0 ? "Left" : "Right"), (effectivePower ? "ON" : "OFF"),
+                  dev.mode.c_str(), effectiveDim, dev.r, dev.g, dev.b, dev.kelvin);
+
+    if (dev.mode == "rgb") {
+      sendPilotRGB(targetIp, effectivePower, dev.r, dev.g, dev.b, effectiveDim);
+    } else {
+      sendPilotCCT(targetIp, effectivePower, dev.kelvin, effectiveDim);
+    }
+  }
+
+  if (bulbIndex == -1) {
+    syncBulb(1);
+  }
+}
+
+void WizController::syncAllBulbs() {
+  syncBulb(0);
+  syncBulb(1);
+}
+
+void WizController::updateHeartbeat() {
+  uint32_t now = millis();
+
+  // 1. Periodic non-blocking UDP status poll every 2500ms
+  if (now - lastHeartbeatPoll >= 2500) {
+    lastHeartbeatPoll = now;
+    if (hubState != nullptr) {
+      if (hubState->wizLeftIp.length() >= 7 && hubState->wizLeftIp != "0.0.0.0") {
+        IPAddress ip;
+        if (ip.fromString(hubState->wizLeftIp)) {
+          sendUdpPacket(ip, "{\"id\":1,\"method\":\"getPilot\",\"params\":{}}");
+        }
+      }
+      if (hubState->wizRightIp.length() >= 7 && hubState->wizRightIp != "0.0.0.0") {
+        IPAddress ip;
+        if (ip.fromString(hubState->wizRightIp)) {
+          sendUdpPacket(ip, "{\"id\":1,\"method\":\"getPilot\",\"params\":{}}");
+        }
+      }
+    }
+
+    // 2. Offline timeout detection (> 6000ms without packet)
+    if (leftHealth.isOnline && (now - leftHealth.lastSeenMs > 6000)) {
+      leftHealth.isOnline = false;
+      Serial.printf("[WiZ Monitor] Left bulb (%s) heartbeat lost -> Marked OFFLINE\n",
+                    hubState ? hubState->wizLeftIp.c_str() : "unknown");
+    }
+    if (rightHealth.isOnline && (now - rightHealth.lastSeenMs > 6000)) {
+      rightHealth.isOnline = false;
+      Serial.printf("[WiZ Monitor] Right bulb (%s) heartbeat lost -> Marked OFFLINE\n",
+                    hubState ? hubState->wizRightIp.c_str() : "unknown");
+    }
+  }
+
+  // 3. Robust Follow-up Resend (250ms) to ensure UDP arrival while ARP settles
+  if (leftHealth.pendingResendIndex >= 0 && now >= leftHealth.pendingResendMs) {
+    int idx = leftHealth.pendingResendIndex;
+    leftHealth.pendingResendIndex = -1;
+    syncBulb(idx);
+  }
+  if (rightHealth.pendingResendIndex >= 0 && now >= rightHealth.pendingResendMs) {
+    int idx = rightHealth.pendingResendIndex;
+    rightHealth.pendingResendIndex = -1;
+    syncBulb(idx);
   }
 }
 
