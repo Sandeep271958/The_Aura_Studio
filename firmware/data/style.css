@@ -804,6 +804,46 @@ body {
   border: 1px solid var(--border-glass);
 }
 
+.master-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-power-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid var(--border-glass);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.25s var(--ease-spring);
+  box-sizing: border-box;
+}
+
+.room-power-pill svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.room-power-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.room-power-pill.active {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(138, 43, 226, 0.3));
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.3);
+}
+
 .tooltip-hint {
   width: 16px;
   height: 16px;
@@ -2973,18 +3013,12 @@ body {
 
   .header-status-panel {
     gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .transition-pill-wrap {
-    padding: 3px 8px;
-  }
-
-  .pill-label {
-    display: none;
-  }
-
-  .pill-select {
-    font-size: 0.72rem;
+    display: none !important;
   }
 
   .status-chip {
@@ -2998,8 +3032,10 @@ body {
   }
 
   .master-power-btn {
-    padding: 8px 12px;
-    font-size: 0.75rem;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    display: inline-flex !important;
+    flex-shrink: 0;
   }
 
   /* Fixed Obsidian Glass Bottom Tab Dock per Apple HIG */
@@ -3429,51 +3465,62 @@ body {
   .app-header {
     padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left));
     gap: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .brand {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 1;
+    min-width: 0;
   }
 
   .logo-mark {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
   }
 
   .logo-mark svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 
   .brand-title {
-    gap: 5px;
+    gap: 4px;
     white-space: nowrap;
+    overflow: hidden;
   }
 
   .brand-title-text {
-    font-size: 1.22rem;
+    font-size: 1.14rem;
+    white-space: nowrap;
   }
 
   .badge-version {
-    font-size: 0.52rem;
-    padding: 1px 5px;
-  }
-
-  .header-status-panel {
-    gap: 5px;
+    display: none !important;
   }
 
   .transition-pill-wrap {
-    padding: 2px 6px;
+    display: none !important;
   }
 
-  .pill-select {
-    font-size: 0.7rem;
+  .header-status-panel {
+    gap: 6px;
+    flex-shrink: 0;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
   }
 
   .master-power-btn {
-    padding: 6px 10px;
-    font-size: 0.72rem;
+    padding: 7px 12px;
+    font-size: 0.76rem;
+    display: inline-flex !important;
+    flex-shrink: 0;
   }
 }
 

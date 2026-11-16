@@ -202,6 +202,8 @@ const DOM = {
   connectionBadge: document.getElementById('connection-badge'),
   connectionText: document.getElementById('connection-text'),
   btnMasterPower: document.getElementById('btn-master-power'),
+  btnRoomPowerCard: document.getElementById('btn-room-power-card'),
+  labelRoomPowerCard: document.getElementById('label-room-power-card'),
 
   // Master Sliders
   sliderMasterBrightness: document.getElementById('slider-master-brightness'),
@@ -636,7 +638,13 @@ function syncAllInputs() {
     DOM.telemHubIp.textContent = appState.network.hubIp;
   }
 
-  DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
+  if (DOM.btnMasterPower) DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
+  if (DOM.btnRoomPowerCard) {
+    DOM.btnRoomPowerCard.classList.toggle('active', appState.isMasterOn);
+    if (DOM.labelRoomPowerCard) {
+      DOM.labelRoomPowerCard.textContent = appState.isMasterOn ? 'ROOM ON' : 'ROOM OFF';
+    }
+  }
   DOM.sliderMasterBrightness.value = appState.masterBrightness;
   DOM.valMasterBrightness.textContent = `${appState.masterBrightness}%`;
   syncRangeProgress(DOM.sliderMasterBrightness);
@@ -1926,14 +1934,21 @@ function bindEvents() {
     dispatchStateChange({ transitionDuration: appState.transitionDuration });
   });
 
-  // Master Power
-  DOM.btnMasterPower.addEventListener('click', () => {
+  // Master Room Power (Both Top Bar and Master Controls Card)
+  const toggleRoomPower = () => {
     triggerHaptic('medium');
     appState.isMasterOn = !appState.isMasterOn;
     renderAll();
     dispatchStateChange({ isMasterOn: appState.isMasterOn });
     showToast(appState.isMasterOn ? 'Room lighting turned ON' : 'Room lighting turned OFF');
-  });
+  };
+
+  if (DOM.btnMasterPower) {
+    DOM.btnMasterPower.addEventListener('click', toggleRoomPower);
+  }
+  if (DOM.btnRoomPowerCard) {
+    DOM.btnRoomPowerCard.addEventListener('click', toggleRoomPower);
+  }
 
   // Master Brightness Slider
   DOM.sliderMasterBrightness.addEventListener('input', (e) => {

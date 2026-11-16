@@ -20,7 +20,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=01.02.002">
+  <link rel="stylesheet" href="style.css?v=01.02.003">
 </head>
 
 <body class="theme-obsidian">
@@ -217,7 +217,16 @@
               </svg>
               <span class="control-title">Master Room Brightness</span>
             </div>
-            <span id="val-master-brightness" class="control-val-badge">80%</span>
+            <div class="master-header-actions">
+              <span id="val-master-brightness" class="control-val-badge">80%</span>
+              <button type="button" id="btn-room-power-card" class="room-power-pill active" title="Toggle Room Power" aria-label="Toggle Room Lighting">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                  <line x1="12" y1="2" x2="12" y2="12"></line>
+                </svg>
+                <span id="label-room-power-card">ROOM ON</span>
+              </button>
+            </div>
           </div>
           <div class="slider-wrapper">
             <input type="range" id="slider-master-brightness" class="custom-range" min="0" max="100" value="80"
@@ -1284,7 +1293,7 @@
         <div class="settings-section">
           <div class="section-inline-header">
             <h4>Wireless Firmware &amp; UI Update (OTA)</h4>
-            <span class="badge-ota-status" id="badge-firmware-version">v01.02.002</span>
+            <span class="badge-ota-status" id="badge-firmware-version">v01.02.003</span>
           </div>
           <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
           
@@ -1438,7 +1447,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=01.02.002"></script>
+  <script src="app.js?v=01.02.003"></script>
 </body>
 
 </html>

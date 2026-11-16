@@ -257,22 +257,73 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             bool leftPower = state.isMasterOn && state.wizLeft.power && (state.masterBrightness > 0) && (state.wizLeft.brightness > 0);
             bool rightPower = state.isMasterOn && state.wizRight.power && (state.masterBrightness > 0) && (state.wizRight.brightness > 0);
 
+            bool isDiscreteSetting = payload.containsKey("isMasterOn") ||
+                                     payload.containsKey("activePreset") ||
+                                     payload.containsKey("network") ||
+                                     payload.containsKey("onOffAnimation") ||
+                                     payload.containsKey("useGammaCorrection") ||
+                                     payload.containsKey("contrastRatio") ||
+                                     payload.containsKey("syncCorners") ||
+                                     payload.containsKey("masterBrightness");
+
             if (stateMutex != NULL && mutexTaken) xSemaphoreGive(stateMutex);
 
-            // Sync WiZ bulbs over UDP outside mutex
-            if (leftModeRgb) {
-                wiz.sendPilotRGB(leftIp, leftPower, leftR, leftG, leftB, leftEffectiveDim);
-            } else {
-                wiz.sendPilotCCT(leftIp, leftPower, leftK, leftEffectiveDim);
+            // Sync WiZ bulbs over UDP outside mutex with pacing guard (avoids Wi-Fi congestion & buffer overflow)
+            static uint32_t lastLeftWizTx = 0;
+            static uint32_t lastRightWizTx = 0;
+            static bool lastLeftPower = false;
+            static bool lastRightPower = false;
+            static uint8_t lastLeftDim = 0;
+            static uint8_t lastRightDim = 0;
+            static uint8_t lastLeftR = 0, lastLeftG = 0, lastLeftB = 0;
+            static uint8_t lastRightR = 0, lastRightG = 0, lastRightB = 0;
+            static uint16_t lastLeftK = 0;
+            static uint16_t lastRightK = 0;
+
+            uint32_t nowMs = millis();
+            bool leftStateChanged = (leftPower != lastLeftPower) ||
+                                    (leftModeRgb && (leftR != lastLeftR || leftG != lastLeftG || leftB != lastLeftB)) ||
+                                    (!leftModeRgb && leftK != lastLeftK) ||
+                                    (abs((int)leftEffectiveDim - (int)lastLeftDim) >= 2);
+
+            if (leftPower != lastLeftPower || (leftStateChanged && (nowMs - lastLeftWizTx >= 80)) || (nowMs - lastLeftWizTx > 4000)) {
+                lastLeftWizTx = nowMs;
+                lastLeftPower = leftPower;
+                lastLeftDim = leftEffectiveDim;
+                lastLeftR = leftR; lastLeftG = leftG; lastLeftB = leftB;
+                lastLeftK = leftK;
+                if (leftModeRgb) {
+                    wiz.sendPilotRGB(leftIp, leftPower, leftR, leftG, leftB, leftEffectiveDim);
+                } else {
+                    wiz.sendPilotCCT(leftIp, leftPower, leftK, leftEffectiveDim);
+                }
             }
 
-            if (rightModeRgb) {
-                wiz.sendPilotRGB(rightIp, rightPower, rightR, rightG, rightB, rightEffectiveDim);
-            } else {
-                wiz.sendPilotCCT(rightIp, rightPower, rightK, rightEffectiveDim);
+            bool rightStateChanged = (rightPower != lastRightPower) ||
+                                     (rightModeRgb && (rightR != lastRightR || rightG != lastRightG || rightB != lastRightB)) ||
+                                     (!rightModeRgb && rightK != lastRightK) ||
+                                     (abs((int)rightEffectiveDim - (int)lastRightDim) >= 2);
+
+            if (rightPower != lastRightPower || (rightStateChanged && (nowMs - lastRightWizTx >= 80)) || (nowMs - lastRightWizTx > 4000)) {
+                lastRightWizTx = nowMs;
+                lastRightPower = rightPower;
+                lastRightDim = rightEffectiveDim;
+                lastRightR = rightR; lastRightG = rightG; lastRightB = rightB;
+                lastRightK = rightK;
+                if (rightModeRgb) {
+                    wiz.sendPilotRGB(rightIp, rightPower, rightR, rightG, rightB, rightEffectiveDim);
+                } else {
+                    wiz.sendPilotCCT(rightIp, rightPower, rightK, rightEffectiveDim);
+                }
             }
 
-            broadcastState();
+            // Broadcast state only on discrete setting changes or at a throttled 2s heartbeat
+            // (Prevents flooding AsyncWebSocket during high-frequency streaming like SoundSync / Ambilight)
+            static uint32_t lastBroadcastTime = 0;
+            if (isDiscreteSetting || (nowMs - lastBroadcastTime >= 2000)) {
+                lastBroadcastTime = nowMs;
+                broadcastState();
+            }
         }
     }
 }

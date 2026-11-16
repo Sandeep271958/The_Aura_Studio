@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.02.003.bin`** | `v01.02.003` | 2026-11-16 | 1,459,952 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `40900bcffdfb0d295fa89e218ecc70a9dd5f7f2d74dd857044ac44a53c7aaabb` |
 | **`firmware_01.02.002.bin`** | `v01.02.002` | 2026-11-15 | 1,459,056 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `a830f986dcbda748b26e933054614e499b13c2fac8e07734cfa89d0d2da454f9` |
 | **`firmware_01.02.001.bin`** | `v01.02.001` | 2026-11-15 | 1,459,072 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `917d3b9c7330c6edc60b50da204c36db01b362eed0e701652c4ae38c861a8275` |
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |

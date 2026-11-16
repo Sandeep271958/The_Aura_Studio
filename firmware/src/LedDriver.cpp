@@ -54,36 +54,69 @@ void LedDriver::begin() {
     FastLED.setBrightness(255); // Global scaler kept at 255; dimming handled in software via CIE 1931
 
     Serial.println("\n=======================================================");
-    Serial.println("   [LED HARDWARE TEST] RUNNING 4-STAGE STARTUP CHECK   ");
-    Serial.printf("   Active Pin: GPIO %d (D4) | %d LEDs | Dither: OFF\n", LED_PIN, NUM_LEDS);
+    Serial.println("   [AURA BOOTUP] APPLE SIRI CHROMATIC FLUID WAVE       ");
+    Serial.printf("   Active Pin: GPIO %d | %d LEDs | Dither: OFF | 2000ms\n", LED_PIN, NUM_LEDS);
     Serial.println("=======================================================");
 
-    // Stage 1: All 60 LEDs RED
-    Serial.println("[LED Test 1/4] >>> ALL 60 LEDS -> SOLID RED <<<");
-    fill_solid(leds, NUM_LEDS, CRGB::Red);
-    FastLED.show();
-    delay(800);
+    // Apple Siri Harmonic Iridescent Ribbon Color Palette
+    const CRGB siriStops[4] = {
+        CRGB(0, 75, 255),    // Deep Electric Azure
+        CRGB(0, 240, 255),   // Siri Luminous Cyan
+        CRGB(210, 15, 245),  // Vibrant Siri Magenta / Violet
+        CRGB(255, 95, 25)    // Warm Sunset Amber Glow
+    };
 
-    // Stage 2: All 60 LEDs GREEN
-    Serial.println("[LED Test 2/4] >>> ALL 60 LEDS -> SOLID GREEN <<<");
-    fill_solid(leds, NUM_LEDS, CRGB::Green);
-    FastLED.show();
-    delay(800);
+    uint32_t bootStart = millis();
+    const uint32_t bootDuration = 2000; // Exactly 2 seconds aesthetic bootup sequence
 
-    // Stage 3: All 60 LEDs BLUE
-    Serial.println("[LED Test 3/4] >>> ALL 60 LEDS -> SOLID BLUE <<<");
-    fill_solid(leds, NUM_LEDS, CRGB::Blue);
-    FastLED.show();
-    delay(800);
+    while (millis() - bootStart < bootDuration) {
+        uint32_t elapsed = millis() - bootStart;
+        float tau = (float)elapsed / (float)bootDuration; // 0.0 -> 1.0
 
-    // Stage 4: All 60 LEDs WHITE
-    Serial.println("[LED Test 4/4] >>> ALL 60 LEDS -> SOLID WHITE <<<");
-    fill_solid(leds, NUM_LEDS, CRGB(180, 180, 180));
-    FastLED.show();
-    delay(800);
+        // Perceptual fade envelope: Smooth cubic ease-in and ease-out
+        float envelope;
+        if (tau < 0.18f) {
+            float f = tau / 0.18f;
+            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-in
+        } else if (tau > 0.82f) {
+            float f = (1.0f - tau) / 0.18f;
+            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-out into live state
+        } else {
+            envelope = 1.0f;
+        }
+
+        // Render traveling Siri harmonic ribbon across all 60 LEDs
+        for (int i = 0; i < NUM_LEDS; i++) {
+            float x = (float)i / (float)(NUM_LEDS - 1); // 0.0 -> 1.0
+
+            // Siri dual harmonic traveling waves
+            float wave1 = sinf(6.2831853f * (x * 1.5f - tau * 2.2f));
+            float wave2 = cosf(6.2831853f * ((1.0f - x) * 1.2f - tau * 1.6f));
+            float waveMix = 0.5f + 0.25f * wave1 + 0.25f * wave2;
+
+            // Cyclic palette progression
+            float colorPhase = fmodf(waveMix + tau * 0.9f, 1.0f);
+            if (colorPhase < 0.0f) colorPhase += 1.0f;
+
+            CRGB rawColor = interpolate4Stops(siriStops, colorPhase);
+
+            // Apply envelope and CIE 1931 gamma correction for silky luminance
+            uint8_t dim = constrain((int)(envelope * 255.0f), 0, 255);
+            uint8_t r = scale8(rawColor.r, dim);
+            uint8_t g = scale8(rawColor.g, dim);
+            uint8_t b = scale8(rawColor.b, dim);
+
+            leds[i] = CRGB(pgm_read_byte(&cie1931[r]),
+                           pgm_read_byte(&cie1931[g]),
+                           pgm_read_byte(&cie1931[b]));
+        }
+
+        FastLED.show();
+        delay(16); // 60 FPS
+    }
 
     FastLED.clear(true);
-    Serial.println("[LED Test] Startup Hardware Check Complete! Entering Live Rendering.\n");
+    Serial.println("[Aura Bootup] Siri Chromatic Sequence Complete! Live Control Initialized.\n");
 }
 
 void LedDriver::effectTestCycle() {
