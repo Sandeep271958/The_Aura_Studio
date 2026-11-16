@@ -3,14 +3,15 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-// Global FreeRTOS Mutex for thread-safe state access across Core 0 (WiFi/Web) and Core 1 (FastLED)
+// Global FreeRTOS Mutex for thread-safe state access across Core 0 (WiFi/Web)
+// and Core 1 (FastLED)
 extern SemaphoreHandle_t stateMutex;
 
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.02.004"
-#define FIRMWARE_NAME    "firmware_01.02.004.bin"
+#define FIRMWARE_VERSION "01.02.005"
+#define FIRMWARE_NAME    "firmware_01.02.005.bin"
 #define FIRMWARE_BUILD   "2026-11-16"
 
 // ============================================================================
@@ -23,9 +24,10 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // HARDWARE: WS2812B DESK STRIP
 // ============================================================================
-#define FASTLED_SHOW_CORE 1      // Bind FastLED show to Core 1 away from Wi-Fi interrupts
-#define LED_PIN 4                // Active: GPIO 4 (Labeled D4 on NodeMCU ESP32)
-#define NUM_LEDS 60              // 1 meter strip with 60 LEDs
+#define FASTLED_SHOW_CORE                                                      \
+  1                 // Bind FastLED show to Core 1 away from Wi-Fi interrupts
+#define LED_PIN 4   // Active: GPIO 4 (Labeled D4 on NodeMCU ESP32)
+#define NUM_LEDS 60 // 1 meter strip with 60 LEDs
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 #define MAX_POWER_MILLIAMPS 1500 // Safety power limit: 1.5A for 60 LEDs
@@ -50,15 +52,16 @@ struct DeviceDesk {
   String effect = "cyberpulse";
   uint8_t speed = 60;
   uint8_t intensity = 75;
-  int inspectIndex = -1; // -1 for normal animation, 0 to NUM_LEDS-1 for single-LED diagnostic
+  int inspectIndex =
+      -1; // -1 for normal animation, 0 to NUM_LEDS-1 for single-LED diagnostic
 
   // 4-Stop Luxury Gradient Lab Palette Support
   bool hasGradient = false;
   CRGB stops[4] = {
-    CRGB(165, 243, 252), // Stop 1 (#a5f3fc)
-    CRGB(244, 114, 182), // Stop 2 (#f472b6)
-    CRGB(192, 132, 252), // Stop 3 (#c084fc)
-    CRGB(254, 240, 138)  // Stop 4 (#fef08a)
+      CRGB(165, 243, 252), // Stop 1 (#a5f3fc)
+      CRGB(244, 114, 182), // Stop 2 (#f472b6)
+      CRGB(192, 132, 252), // Stop 3 (#c084fc)
+      CRGB(254, 240, 138)  // Stop 4 (#fef08a)
   };
 };
 

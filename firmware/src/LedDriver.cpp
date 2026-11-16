@@ -62,10 +62,22 @@ void LedDriver::initHardware() {
 
 void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     Serial.println("\n=======================================================");
-    Serial.println("   [AURA BOOTUP] APPLE SIRI HOMEPOD FLUID WAVE       ");
+    Serial.println("   [AURA BOOTUP] APPLE SIRI HOMEPOD FLUID WAVE         ");
     Serial.printf("   Active Pin: GPIO %d | %d LEDs | Dither: OFF | %u ms\n", LED_PIN, NUM_LEDS, (unsigned int)durationMs);
-    Serial.println("   Physics: Multi-Wave Solitons (Pink, Cyan, Green, White)");
+    Serial.println("   Palette: Apple Intelligence (Orchid, Violet, Cyan, Coral, White)");
+    Serial.println("   Physics: Conic Solitons, Frosted Glass Diffusion, Cosine Dissolve");
     Serial.println("=======================================================\n");
+
+    // Apple Intelligence & HomePod "Sound Glow" Palette Stops
+    const struct { float r, g, b; } siriStops[4] = {
+        {236.0f,  72.0f, 153.0f},  // Stop 0: Electric Orchid / Neon Pink (#EC4899)
+        {124.0f,  58.0f, 237.0f},  // Stop 1: Royal Violet / Deep Indigo  (#7C3AED)
+        {  0.0f, 242.0f, 254.0f},  // Stop 2: Siri Electric Cyan / Azure  (#00F2FE)
+        {251.0f, 146.0f,  60.0f}   // Stop 3: Sunset Amber / Warm Coral   (#FB923C)
+    };
+
+    struct RawColor { float r, g, b; };
+    RawColor rawFrame[NUM_LEDS];
 
     uint32_t bootStart = millis();
 
@@ -73,75 +85,108 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
         uint32_t elapsed = millis() - bootStart;
         float tau = (float)elapsed / (float)durationMs; // 0.0 -> 1.0
 
-        // Perceptual fade envelope: Smooth cubic ease-in and ease-out
-        float envelope;
-        if (tau < 0.15f) {
-            float f = tau / 0.15f;
-            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-in from black
-        } else if (tau > 0.85f) {
-            float f = (1.0f - tau) / 0.15f;
-            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-out into live state
-        } else {
-            envelope = 1.0f;
+        // 1. Wake & Settle Transition Curves (Apple HomePod Lifecycle)
+        float wakeEnv = 1.0f;
+        float wakeSpread = 1.0f;
+        if (tau < 0.18f) {
+            float f = tau / 0.18f;
+            wakeEnv = f * f * (3.0f - 2.0f * f); // Hermite cubic awakening
+            wakeSpread = 0.15f + 0.85f * wakeEnv;
         }
 
-        // Render traveling Siri HomePod multi-wave physics across all 60 LEDs
+        float settleFactor = 0.0f;
+        float lumaFade = 1.0f;
+        if (tau > 0.82f) {
+            float f = (tau - 0.82f) / 0.18f;
+            settleFactor = f * f * (3.0f - 2.0f * f); // Smooth deceleration into equilibrium
+            float cosFade = cosf(f * 1.5707963f);
+            lumaFade = cosFade * cosFade; // Silky cosine-damped logarithmic fade
+        }
+
+        // Fluid time factor with velocity deceleration during settle phase
+        float timeFactor = tau * (1.0f - 0.40f * settleFactor);
+
+        // 2. Render Conic Multi-Wave Fluid Physics across all 60 LEDs
         for (int i = 0; i < NUM_LEDS; i++) {
             float x = (float)i / (float)(NUM_LEDS - 1); // 0.0 -> 1.0
 
-            // 1. Domain warping for fluid convection / turbulence
-            float xWarp = x + 0.08f * sinf(6.2831853f * (1.5f * x - 2.2f * tau)) +
-                              0.05f * cosf(6.2831853f * (2.0f * (1.0f - x) + 1.7f * tau));
+            // Bilateral Hermite Wake Mask expanding outward from strip center (LEDs 29-30)
+            float distCenter = fabsf(x - 0.5f) * 2.0f;
+            float rawMask = (wakeSpread - distCenter * 0.70f) / 0.30f;
+            if (rawMask < 0.0f) rawMask = 0.0f;
+            if (rawMask > 1.0f) rawMask = 1.0f;
+            float mask = rawMask * rawMask * (3.0f - 2.0f * rawMask) * wakeEnv * lumaFade;
 
-            // 2. Pink Soliton Wave Packet (Siri Neon Pink / Magenta)
-            float pPink = 0.5f + 0.42f * sinf(6.2831853f * (1.2f * tau - 0.25f));
-            float sPink = 0.16f + 0.05f * cosf(6.2831853f * (1.7f * tau));
-            float dPink = (xWarp - pPink) / sPink;
-            float gPink = expf(-0.5f * dPink * dPink);
-            float wPink = 0.5f + 0.5f * cosf(6.2831853f * (2.2f * xWarp - 3.0f * tau));
-            float psiPink = gPink * (0.60f + 0.40f * wPink);
+            // Fluid Domain Warping (convection currents & vortex modulation)
+            float warpAmp = 0.07f * (1.0f - 0.5f * settleFactor);
+            float xWarp = x + warpAmp * sinf(6.2831853f * (1.5f * x - 2.0f * timeFactor)) +
+                              (warpAmp * 0.6f) * cosf(6.2831853f * (2.2f * (1.0f - x) + 1.6f * timeFactor));
 
-            // 3. Cyan Soliton Wave Packet (Siri Electric Cyan / Turquoise)
-            float pCyan = 0.5f - 0.42f * cosf(6.2831853f * (1.4f * tau));
-            float sCyan = 0.17f + 0.04f * sinf(6.2831853f * (1.5f * tau));
-            float dCyan = (xWarp - pCyan) / sCyan;
-            float gCyan = expf(-0.5f * dCyan * dCyan);
-            float wCyan = 0.5f + 0.5f * sinf(6.2831853f * (2.0f * (1.0f - xWarp) - 2.7f * tau));
-            float psiCyan = gCyan * (0.60f + 0.40f * wCyan);
+            // Rotating Apple Intelligence Harmonic Phase Field
+            float phase = (xWarp * 1.15f - timeFactor * 1.4f + 0.18f * sinf(6.2831853f * (0.9f * xWarp - timeFactor)));
+            phase = fmodf(phase, 1.0f);
+            if (phase < 0.0f) phase += 1.0f;
 
-            // 4. Green Radial Diaphragm Pulse (Siri Spring Emerald)
-            float rGreen = 0.22f * (1.0f + sinf(6.2831853f * (1.8f * tau - 0.1f)));
-            float dc = fabsf(xWarp - 0.5f);
-            float dGreen = (dc - rGreen) / 0.13f;
-            float gGreen = expf(-0.5f * dGreen * dGreen);
-            float wGreen = 0.5f + 0.5f * cosf(6.2831853f * (2.8f * dc - 2.3f * tau));
-            float psiGreen = gGreen * (0.55f + 0.45f * wGreen);
+            // Hermite-interpolated cyclic 4-stop Apple color palette sampling
+            float scaledPhase = phase * 4.0f;
+            int idx0 = (int)scaledPhase % 4;
+            int idx1 = (idx0 + 1) % 4;
+            float fStop = scaledPhase - (float)((int)scaledPhase);
+            fStop = fStop * fStop * (3.0f - 2.0f * fStop); // Cubic smoothstep
 
-            // 5. White Specular Interference Core (Apple Glass / Luminous Collision Peak)
-            float interf = (psiPink * psiCyan) + (psiCyan * psiGreen) + (psiPink * psiGreen);
-            float eTotal = psiPink + psiCyan + psiGreen;
-            float w1 = powf(constrain((interf - 0.10f) / 0.28f, 0.0f, 1.0f), 1.3f) * 0.95f;
-            float w2 = powf(constrain((eTotal - 0.90f) / 0.45f, 0.0f, 1.0f), 2.0f) * 0.60f;
-            float psiWhite = constrain(w1 + w2, 0.0f, 1.0f);
+            float baseR = siriStops[idx0].r + (siriStops[idx1].r - siriStops[idx0].r) * fStop;
+            float baseG = siriStops[idx0].g + (siriStops[idx1].g - siriStops[idx0].g) * fStop;
+            float baseB = siriStops[idx0].b + (siriStops[idx1].b - siriStops[idx0].b) * fStop;
 
-            // 6. Additive Optical Color Superposition (Physics Superposition Principle)
-            float rRaw = (psiPink * 255.0f + psiGreen * 15.0f + psiWhite * 255.0f) * envelope;
-            float gRaw = (psiPink * 30.0f + psiCyan * 240.0f + psiGreen * 255.0f + psiWhite * 255.0f) * envelope;
-            float bRaw = (psiPink * 150.0f + psiCyan * 255.0f + psiGreen * 110.0f + psiWhite * 255.0f) * envelope;
+            // Soliton 1: Electric Orchid wave (drifts left to right with boundary reflection)
+            float p1 = 0.5f + 0.42f * sinf(6.2831853f * (1.15f * timeFactor - 0.25f));
+            float s1 = expf(-0.5f * powf((xWarp - p1) / 0.18f, 2.0f));
 
-            // 7. Soft Saturation Normalization (Preserves Chromaticity at Peak Luminance)
-            float maxC = fmaxf(rRaw, fmaxf(gRaw, bRaw));
+            // Soliton 2: Siri Cyan wave (counter-drifts right to left)
+            float p2 = 0.5f - 0.42f * cosf(6.2831853f * (1.35f * timeFactor));
+            float s2 = expf(-0.5f * powf((xWarp - p2) / 0.19f, 2.0f));
+
+            // Specular Diamond White Collision Core (constructive interference surge)
+            float collision = s1 * s2;
+            float rawSpec = (collision - 0.07f) / 0.24f;
+            if (rawSpec < 0.0f) rawSpec = 0.0f;
+            if (rawSpec > 1.0f) rawSpec = 1.0f;
+            float specular = powf(rawSpec, 1.35f) * (1.0f - 0.70f * settleFactor);
+
+            // Additive light amplitude synthesis
+            float amp = (0.70f + 0.35f * (s1 + s2)) * mask;
+
+            float r = (baseR * amp + specular * (255.0f - baseR) * mask);
+            float g = (baseG * amp + specular * (255.0f - baseG) * mask);
+            float b = (baseB * amp + specular * (255.0f - baseB) * mask);
+
+            // Soft saturation tone-mapping (protects chromaticity at peak luminance)
+            float maxC = fmaxf(r, fmaxf(g, b));
             if (maxC > 255.0f) {
                 float scale = 255.0f / maxC;
-                rRaw *= scale;
-                gRaw *= scale;
-                bRaw *= scale;
+                r *= scale;
+                g *= scale;
+                b *= scale;
             }
 
-            // 8. CIE 1931 Human Perceptual Gamma Encoding
-            uint8_t rByte = constrain((int)(rRaw + 0.5f), 0, 255);
-            uint8_t gByte = constrain((int)(gRaw + 0.5f), 0, 255);
-            uint8_t bByte = constrain((int)(bRaw + 0.5f), 0, 255);
+            rawFrame[i] = {r, g, b};
+        }
+
+        // 3. Sub-Pixel Spatial Diffusion Filter (Simulates HomePod Frosted Glass Touch-Cap)
+        // 3-tap low-pass blur kernel [0.15, 0.70, 0.15] seamlessly blurs discrete LED boundaries
+        for (int i = 0; i < NUM_LEDS; i++) {
+            RawColor cPrev = (i > 0) ? rawFrame[i - 1] : rawFrame[i];
+            RawColor cCurr = rawFrame[i];
+            RawColor cNext = (i < NUM_LEDS - 1) ? rawFrame[i + 1] : rawFrame[i];
+
+            float diffR = cPrev.r * 0.15f + cCurr.r * 0.70f + cNext.r * 0.15f;
+            float diffG = cPrev.g * 0.15f + cCurr.g * 0.70f + cNext.g * 0.15f;
+            float diffB = cPrev.b * 0.15f + cCurr.b * 0.70f + cNext.b * 0.15f;
+
+            // 4. CIE 1931 Human Perceptual Lightness Gamma Encoding
+            uint8_t rByte = constrain((int)(diffR + 0.5f), 0, 255);
+            uint8_t gByte = constrain((int)(diffG + 0.5f), 0, 255);
+            uint8_t bByte = constrain((int)(diffB + 0.5f), 0, 255);
 
             leds[i] = CRGB(pgm_read_byte(&cie1931[rByte]),
                            pgm_read_byte(&cie1931[gByte]),
