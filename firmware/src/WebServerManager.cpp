@@ -28,6 +28,19 @@ void WebServerManager::begin() {
     Serial.println("[HTTP] AsyncWebServer & WebSockets running on port 80");
 }
 
+void WebServerManager::enableCaptivePortal() {
+    captiveActive = true;
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+    dnsServer.start(53, "*", IPAddress(192, 168, 4, 1));
+    Serial.println("[DNS] Captive Portal DNS responder active on port 53 -> 192.168.4.1");
+}
+
+void WebServerManager::processDns() {
+    if (captiveActive) {
+        dnsServer.processNextRequest();
+    }
+}
+
 void WebServerManager::setupWebSocket() {
     ws.onEvent([this](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
         this->onWsEvent(server, client, type, arg, data, len);
@@ -483,8 +496,130 @@ void WebServerManager::setupRoutes() {
         request->send(200, "application/json", out);
     });
 
-    // 404 Handler with automatic rescue page if LittleFS image has not been uploaded yet
-    server.onNotFound([](AsyncWebServerRequest *request) {
+    // Autonomous Captive Portal & Network Provisioning Routes
+    server.on("/setup", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/html", getSetupPortalHtml());
+    });
+
+    server.on("/hotspot-detect.html", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (captiveActive) request->redirect("http://192.168.4.1/setup");
+        else request->redirect("/");
+    });
+
+    server.on("/canonical.html", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (captiveActive) request->redirect("http://192.168.4.1/setup");
+        else request->redirect("/");
+    });
+
+    server.on("/generate_204", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (captiveActive) request->redirect("http://192.168.4.1/setup");
+        else request->redirect("/");
+    });
+
+    server.on("/gen_204", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (captiveActive) request->redirect("http://192.168.4.1/setup");
+        else request->redirect("/");
+    });
+
+    server.on("/ncsi.txt", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        request->send(200, "text/plain", "Microsoft NCSI");
+    });
+
+    server.on("/connecttest.txt", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        if (captiveActive) request->redirect("http://192.168.4.1/setup");
+        else request->send(200, "text/plain", "Microsoft Connect Test");
+    });
+
+    // REST API - Scan 2.4GHz Wi-Fi networks
+    server.on("/api/wifi/scan", HTTP_GET, [](AsyncWebServerRequest *request) {
+        int n = WiFi.scanNetworks(false, true);
+        JsonDocument doc;
+        JsonArray arr = doc["networks"].to<JsonArray>();
+        for (int i = 0; i < n; i++) {
+            String s = WiFi.SSID(i);
+            if (s.length() == 0) continue;
+            JsonObject obj = arr.add<JsonObject>();
+            obj["ssid"] = s;
+            obj["rssi"] = WiFi.RSSI(i);
+            obj["secure"] = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+        }
+        WiFi.scanDelete();
+        String out;
+        serializeJson(doc, out);
+        request->send(200, "application/json", out);
+    });
+
+    // REST API - Current Wi-Fi Status
+    server.on("/api/wifi/status", HTTP_GET, [this](AsyncWebServerRequest *request) {
+        JsonDocument doc;
+        bool isConn = (WiFi.status() == WL_CONNECTED);
+        doc["status"] = isConn ? "connected" : (captiveActive ? "setup_mode" : "disconnected");
+        doc["ssid"] = isConn ? WiFi.SSID() : state.wifiSsid;
+        doc["rssi"] = isConn ? WiFi.RSSI() : 0;
+        doc["ip"] = isConn ? WiFi.localIP().toString() : WiFi.softAPIP().toString();
+        doc["isSetupMode"] = captiveActive || state.isSetupMode;
+        String out;
+        serializeJson(doc, out);
+        request->send(200, "application/json", out);
+    });
+
+    // REST API - Save Wi-Fi Credentials & Connect
+    server.on("/api/wifi/save", HTTP_POST, [](AsyncWebServerRequest *request) {}, NULL, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+        JsonDocument doc;
+        DeserializationError err = deserializeJson(doc, (const char*)data, len);
+        if (err) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Invalid JSON payload\"}");
+            return;
+        }
+
+        String ssid = doc["ssid"] | "";
+        String pass = doc["password"] | "";
+
+        if (ssid.length() == 0) {
+            request->send(400, "application/json", "{\"status\":\"error\",\"message\":\"Network SSID is required\"}");
+            return;
+        }
+
+        Preferences p;
+        p.begin("aura", false);
+        p.putString("wifiSsid", ssid);
+        p.putString("wifiPass", pass);
+        p.putUChar("bootCount", 0);
+        p.end();
+
+        Serial.printf("[WiFi] Saved credentials for '%s'. Scheduling system restart...\n", ssid.c_str());
+        request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Credentials saved. Reconnecting...\"}");
+
+        xTaskCreate([](void*) {
+            vTaskDelay(pdMS_TO_TICKS(1500));
+            ESP.restart();
+        }, "ota_reboot", 2048, NULL, 1, NULL);
+    });
+
+    // REST API - Factory Reset Wi-Fi into SoftAP Setup Mode
+    server.on("/api/wifi/reset", HTTP_POST, [](AsyncWebServerRequest *request) {
+        Preferences p;
+        p.begin("aura", false);
+        p.putString("wifiSsid", "");
+        p.putString("wifiPass", "");
+        p.putUChar("bootCount", 0);
+        p.end();
+
+        Serial.println("[WiFi] Credentials reset by user. Rebooting into Setup Hotspot...");
+        request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Wi-Fi credentials reset. Rebooting into Setup Mode...\"}");
+
+        xTaskCreate([](void*) {
+            vTaskDelay(pdMS_TO_TICKS(1500));
+            ESP.restart();
+        }, "ota_reboot", 2048, NULL, 1, NULL);
+    });
+
+    // 404 Handler with automatic captive redirect and rescue page
+    server.onNotFound([this](AsyncWebServerRequest *request) {
+        if (captiveActive) {
+            request->redirect("http://192.168.4.1/setup");
+            return;
+        }
         if (!LittleFS.exists("/index.html")) {
             String rescue = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>The Aura Studio Setup</title><style>body{background:#07090e;color:#f8fafc;font-family:-apple-system,sans-serif;padding:40px;text-align:center}h1{color:#00f2fe;font-size:24px}p{color:#94a3b8;font-size:16px;max-width:500px;margin:12px auto}.box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;display:inline-block;margin-top:20px}code{background:rgba(0,242,254,0.15);color:#00f2fe;padding:4px 8px;border-radius:6px;font-family:monospace}</style></head><body><h1>The Aura Studio // ESP32 Smart Light Hub</h1><p style='color:#a855f7;font-weight:600;letter-spacing:1px;font-size:12px'>DESIGNED BY SANDY</p><div class='box'><p>Firmware is running and online! However, dashboard files are not found on flash memory.</p><p>In PlatformIO, run <code>Upload Filesystem Image</code> to flash the web dashboard to LittleFS.</p></div></body></html>";
             request->send(200, "text/html", rescue);
@@ -526,6 +661,9 @@ String WebServerManager::serializeState() {
     net["wizLeftMac"] = localState.wizLeftMac;
     net["wizRightIp"] = localState.wizRightIp;
     net["wizRightMac"] = localState.wizRightMac;
+    net["wifiSsid"] = (WiFi.status() == WL_CONNECTED) ? WiFi.SSID() : localState.wifiSsid;
+    net["wifiRssi"] = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : localState.wifiRssi;
+    net["isSetupMode"] = captiveActive || localState.isSetupMode;
 
     JsonObject dev = payload["devices"].to<JsonObject>();
 
@@ -595,4 +733,286 @@ void WebServerManager::broadcastDiscoveredDevices() {
     String output;
     serializeJson(doc, output);
     ws.textAll(output);
+}
+
+String WebServerManager::getSetupPortalHtml() {
+    return String(R"rawliteral(<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Aura Studio // Wi-Fi Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #07090e;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 24px;
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.7);
+    }
+    .badge-pill {
+      display: inline-block;
+      padding: 5px 14px;
+      background: rgba(0, 242, 254, 0.12);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: #00f2fe;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .field-group {
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+    .select-wrap, .input-wrap {
+      position: relative;
+    }
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    select:focus, input:focus {
+      border-color: #00f2fe;
+      background: rgba(0, 242, 254, 0.05);
+      box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.15);
+    }
+    select option {
+      background: #0f172a;
+      color: #ffffff;
+    }
+    .scan-btn {
+      width: 100%;
+      padding: 11px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #00f2fe;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+    }
+    .scan-btn:hover {
+      background: rgba(0, 242, 254, 0.1);
+      border-color: #00f2fe;
+    }
+    .toggle-pass {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #00f2fe 0%, #a855f7 100%);
+      border: none;
+      border-radius: 14px;
+      color: #07090e;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-submit:hover { opacity: 0.95; }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+    .status-msg {
+      margin-top: 16px;
+      font-size: 13px;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+      line-height: 1.4;
+    }
+    .status-msg.info { display: block; background: rgba(0, 242, 254, 0.1); color: #00f2fe; border: 1px solid rgba(0, 242, 254, 0.2); }
+    .status-msg.success { display: block; background: rgba(34, 197, 94, 0.1); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.2); }
+    .status-msg.error { display: block; background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .sig { margin-top: 24px; font-size: 11px; letter-spacing: 1px; color: #64748b; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge-pill">Autonomous Setup Portal</div>
+    <h1>The Aura Studio</h1>
+    <p class="subtitle">Connect your smart light hub to your home Wi-Fi network.</p>
+
+    <button type="button" class="scan-btn" id="scanBtn" onclick="scanWifi()">
+      <span>⚡ Scan 2.4GHz Networks</span>
+    </button>
+
+    <div class="field-group">
+      <label for="ssidSelect">Discovered Networks</label>
+      <div class="select-wrap">
+        <select id="ssidSelect" onchange="onSelectNetwork(this.value)">
+          <option value="">Select a network or enter below...</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label for="ssidInput">Network Name (SSID)</label>
+      <input type="text" id="ssidInput" placeholder="Enter Wi-Fi SSID" autocomplete="off" spellcheck="false" required>
+    </div>
+
+    <div class="field-group">
+      <label for="passInput">Wi-Fi Password</label>
+      <div class="input-wrap">
+        <input type="password" id="passInput" placeholder="Enter network password" autocomplete="current-password">
+        <button type="button" class="toggle-pass" onclick="togglePassVisibility()">👁</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn-submit" id="saveBtn" onclick="saveCredentials()">Save & Connect to Wi-Fi</button>
+
+    <div id="statusBox" class="status-msg"></div>
+
+    <div class="sig">Designed by Sandy // Dual-Target Architecture</div>
+  </div>
+
+  <script>
+    function togglePassVisibility() {
+      const p = document.getElementById('passInput');
+      p.type = (p.type === 'password') ? 'text' : 'password';
+    }
+
+    function onSelectNetwork(val) {
+      if (val) {
+        document.getElementById('ssidInput').value = val;
+      }
+    }
+
+    function showStatus(msg, type) {
+      const b = document.getElementById('statusBox');
+      b.className = 'status-msg ' + type;
+      b.innerText = msg;
+    }
+
+    function scanWifi() {
+      const btn = document.getElementById('scanBtn');
+      const sel = document.getElementById('ssidSelect');
+      btn.disabled = true;
+      btn.innerText = 'Scanning airwaves...';
+      showStatus('Scanning 2.4GHz channels for nearby networks...', 'info');
+
+      fetch('/api/wifi/scan')
+        .then(r => r.json())
+        .then(data => {
+          btn.disabled = false;
+          btn.innerText = '⚡ Scan 2.4GHz Networks';
+          sel.innerHTML = '<option value="">Select a network or enter below...</option>';
+          if (data && data.networks && data.networks.length > 0) {
+            data.networks.forEach(n => {
+              const opt = document.createElement('option');
+              opt.value = n.ssid;
+              const lock = n.secure ? '🔒 ' : '';
+              opt.textContent = `${lock}${n.ssid} (${n.rssi} dBm)`;
+              sel.appendChild(opt);
+            });
+            showStatus(`Discovered ${data.networks.length} networks nearby.`, 'info');
+          } else {
+            showStatus('No networks found. You can enter your SSID manually below.', 'error');
+          }
+        })
+        .catch(err => {
+          btn.disabled = false;
+          btn.innerText = '⚡ Scan 2.4GHz Networks';
+          showStatus('Scan error. Please enter SSID manually.', 'error');
+        });
+    }
+
+    function saveCredentials() {
+      const ssid = document.getElementById('ssidInput').value.trim();
+      const pass = document.getElementById('passInput').value;
+      const btn = document.getElementById('saveBtn');
+
+      if (!ssid) {
+        showStatus('Please specify a network SSID.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      showStatus('Saving credentials & connecting to Wi-Fi...', 'info');
+
+      fetch('/api/wifi/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ssid: ssid, password: pass })
+      })
+      .then(r => r.json())
+      .then(res => {
+        showStatus('Credentials saved! Hub is rebooting and joining ' + ssid + '... Connect your phone to ' + ssid + ' and open http://aura-hub.local', 'success');
+      })
+      .catch(err => {
+        showStatus('Saved! Hub is restarting to connect. Please reconnect your device to ' + ssid, 'success');
+      });
+    }
+
+    // Auto-scan on captive portal load
+    window.addEventListener('DOMContentLoaded', () => {
+      scanWifi();
+    });
+  </script>
+</body>
+</html>)rawliteral");
 }

@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.01.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.03.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,8 +352,72 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.01.000.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.03.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
+
+---
+
+## 📶 Autonomous SoftAP Captive Portal & Dynamic Wi-Fi Provisioning
+
+Changing Wi-Fi passwords, shifting between router bands, or moving flats/apartments previously required disassembling the ESP32 enclosure and flashing over a physical USB cable. **The Aura Studio `v01.03.000` eliminates physical intervention entirely** with a self-healing, zero-friction wireless provisioning engine.
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  Autonomous Dynamic Provisioning & Captive Portal Architecture         │
+│                                                                        │
+│  [ESP32 Power Up]                                                      │
+│          │                                                             │
+│          ├─► Rapid 3-Cycle Power Toggle? ──► Clear NVS & Enter Setup   │
+│          │                                                             │
+│          ▼                                                             │
+│  [Load NVS Credentials]                                                │
+│          │                                                             │
+│          ├─► Connection Successful ────► Normal Operation & Dashboard  │
+│          │                               (http://aura-hub.local)       │
+│          ▼                                                             │
+│  [Connection Timed Out / Reset]                                        │
+│          │                                                             │
+│          ▼                                                             │
+│  [Autonomous SoftAP Broadcast] ────────► "Aura-Studio-Setup" Hotspot   │
+│  [Amber Breathing Beacon]      ────────► Desk Strip Pulses Warm Amber  │
+│  [Port 53 DNS Captive Server]  ────────► Auto Pop-up on iPhone/Mac/PC  │
+│          │                                                             │
+│          ▼                                                             │
+│  [Glassmorphic Setup Portal]   ────────► Scan 2.4GHz Airwaves          │
+│          │                               Enter Password & Save         │
+│          ▼                                                             │
+│  [Auto-Reboot into New Wi-Fi]  ────────► Re-associates with Home LAN   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 1. 🛜 Apple & Android Native Captive Portal Auto-Popup
+When the hub cannot reach the stored Wi-Fi network, it automatically broadcasts an open Wi-Fi network named **`Aura-Studio-Setup`** on `192.168.4.1`.
+- Built-in **DNSServer (port 53)** captures all inbound domain requests and responds with `192.168.4.1`.
+- Intercepts OS probe endpoints:
+  - Apple iOS / macOS: `/hotspot-detect.html`
+  - Android / Chromium: `/generate_204`, `/gen_204`
+  - Windows NCSI: `/ncsi.txt`, `/connecttest.txt`, `/canonical.html`
+- **Result:** As soon as you tap `Aura-Studio-Setup` in your iPhone or laptop Wi-Fi settings, the luxury glassmorphic **Setup Portal pops open automatically** without needing to type an IP address.
+
+### 2. ⚡ Live 2.4GHz Airwave Scanner & PROGMEM Portal
+- Tap **Scan 2.4GHz Networks** to view all nearby SSIDs with live signal strength ($-\text{dBm}$) and encryption status.
+- Select your network from the dropdown, enter the Wi-Fi password (with password show/hide eye toggle), and tap **Save & Connect**.
+- Credentials persist safely in ESP32 Non-Volatile Storage (NVS `Preferences` namespace `"aura"`). The hub reboots gracefully and joins your new home network.
+
+### 3. 🎛️ In-Dashboard Wi-Fi Management (While Online)
+- Inside the Settings modal (`#modal-settings`), the **Wi-Fi & Network Provisioning** card displays:
+  - Current connected SSID
+  - Live RSSI signal strength (e.g. `-52 dBm (Excellent)`)
+- Click **Change Network** to scan airwaves, select a new network, and apply new credentials on-the-fly.
+- Click **Reset to Setup Hotspot** to wipe credentials and return to setup mode on demand.
+
+### 4. 🚨 Emergency 3-Power-Cycle Factory Reset Rule
+If you move to a new apartment where your old Wi-Fi router no longer exists, you cannot reach the web dashboard to change settings. 
+- **The Solution:** Flip the room light/power switch off and on **3 times rapidly** (within 4 seconds of power-on).
+- The ESP32 hardware boot guard detects the 3 consecutive rapid cycles in NVS, wipes the stale Wi-Fi credentials, and launches the `Aura-Studio-Setup` hotspot!
+
+### 5. 💡 Amber Breathing Beacon Visual Indication
+During SoftAP Setup Mode, the desk WS2812B LED strip automatically renders an **amber breathing beacon** (`CRGB(251, 146, 60)` pulsating gently at 45 speed). This gives immediate visual feedback that the hub is in setup mode and ready to be configured.
 
 ---
 
@@ -403,13 +467,14 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.01.000.bin     # Production Dual-OTA Release Binary (v01.01.000)
-│   ├── firmware_01.00.000.bin     # Initial Dual-OTA Production Binary (v01.00.000)
-│   ├── firmware_latest.bin        # Symlink/copy of the latest production release
+│   ├── firmware_01.03.000.bin     # Production Dual-OTA Release Binary (v01.03.000)
+│   ├── littlefs_01.03.000.bin     # Web Dashboard LittleFS Release Binary (v01.03.000)
+│   ├── firmware_latest.bin        # Copy of the latest production release
+│   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes
 ├── scripts/                       # Developer Automation Utilities
 │   └── export_release.py          # Automated compiler and nomenclature packager
-├── test_suite.js                  # Automated verification test suite (139 DOM IDs verified)
+├── test_suite.js                  # Automated verification test suite (167 DOM IDs verified)
 └── README.md                      # Comprehensive documentation & setup guide
 ```
 

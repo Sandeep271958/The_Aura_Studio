@@ -360,6 +360,20 @@ const DOM = {
   // Desk Strip On/Off Transition Animation
   selectOnOffAnim: document.getElementById('select-onoff-anim'),
 
+  // Wi-Fi & Network Provisioning
+  btnToggleWifiChange: document.getElementById('btn-toggle-wifi-change'),
+  wifiCurrentSsid: document.getElementById('wifi-current-ssid'),
+  wifiCurrentRssi: document.getElementById('wifi-current-rssi'),
+  wifiChangePanel: document.getElementById('wifi-change-panel'),
+  btnScanWifi: document.getElementById('btn-scan-wifi'),
+  selectWifiNetworks: document.getElementById('select-wifi-networks'),
+  inputWifiSsid: document.getElementById('input-wifi-ssid'),
+  inputWifiPass: document.getElementById('input-wifi-pass'),
+  btnToggleWifiPassVisibility: document.getElementById('btn-toggle-wifi-pass-visibility'),
+  btnSubmitWifiChange: document.getElementById('btn-submit-wifi-change'),
+  btnResetWifi: document.getElementById('btn-reset-wifi'),
+  wifiStatusFeedback: document.getElementById('wifi-status-feedback'),
+
   // Hardware & Pixel Diagnostics
   sliderPixelDiag: document.getElementById('slider-pixel-diag'),
   valPixelDiag: document.getElementById('val-pixel-diag'),
@@ -636,6 +650,20 @@ function syncAllInputs() {
   }
   if (DOM.telemHubIp && appState.network && appState.network.hubIp) {
     DOM.telemHubIp.textContent = appState.network.hubIp;
+  }
+  if (DOM.wifiCurrentSsid && appState.network) {
+    DOM.wifiCurrentSsid.textContent = appState.network.wifiSsid || 'Setup Mode (SoftAP)';
+  }
+  if (DOM.wifiCurrentRssi && appState.network) {
+    const rssi = appState.network.wifiRssi;
+    if (rssi) {
+      let qual = 'Good';
+      if (rssi >= -55) qual = 'Excellent';
+      else if (rssi <= -75) qual = 'Fair';
+      DOM.wifiCurrentRssi.textContent = `${rssi} dBm (${qual})`;
+    } else {
+      DOM.wifiCurrentRssi.textContent = appState.network.isSetupMode ? 'SoftAP Active' : '--';
+    }
   }
 
   if (DOM.btnMasterPower) DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
@@ -2865,6 +2893,172 @@ function bindEvents() {
       if (DOM.sliderPixelDiag) DOM.sliderPixelDiag.value = '-1';
       if (DOM.valPixelDiag) DOM.valPixelDiag.textContent = 'None (Normal Mode)';
       sendPixelInspect(-1);
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  // Wi-Fi & Network Provisioning (SoftAP & Dynamic Reconfiguration)
+  // --------------------------------------------------------------------------
+  if (DOM.btnToggleWifiChange) {
+    DOM.btnToggleWifiChange.addEventListener('click', () => {
+      triggerHaptic('light');
+      if (DOM.wifiChangePanel) {
+        DOM.wifiChangePanel.classList.toggle('hidden');
+        if (!DOM.wifiChangePanel.classList.contains('hidden')) {
+          if (DOM.selectWifiNetworks && DOM.selectWifiNetworks.children.length <= 1) {
+            triggerWifiScan();
+          }
+        }
+      }
+    });
+  }
+
+  function triggerWifiScan() {
+    if (!DOM.btnScanWifi) return;
+    triggerHaptic('medium');
+    DOM.btnScanWifi.disabled = true;
+    DOM.btnScanWifi.innerHTML = '<span>Scanning airwaves...</span>';
+    if (DOM.wifiStatusFeedback) {
+      DOM.wifiStatusFeedback.style.display = 'block';
+      DOM.wifiStatusFeedback.style.color = 'var(--accent-cyan)';
+      DOM.wifiStatusFeedback.textContent = 'Scanning 2.4GHz channels for nearby networks...';
+    }
+
+    const host = getTargetHubHost();
+    const scanUrl = (window.location.protocol === 'file:') ? '/api/wifi/scan' : `http://${host}/api/wifi/scan`;
+
+    fetch(scanUrl)
+      .then(res => res.json())
+      .then(data => {
+        DOM.btnScanWifi.disabled = false;
+        DOM.btnScanWifi.innerHTML = '<span>⚡ Scan Nearby Networks</span>';
+        if (DOM.selectWifiNetworks) {
+          DOM.selectWifiNetworks.innerHTML = '<option value="">Select a network or enter below...</option>';
+          if (data && data.networks && data.networks.length > 0) {
+            data.networks.forEach(net => {
+              const opt = document.createElement('option');
+              opt.value = net.ssid;
+              const lock = net.secure ? '🔒 ' : '';
+              opt.textContent = `${lock}${net.ssid} (${net.rssi} dBm)`;
+              DOM.selectWifiNetworks.appendChild(opt);
+            });
+            if (DOM.wifiStatusFeedback) {
+              DOM.wifiStatusFeedback.textContent = `Found ${data.networks.length} networks nearby.`;
+            }
+          } else {
+            if (DOM.wifiStatusFeedback) {
+              DOM.wifiStatusFeedback.style.color = 'var(--accent-coral)';
+              DOM.wifiStatusFeedback.textContent = 'No networks discovered. Enter SSID manually below.';
+            }
+          }
+        }
+      })
+      .catch(err => {
+        DOM.btnScanWifi.disabled = false;
+        DOM.btnScanWifi.innerHTML = '<span>⚡ Scan Nearby Networks</span>';
+        if (DOM.wifiStatusFeedback) {
+          DOM.wifiStatusFeedback.style.color = 'var(--accent-coral)';
+          DOM.wifiStatusFeedback.textContent = 'Could not scan Wi-Fi airwaves. Enter SSID manually.';
+        }
+      });
+  }
+
+  if (DOM.btnScanWifi) {
+    DOM.btnScanWifi.addEventListener('click', triggerWifiScan);
+  }
+
+  if (DOM.selectWifiNetworks) {
+    DOM.selectWifiNetworks.addEventListener('change', (e) => {
+      triggerHaptic('light');
+      if (DOM.inputWifiSsid && e.target.value) {
+        DOM.inputWifiSsid.value = e.target.value;
+      }
+    });
+  }
+
+  if (DOM.btnToggleWifiPassVisibility) {
+    DOM.btnToggleWifiPassVisibility.addEventListener('click', () => {
+      triggerHaptic('light');
+      if (DOM.inputWifiPass) {
+        DOM.inputWifiPass.type = (DOM.inputWifiPass.type === 'password') ? 'text' : 'password';
+      }
+    });
+  }
+
+  if (DOM.btnSubmitWifiChange) {
+    DOM.btnSubmitWifiChange.addEventListener('click', () => {
+      triggerHaptic('medium');
+      const ssid = DOM.inputWifiSsid ? DOM.inputWifiSsid.value.trim() : '';
+      const pass = DOM.inputWifiPass ? DOM.inputWifiPass.value : '';
+
+      if (!ssid) {
+        showToast('Please enter or select a Wi-Fi SSID.');
+        return;
+      }
+
+      DOM.btnSubmitWifiChange.disabled = true;
+      if (DOM.wifiStatusFeedback) {
+        DOM.wifiStatusFeedback.style.display = 'block';
+        DOM.wifiStatusFeedback.style.color = 'var(--accent-cyan)';
+        DOM.wifiStatusFeedback.textContent = `Saving credentials for "${ssid}" & rebooting hub...`;
+      }
+
+      const host = getTargetHubHost();
+      const saveUrl = (window.location.protocol === 'file:') ? '/api/wifi/save' : `http://${host}/api/wifi/save`;
+
+      fetch(saveUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ssid: ssid, password: pass })
+      })
+      .then(res => res.json())
+      .then(data => {
+        showToast(`Credentials saved! Hub reconnecting to ${ssid}...`);
+        if (DOM.wifiStatusFeedback) {
+          DOM.wifiStatusFeedback.style.color = 'var(--accent-green)';
+          DOM.wifiStatusFeedback.textContent = `Rebooting! Connect your device to "${ssid}" and reload http://aura-hub.local`;
+        }
+        setTimeout(() => {
+          DOM.btnSubmitWifiChange.disabled = false;
+        }, 5000);
+      })
+      .catch(err => {
+        showToast(`Saved! Hub restarting to join ${ssid}.`);
+        if (DOM.wifiStatusFeedback) {
+          DOM.wifiStatusFeedback.style.color = 'var(--accent-green)';
+          DOM.wifiStatusFeedback.textContent = `Hub restarting. Reconnect to "${ssid}" in 10 seconds.`;
+        }
+        setTimeout(() => {
+          DOM.btnSubmitWifiChange.disabled = false;
+        }, 5000);
+      });
+    });
+  }
+
+  if (DOM.btnResetWifi) {
+    DOM.btnResetWifi.addEventListener('click', () => {
+      triggerHaptic('heavy');
+      const confirmed = confirm('Reset Wi-Fi credentials to factory Setup Mode? The Hub will spin up the "Aura-Studio-Setup" hotspot.');
+      if (!confirmed) return;
+
+      DOM.btnResetWifi.disabled = true;
+      if (DOM.wifiStatusFeedback) {
+        DOM.wifiStatusFeedback.style.display = 'block';
+        DOM.wifiStatusFeedback.style.color = 'var(--accent-coral)';
+        DOM.wifiStatusFeedback.textContent = 'Clearing Wi-Fi NVS and launching Aura-Studio-Setup hotspot...';
+      }
+
+      const host = getTargetHubHost();
+      const resetUrl = (window.location.protocol === 'file:') ? '/api/wifi/reset' : `http://${host}/api/wifi/reset`;
+
+      fetch(resetUrl, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+          showToast('Wi-Fi reset! Hub launching Aura-Studio-Setup...');
+        })
+        .catch(err => {
+          showToast('Hub restarting into Setup Hotspot.');
+        });
     });
   }
 

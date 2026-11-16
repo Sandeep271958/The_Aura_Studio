@@ -21,7 +21,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=01.02.005">
+  <link rel="stylesheet" href="style.css?v=01.03.000">
 </head>
 
 <body class="theme-obsidian">
@@ -1405,11 +1405,76 @@
           </div>
         </div>
 
+        <!-- Wi-Fi & Network Provisioning Section -->
+        <div class="settings-section">
+          <div class="section-inline-header">
+            <div>
+              <h4>Wi-Fi &amp; Network Provisioning</h4>
+              <p class="section-note">Dynamic NVS Wi-Fi credentials management &amp; Setup Mode Hotspot</p>
+            </div>
+            <button id="btn-toggle-wifi-change" class="action-btn-sm" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+              </svg>
+              <span>Change Network</span>
+            </button>
+          </div>
+
+          <div class="telemetry-grid" style="margin-bottom:12px">
+            <div class="telem-box">
+              <span class="telem-key">CONNECTED SSID</span>
+              <span id="wifi-current-ssid" class="telem-val mono">--</span>
+            </div>
+            <div class="telem-box">
+              <span class="telem-key">WI-FI RSSI</span>
+              <span id="wifi-current-rssi" class="telem-val mono">--</span>
+            </div>
+          </div>
+
+          <!-- Expandable Network Change Form (collapsed by default) -->
+          <div id="wifi-change-panel" class="hidden" style="margin-top:12px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+              <span style="font-size:0.75rem; font-weight:700; letter-spacing:1px; color:var(--accent-cyan); text-transform:uppercase">Scan &amp; Reconfigure Wi-Fi</span>
+              <button type="button" id="btn-scan-wifi" class="action-btn-sm">
+                <span>⚡ Scan Nearby Networks</span>
+              </button>
+            </div>
+
+            <div class="form-group" style="margin-bottom:12px">
+              <label for="select-wifi-networks">Discovered 2.4GHz Networks</label>
+              <select id="select-wifi-networks" class="custom-select mono">
+                <option value="">Select a network or enter below...</option>
+              </select>
+            </div>
+
+            <div class="ip-form-grid" style="margin-bottom:12px">
+              <div class="form-group">
+                <label for="input-wifi-ssid">Network Name (SSID)</label>
+                <input type="text" id="input-wifi-ssid" class="custom-input mono" placeholder="Wi-Fi SSID">
+              </div>
+              <div class="form-group">
+                <label for="input-wifi-pass">Wi-Fi Password</label>
+                <div style="position:relative">
+                  <input type="password" id="input-wifi-pass" class="custom-input mono" placeholder="Password">
+                  <button type="button" id="btn-toggle-wifi-pass-visibility" class="action-btn-sm" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); padding:4px 8px; font-size:11px" title="Toggle password visibility">👁</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px">
+              <button type="button" id="btn-submit-wifi-change" class="primary-btn" style="flex:1">Save &amp; Connect</button>
+              <button type="button" id="btn-reset-wifi" class="action-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3)" title="Clears Wi-Fi credentials and launches Aura-Studio-Setup hotspot">Reset to Setup Hotspot</button>
+            </div>
+
+            <div id="wifi-status-feedback" class="section-note" style="margin-top:10px; display:none"></div>
+          </div>
+        </div>
+
         <!-- Wireless Firmware OTA Update Section -->
         <div class="settings-section">
           <div class="section-inline-header">
             <h4>Wireless Firmware &amp; UI Update (OTA)</h4>
-            <span class="badge-ota-status" id="badge-firmware-version">v01.02.005</span>
+            <span class="badge-ota-status" id="badge-firmware-version">v01.03.000</span>
           </div>
           <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or
             <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
@@ -1575,7 +1640,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=01.02.005"></script>
+  <script src="app.js?v=01.03.000"></script>
 </body>
 
 </html>

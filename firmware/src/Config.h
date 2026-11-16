@@ -10,15 +10,17 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.02.005"
-#define FIRMWARE_NAME    "firmware_01.02.005.bin"
-#define FIRMWARE_BUILD   "2026-11-16"
+#define FIRMWARE_VERSION "01.03.000"
+#define FIRMWARE_NAME "firmware_01.03.000.bin"
+#define FIRMWARE_BUILD "2026-11-16"
 
 // ============================================================================
 // WI-FI & NETWORK CONFIGURATION
 // ============================================================================
 #define DEFAULT_WIFI_SSID "1201_2.4G"
 #define DEFAULT_WIFI_PASSWORD "V@08101999g"
+#define SOFTAP_SSID "Aura-Studio-Setup"
+#define SOFTAP_PASS "" // Open setup hotspot for seamless captive portal onboarding
 #define HOSTNAME "aura-hub" // Accessible at http://aura-hub.local
 
 // ============================================================================
@@ -89,6 +91,11 @@ struct HubState {
   String wizRightIp = DEFAULT_WIZ_RIGHT_IP;
   String wizLeftMac = "";
   String wizRightMac = "";
+
+  // Dynamic Wi-Fi & SoftAP Provisioning State
+  String wifiSsid = "";
+  int8_t wifiRssi = 0;
+  bool isSetupMode = false;
 
   DeviceDesk desk;
   DeviceWiz wizLeft;

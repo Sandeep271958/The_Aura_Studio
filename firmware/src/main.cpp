@@ -3,6 +3,7 @@
 #include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <ArduinoOTA.h>
+#include <Preferences.h>
 #include "Config.h"
 #include "WizController.h"
 #include "LedDriver.h"
@@ -48,6 +49,7 @@ void setup() {
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
+    Serial.println("   Autonomous Provisioning & Dual-OTA       ");
     Serial.println("==========================================");
 
     // Initialize Mutex
@@ -60,32 +62,65 @@ void setup() {
         Serial.println("[FS] LittleFS Mounted Successfully.");
     }
 
-    // 2. Initialize Hardware LED Strip
-    ledCtrl.initHardware();
+    // 2. Hardware Power-Cycle Guard (3-Cycle Emergency Wi-Fi Reset)
+    Preferences bootPrefs;
+    bootPrefs.begin("aura", false);
+    uint8_t bootCount = bootPrefs.getUChar("bootCount", 0);
+    bootCount++;
+    bootPrefs.putUChar("bootCount", bootCount);
+    Serial.printf("[Boot] Consecutive boot count: %u\n", bootCount);
 
-    // 3. Connect to Wi-Fi in Background (Non-blocking negotiation on Core 0)
-    Serial.printf("[WiFi] Initiating connection to %s in background...\n", DEFAULT_WIFI_SSID);
-    WiFi.mode(WIFI_STA);
-    WiFi.setAutoReconnect(true);
-    WiFi.persistent(true);
-    WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASSWORD);
-
-    // 4. Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
-    // While the fluid wave is actively playing, Wi-Fi connects concurrently!
-    ledCtrl.playSiriBootupAnimation(2500);
-
-    // 5. Finalize Wi-Fi Connection State
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 15) {
-        delay(150);
-        Serial.print(".");
-        attempts++;
+    bool forceSetupMode = false;
+    if (bootCount >= 3) {
+        Serial.println("[Reset] 3 Rapid Power Cycles detected! Resetting Wi-Fi credentials to Setup Mode...");
+        bootPrefs.putString("wifiSsid", "");
+        bootPrefs.putString("wifiPass", "");
+        bootPrefs.putUChar("bootCount", 0);
+        forceSetupMode = true;
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
+    String activeSsid = bootPrefs.getString("wifiSsid", "");
+    String activePass = bootPrefs.getString("wifiPass", "");
+    bootPrefs.end();
+
+    if (activeSsid.length() == 0 && !forceSetupMode) {
+        activeSsid = DEFAULT_WIFI_SSID;
+        activePass = DEFAULT_WIFI_PASSWORD;
+    }
+
+    // 3. Initialize Hardware LED Strip
+    ledCtrl.initHardware();
+
+    // 4. Wi-Fi Negotiation or SoftAP Setup
+    bool wifiConnected = false;
+    if (!forceSetupMode && activeSsid.length() > 0) {
+        Serial.printf("[WiFi] Initiating connection to '%s' in background...\n", activeSsid.c_str());
+        WiFi.mode(WIFI_STA);
+        WiFi.setAutoReconnect(true);
+        WiFi.persistent(true);
+        WiFi.begin(activeSsid.c_str(), activePass.c_str());
+
+        // Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
+        // Wi-Fi handshake negotiates concurrently during the fluid wave!
+        ledCtrl.playSiriBootupAnimation(2500);
+
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+            delay(150);
+            Serial.print(".");
+            attempts++;
+        }
+        wifiConnected = (WiFi.status() == WL_CONNECTED);
+    }
+
+    if (wifiConnected) {
         Serial.println("\n[WiFi] Connected successfully!");
         Serial.printf("[WiFi] IP Address: %s\n", WiFi.localIP().toString().c_str());
-        WiFi.setSleep(false); // Disable Wi-Fi power-save sleep to eliminate timing latency spikes
+        WiFi.setSleep(false); // Disable Wi-Fi power-save sleep to eliminate latency spikes
+
+        hubState.wifiSsid = activeSsid;
+        hubState.wifiRssi = WiFi.RSSI();
+        hubState.isSetupMode = false;
 
         // Setup mDNS (http://aura-hub.local)
         if (MDNS.begin(HOSTNAME)) {
@@ -104,25 +139,43 @@ void setup() {
         ArduinoOTA.begin();
         Serial.println("[OTA] ArduinoOTA service initialized and listening.");
     } else {
-        Serial.println("\n[WiFi] Could not connect to AP. Starting SoftAP Fallback...");
-        WiFi.mode(WIFI_AP);
-        WiFi.softAP("AURA-SMART-HUB", "aura1234");
-        Serial.printf("[WiFi] SoftAP started! IP: %s (Connect and open 192.168.4.1)\n", WiFi.softAPIP().toString().c_str());
+        Serial.println("\n[WiFi] Entering Autonomous SoftAP Setup Mode...");
+        hubState.isSetupMode = true;
+        hubState.wifiSsid = "";
+        hubState.wifiRssi = 0;
+
+        // Start AP+STA mode to broadcast setup hotspot while scanning channels concurrently
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.softAP(SOFTAP_SSID, SOFTAP_PASS);
+        Serial.printf("[WiFi] SoftAP started! SSID: '%s' | IP: %s\n", SOFTAP_SSID, WiFi.softAPIP().toString().c_str());
+
+        // Start Captive Portal DNS on port 53 (redirects all domains to 192.168.4.1)
+        webManager.enableCaptivePortal();
+
+        // Amber breathing beacon signals Hub is in Setup Mode awaiting Wi-Fi configuration
+        hubState.isMasterOn = true;
+        hubState.desk.power = true;
+        hubState.desk.effect = "breathe";
+        hubState.desk.r = 251;
+        hubState.desk.g = 146;
+        hubState.desk.b = 60;
+        hubState.desk.brightness = 90;
+        hubState.desk.speed = 45;
     }
 
-    // 4. Initialize WiZ Controller (UDP) with HubState binding
+    // 5. Initialize WiZ Controller (UDP) with HubState binding
     wizCtrl.begin(&hubState);
 
-    // 5. Initialize Web Server and WebSockets
+    // 6. Initialize Web Server, Captive Portal, and WebSockets
     webManager.begin();
 
-    // Trigger background UDP discovery on boot to auto-rebind known bulb MACs
-    if (WiFi.status() == WL_CONNECTED) {
+    // Trigger background UDP discovery on boot if connected to local LAN
+    if (wifiConnected) {
         Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast for auto-rebind...");
         wizCtrl.broadcastDiscovery();
     }
 
-    // 6. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering
+    // 7. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering
     xTaskCreatePinnedToCore(
         LedTask,
         "LedTask",
@@ -137,8 +190,31 @@ void setup() {
 }
 
 void loop() {
+    // Process Captive Portal DNS queries if in setup mode
+    webManager.processDns();
+
     // Handle background OTA requests
     ArduinoOTA.handle();
+
+    // Clear consecutive bootCount after 4 seconds of stable run
+    static bool bootCountResetDone = false;
+    if (!bootCountResetDone && millis() > 4000) {
+        bootCountResetDone = true;
+        Preferences p;
+        p.begin("aura", false);
+        p.putUChar("bootCount", 0);
+        p.end();
+        Serial.println("[Boot] Stable operation confirmed: bootCount cleared.");
+    }
+
+    // Periodically update Wi-Fi RSSI signal telemetry
+    static uint32_t lastRssiCheck = 0;
+    if (millis() - lastRssiCheck > 5000) {
+        lastRssiCheck = millis();
+        if (WiFi.status() == WL_CONNECTED) {
+            hubState.wifiRssi = WiFi.RSSI();
+        }
+    }
 
     // Process WiZ discovery UDP packets
     wizCtrl.updateDiscovery();

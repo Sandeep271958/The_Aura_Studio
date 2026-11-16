@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.03.000.bin`** | `v01.03.000` | 2026-11-16 | 1,486,128 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `97f0f81bcb92ab2e8adc50bb09d80c2c91c1b68b453a6b035c3b6b5b29288b8c` |
 | **`firmware_01.02.005.bin`** | `v01.02.005` | 2026-11-16 | 1,461,408 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `8464c07717e1286eaccf6c3a3c2ce2ab0e08b85b3ff5af27dc620bf376b45701` |
 | **`firmware_01.02.004.bin`** | `v01.02.004` | 2026-11-16 | 1,461,216 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `a6faa97283cf36768d946bdbbc8b23d350c4bd58be6994c0a9d32bb37d88176e` |
 | **`firmware_01.02.003.bin`** | `v01.02.003` | 2026-11-16 | 1,459,952 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `40900bcffdfb0d295fa89e218ecc70a9dd5f7f2d74dd857044ac44a53c7aaabb` |
@@ -32,6 +33,22 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.03.000`:
+1. **Autonomous SoftAP Captive Portal & Dynamic NVS Provisioning**:
+   - Zero physical disassembly required: moving flats, changing rooms, or updating Wi-Fi passwords no longer requires USB reflashing.
+   - Built-in DNS server (port 53) captures all network probes (`/hotspot-detect.html`, `/generate_204`, `/canonical.html`, `/ncsi.txt`, `/connecttest.txt`) and automatically surfaces the setup portal on Apple iOS, macOS, Android, and Windows devices.
+   - Luxury dark glassmorphism onboarding interface with 2.4GHz channel scanning, SSID selection, password encryption toggle, and one-tap NVS storage.
+2. **In-Dashboard Dynamic Wi-Fi Management**:
+   - Real-time Wi-Fi telemetry in Settings: live connected SSID and signal strength RSSI dBm readout with signal quality categorization.
+   - Interactive "Change Network" panel allows on-the-fly airwave scanning, network selection, and graceful reboot without tearing down the enclosure.
+   - "Reset to Setup Hotspot" action clears NVS credentials and cleanly transitions the ESP32 into `Aura-Studio-Setup` mode.
+3. **Fail-Safe 3-Power-Cycle Emergency Factory Reset**:
+   - Rapidly toggling power 3 times within 4 seconds triggers an emergency factory reset: clears Wi-Fi NVS credentials, and boots directly into SoftAP setup mode.
+   - Visual status beacon: desk WS2812B strip pulses an amber breathing glow (`CRGB(251, 146, 60)`) to signal that the hub is in setup mode awaiting Wi-Fi credentials.
+4. **Partition Memory Safety & Zero Regression**:
+   - Cleanly fits within the 1.44 MB dual-OTA partition budget (`1,486,128 B` used, with `21,200 B` headroom).
+   - 100% byte-for-byte symmetry between `dashboard/` and `firmware/data/` verified.
 
 ### Key Highlights of `v01.02.005`:
 1. **Apple Intelligence / HomePod "Sound Glow" Chromatic Tuning**:
