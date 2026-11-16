@@ -61,18 +61,23 @@ void setup() {
     }
 
     // 2. Initialize Hardware LED Strip
-    ledCtrl.begin();
+    ledCtrl.initHardware();
 
-    // 3. Connect to Wi-Fi
-    Serial.printf("[WiFi] Connecting to %s", DEFAULT_WIFI_SSID);
+    // 3. Connect to Wi-Fi in Background (Non-blocking negotiation on Core 0)
+    Serial.printf("[WiFi] Initiating connection to %s in background...\n", DEFAULT_WIFI_SSID);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.persistent(true);
     WiFi.begin(DEFAULT_WIFI_SSID, DEFAULT_WIFI_PASSWORD);
 
+    // 4. Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
+    // While the fluid wave is actively playing, Wi-Fi connects concurrently!
+    ledCtrl.playSiriBootupAnimation(2500);
+
+    // 5. Finalize Wi-Fi Connection State
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-        delay(500);
+    while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+        delay(150);
         Serial.print(".");
         attempts++;
     }

@@ -46,77 +46,120 @@ CRGB LedDriver::interpolate4Stops(const CRGB stops[4], float t) {
 LedDriver::LedDriver() {}
 
 void LedDriver::begin() {
+    initHardware();
+    playSiriBootupAnimation(2500);
+}
+
+void LedDriver::initHardware() {
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
     FastLED.setCorrection(TypicalLEDStrip);
     FastLED.setTemperature(DirectSunlight); // Calibrate WS2812B raw blue phosphor to D65 daylight
     FastLED.setDither(0); // DISABLE TEMPORAL DITHERING: Completely kills 50Hz/60Hz AC-like glow shimmer!
     FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS); // 1500mA smart safety limiter
     FastLED.setBrightness(255); // Global scaler kept at 255; dimming handled in software via CIE 1931
+    FastLED.clear(true);
+}
 
+void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     Serial.println("\n=======================================================");
-    Serial.println("   [AURA BOOTUP] APPLE SIRI CHROMATIC FLUID WAVE       ");
-    Serial.printf("   Active Pin: GPIO %d | %d LEDs | Dither: OFF | 2000ms\n", LED_PIN, NUM_LEDS);
-    Serial.println("=======================================================");
-
-    // Apple Siri Harmonic Iridescent Ribbon Color Palette
-    const CRGB siriStops[4] = {
-        CRGB(0, 75, 255),    // Deep Electric Azure
-        CRGB(0, 240, 255),   // Siri Luminous Cyan
-        CRGB(210, 15, 245),  // Vibrant Siri Magenta / Violet
-        CRGB(255, 95, 25)    // Warm Sunset Amber Glow
-    };
+    Serial.println("   [AURA BOOTUP] APPLE SIRI HOMEPOD FLUID WAVE       ");
+    Serial.printf("   Active Pin: GPIO %d | %d LEDs | Dither: OFF | %u ms\n", LED_PIN, NUM_LEDS, (unsigned int)durationMs);
+    Serial.println("   Physics: Multi-Wave Solitons (Pink, Cyan, Green, White)");
+    Serial.println("=======================================================\n");
 
     uint32_t bootStart = millis();
-    const uint32_t bootDuration = 2000; // Exactly 2 seconds aesthetic bootup sequence
 
-    while (millis() - bootStart < bootDuration) {
+    while (millis() - bootStart < durationMs) {
         uint32_t elapsed = millis() - bootStart;
-        float tau = (float)elapsed / (float)bootDuration; // 0.0 -> 1.0
+        float tau = (float)elapsed / (float)durationMs; // 0.0 -> 1.0
 
         // Perceptual fade envelope: Smooth cubic ease-in and ease-out
         float envelope;
-        if (tau < 0.18f) {
-            float f = tau / 0.18f;
-            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-in
-        } else if (tau > 0.82f) {
-            float f = (1.0f - tau) / 0.18f;
+        if (tau < 0.15f) {
+            float f = tau / 0.15f;
+            envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-in from black
+        } else if (tau > 0.85f) {
+            float f = (1.0f - tau) / 0.15f;
             envelope = f * f * (3.0f - 2.0f * f); // Smooth ease-out into live state
         } else {
             envelope = 1.0f;
         }
 
-        // Render traveling Siri harmonic ribbon across all 60 LEDs
+        // Render traveling Siri HomePod multi-wave physics across all 60 LEDs
         for (int i = 0; i < NUM_LEDS; i++) {
             float x = (float)i / (float)(NUM_LEDS - 1); // 0.0 -> 1.0
 
-            // Siri dual harmonic traveling waves
-            float wave1 = sinf(6.2831853f * (x * 1.5f - tau * 2.2f));
-            float wave2 = cosf(6.2831853f * ((1.0f - x) * 1.2f - tau * 1.6f));
-            float waveMix = 0.5f + 0.25f * wave1 + 0.25f * wave2;
+            // 1. Domain warping for fluid convection / turbulence
+            float xWarp = x + 0.08f * sinf(6.2831853f * (1.5f * x - 2.2f * tau)) +
+                              0.05f * cosf(6.2831853f * (2.0f * (1.0f - x) + 1.7f * tau));
 
-            // Cyclic palette progression
-            float colorPhase = fmodf(waveMix + tau * 0.9f, 1.0f);
-            if (colorPhase < 0.0f) colorPhase += 1.0f;
+            // 2. Pink Soliton Wave Packet (Siri Neon Pink / Magenta)
+            float pPink = 0.5f + 0.42f * sinf(6.2831853f * (1.2f * tau - 0.25f));
+            float sPink = 0.16f + 0.05f * cosf(6.2831853f * (1.7f * tau));
+            float dPink = (xWarp - pPink) / sPink;
+            float gPink = expf(-0.5f * dPink * dPink);
+            float wPink = 0.5f + 0.5f * cosf(6.2831853f * (2.2f * xWarp - 3.0f * tau));
+            float psiPink = gPink * (0.60f + 0.40f * wPink);
 
-            CRGB rawColor = interpolate4Stops(siriStops, colorPhase);
+            // 3. Cyan Soliton Wave Packet (Siri Electric Cyan / Turquoise)
+            float pCyan = 0.5f - 0.42f * cosf(6.2831853f * (1.4f * tau));
+            float sCyan = 0.17f + 0.04f * sinf(6.2831853f * (1.5f * tau));
+            float dCyan = (xWarp - pCyan) / sCyan;
+            float gCyan = expf(-0.5f * dCyan * dCyan);
+            float wCyan = 0.5f + 0.5f * sinf(6.2831853f * (2.0f * (1.0f - xWarp) - 2.7f * tau));
+            float psiCyan = gCyan * (0.60f + 0.40f * wCyan);
 
-            // Apply envelope and CIE 1931 gamma correction for silky luminance
-            uint8_t dim = constrain((int)(envelope * 255.0f), 0, 255);
-            uint8_t r = scale8(rawColor.r, dim);
-            uint8_t g = scale8(rawColor.g, dim);
-            uint8_t b = scale8(rawColor.b, dim);
+            // 4. Green Radial Diaphragm Pulse (Siri Spring Emerald)
+            float rGreen = 0.22f * (1.0f + sinf(6.2831853f * (1.8f * tau - 0.1f)));
+            float dc = fabsf(xWarp - 0.5f);
+            float dGreen = (dc - rGreen) / 0.13f;
+            float gGreen = expf(-0.5f * dGreen * dGreen);
+            float wGreen = 0.5f + 0.5f * cosf(6.2831853f * (2.8f * dc - 2.3f * tau));
+            float psiGreen = gGreen * (0.55f + 0.45f * wGreen);
 
-            leds[i] = CRGB(pgm_read_byte(&cie1931[r]),
-                           pgm_read_byte(&cie1931[g]),
-                           pgm_read_byte(&cie1931[b]));
+            // 5. White Specular Interference Core (Apple Glass / Luminous Collision Peak)
+            float interf = (psiPink * psiCyan) + (psiCyan * psiGreen) + (psiPink * psiGreen);
+            float eTotal = psiPink + psiCyan + psiGreen;
+            float w1 = powf(constrain((interf - 0.10f) / 0.28f, 0.0f, 1.0f), 1.3f) * 0.95f;
+            float w2 = powf(constrain((eTotal - 0.90f) / 0.45f, 0.0f, 1.0f), 2.0f) * 0.60f;
+            float psiWhite = constrain(w1 + w2, 0.0f, 1.0f);
+
+            // 6. Additive Optical Color Superposition (Physics Superposition Principle)
+            float rRaw = (psiPink * 255.0f + psiGreen * 15.0f + psiWhite * 255.0f) * envelope;
+            float gRaw = (psiPink * 30.0f + psiCyan * 240.0f + psiGreen * 255.0f + psiWhite * 255.0f) * envelope;
+            float bRaw = (psiPink * 150.0f + psiCyan * 255.0f + psiGreen * 110.0f + psiWhite * 255.0f) * envelope;
+
+            // 7. Soft Saturation Normalization (Preserves Chromaticity at Peak Luminance)
+            float maxC = fmaxf(rRaw, fmaxf(gRaw, bRaw));
+            if (maxC > 255.0f) {
+                float scale = 255.0f / maxC;
+                rRaw *= scale;
+                gRaw *= scale;
+                bRaw *= scale;
+            }
+
+            // 8. CIE 1931 Human Perceptual Gamma Encoding
+            uint8_t rByte = constrain((int)(rRaw + 0.5f), 0, 255);
+            uint8_t gByte = constrain((int)(gRaw + 0.5f), 0, 255);
+            uint8_t bByte = constrain((int)(bRaw + 0.5f), 0, 255);
+
+            leds[i] = CRGB(pgm_read_byte(&cie1931[rByte]),
+                           pgm_read_byte(&cie1931[gByte]),
+                           pgm_read_byte(&cie1931[bByte]));
+        }
+
+        // Silicon micro-glitch hardware protection for Pixel 36
+        if (NUM_LEDS > 36) {
+            leds[36] = blend(lastLed36, leds[36], 190);
+            lastLed36 = leds[36];
         }
 
         FastLED.show();
-        delay(16); // 60 FPS
+        delay(16); // Fluid 60 FPS
     }
 
     FastLED.clear(true);
-    Serial.println("[Aura Bootup] Siri Chromatic Sequence Complete! Live Control Initialized.\n");
+    Serial.println("[Aura Bootup] Siri HomePod Fluid Sequence Complete! Resuming Live Functionality.\n");
 }
 
 void LedDriver::effectTestCycle() {

@@ -8,6 +8,8 @@ class LedDriver {
 public:
   LedDriver();
   void begin();
+  void initHardware();
+  void playSiriBootupAnimation(uint32_t durationMs = 2500);
   void update(const DeviceDesk &config, bool masterOn, uint8_t masterBrightness,
               int8_t contrastRatio, bool useGammaCorrection = true,
               const String &onOffAnimation = "gaussian-ripple");
