@@ -33,6 +33,37 @@ Where:
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
 
+### Key Highlights of `v01.02.005`:
+1. **Apple Intelligence / HomePod "Sound Glow" Chromatic Tuning**:
+   - Palette upgraded to Apple's signature iridescent 4-stop spectrum: Electric Orchid (`#EC4899`), Royal Violet / Deep Indigo (`#7C3AED`), Siri Electric Cyan / Azure (`#00F2FE`), and Sunset Amber / Warm Coral (`#FB923C`), crowned with the Specular Diamond White Core (`#FFFFFF`).
+   - Every color pair is optically complementary in additive light space (`.blendMode(.plusLighter)`), eliminating any clashing or muddy transitional zones.
+2. **Sub-Pixel Spatial Diffusion Filter**:
+   - Recreates the HomePod's frosted-glass touch-cap optical low-pass filter using a 3-tap spatial Gaussian blur kernel $[0.15, 0.70, 0.15]$.
+   - Blurs discrete physical LED boundaries into a seamless, continuous ribbon of liquid light.
+3. **3-Phase HomePod Lifecycle Transition**:
+   - **Phase 1 (Center Awakening)**: Bilateral Hermite cubic wake mask expands symmetrically outward from the center (LEDs 29–30).
+   - **Phase 2 (Fluid Convection & Solitons)**: Rotating continuous conic phase field with viscous domain warping and Diamond White collision highlights.
+   - **Phase 3 (Settle & Dissolve)**: Harmonic phase velocity decelerates smoothly by 40%, and luminance dissolves into equilibrium via a silky cosine-damped logarithmic fade ($\cos^2(\cdot)$).
+
+### Key Highlights of `v01.02.004`:
+1. **Multi-Wave Soliton Physics Bootup**:
+   - Replaced crude sequential R, G, B, W bootup tests with a 2500ms 60 FPS multi-wave physics simulation.
+2. **Dual-Core Asynchronous Wi-Fi Initialization**:
+   - Non-blocking `WiFi.begin(...)` initiated *prior* to bootup animation.
+   - Core 1 renders fluid waves while Core 0 completes the WPA2 handshake in the background, completely eliminating the dead-black delay before live lighting starts.
+
+### Key Highlights of `v01.02.003`:
+1. **iPhone 13 & iPhone 16 Viewport Header Fix**:
+   - Resolved header clipping on $\le 430$px screens by collapsing non-critical badges and setting `#btn-master-power` to `display: inline-flex !important; flex-shrink: 0;`.
+2. **Dual Room Power Pill**:
+   - Embedded dedicated `#btn-room-power-card` in the Master Room Controls Card with bidirectional state synchronization to the top header toggle.
+
+### Key Highlights of `v01.02.002`:
+1. **SoundSync Background Tab Worker**:
+   - Implemented Web Audio API audio-reactive worker and throttling to prevent WebSocket disconnects during video streaming in adjacent tabs.
+2. **Desk On/Off Transition Engine**:
+   - Added 4 selectable power transition curves (`gaussian-ripple`, `bilateral-bloom`, `thermal-warmup`, `quantum-sweep`) in Settings.
+
 ### Key Highlights of `v01.02.001`:
 1. **Dual-Target Wireless OTA Flashing**:
    - Web server automatically detects file type: updates firmware (`app0`/`app1` via `U_FLASH`) for `firmware_*.bin`, or filesystem (`spiffs` via `U_SPIFFS`) for `littlefs_*.bin`.
