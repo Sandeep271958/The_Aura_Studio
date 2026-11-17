@@ -1281,253 +1281,309 @@
     <div class="dialog-content glass-panel">
       <div class="dialog-header">
         <div class="dialog-title-group">
-          <h2 class="dialog-title">Network &amp; WiZ Bulb Setup</h2>
-          <p class="dialog-subtitle">Local UDP port 38899 configuration</p>
+          <h2 class="dialog-title">Studio System Settings</h2>
+          <p class="dialog-subtitle">Hardware network, optical tuning, diagnostics &amp; firmware OTA</p>
         </div>
         <button id="btn-close-settings" class="close-btn" aria-label="Close dialog">&times;</button>
       </div>
 
+      <!-- Settings Category Segmented Tab Bar -->
+      <nav class="settings-tabs-bar" role="tablist" aria-label="Settings Categories">
+        <button type="button" class="settings-tab-btn active" role="tab" id="tab-settings-network" aria-selected="true" aria-controls="settings-panel-network" data-settings-tab="network">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+          </svg>
+          <span>Network &amp; WiZ</span>
+        </button>
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-optics" aria-selected="false" aria-controls="settings-panel-optics" data-settings-tab="optics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <span>Lighting &amp; Optics</span>
+        </button>
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-diagnostics" aria-selected="false" aria-controls="settings-panel-diagnostics" data-settings-tab="diagnostics">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+          <span>Diagnostics</span>
+        </button>
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-firmware" aria-selected="false" aria-controls="settings-panel-firmware" data-settings-tab="firmware">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Firmware OTA</span>
+        </button>
+      </nav>
+
       <div class="dialog-body">
-        <!-- WiZ Auto Discovery Section -->
-        <div class="settings-section">
-          <div class="section-inline-header">
-            <h4>WiZ Auto-Discovery</h4>
-            <button id="btn-scan-wiz" class="action-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-on-scan">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-              </svg>
-              <span>Scan Network</span>
-            </button>
-          </div>
-          <p class="section-note">Broadcasts UDP packet <code>{"method":"getSystemConfig"}</code> to find local WiZ
-            bulbs.</p>
-          <div id="discovery-results" class="discovery-list">
-            <div class="empty-state">Click "Scan Network" to discover Philips WiZ bulbs on your local Wi-Fi.</div>
-          </div>
-        </div>
-
-        <!-- Manual IP Configuration -->
-        <div class="settings-section">
-          <h4>Manual IP &amp; Hub Assignments</h4>
-          <div class="ip-form-grid">
-            <div class="form-group">
-              <label for="input-wiz-left-ip">Left Corner WiZ IP</label>
-              <input type="text" id="input-wiz-left-ip" class="custom-input mono" placeholder="192.168.1.101"
-                value="192.168.1.101">
-            </div>
-            <div class="form-group">
-              <label for="input-wiz-right-ip">Right Corner WiZ IP</label>
-              <input type="text" id="input-wiz-right-ip" class="custom-input mono" placeholder="192.168.1.102"
-                value="192.168.1.102">
-            </div>
-            <div class="form-group" style="grid-column: span 2">
-              <label for="input-hub-host">Smart Light Hub Address (mDNS or IP)</label>
-              <input type="text" id="input-hub-host" class="custom-input mono" placeholder="aura-hub.local"
-                value="aura-hub.local">
-              <p class="section-note" style="margin-top:4px">Target ESP32 host used when running the dashboard locally
-                from <code>http://localhost</code>.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Browser Security & Media Permissions (Secure Context) -->
-        <div class="settings-section">
-          <div class="section-inline-header">
-            <div>
-              <h4>Browser Security &amp; Permissions</h4>
-              <p class="section-note">W3C Secure Context status for Screen Share (Ambilight) and Microphone (SoundSync).
-              </p>
-            </div>
-            <button id="btn-open-security-guide" class="action-btn-sm" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                style="width:14px;height:14px">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              </svg>
-              <span>Setup Guide</span>
-            </button>
-          </div>
-          <div class="security-mini-card">
-            <span class="security-mini-label">CURRENT CONTEXT:</span>
-            <span id="security-status-badge" class="badge-secure-status">Checking...</span>
-          </div>
-        </div>
-
-        <!-- Advanced Gamma Correction Toggle -->
-        <div class="settings-section">
-          <h4>Optical Tuning</h4>
-          <div class="section-inline-header">
-            <div>
-              <strong style="font-size:0.8rem">Perceptual CIE 1931 Gamma Curve</strong>
-              <p class="section-note">Applies logarithmic dimming curve ($Y = X^{2.2}$) for smooth, luxury dimming.</p>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="toggle-gamma" checked>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Desk Strip On/Off Transition Animation Section -->
-        <div class="settings-section">
-          <h4>Desk Strip On/Off Transition</h4>
-          <p class="section-note">Select the physical ignition &amp; collapse animation for the WS2812B desktop strip.
-          </p>
-          <div class="setting-select-wrap">
-            <select id="select-onoff-anim" class="custom-select mono" aria-label="Desk Strip On/Off Animation">
-              <option value="gaussian-ripple" selected>Option 4: Gaussian Harmonic Ripple (Default)</option>
-              <option value="bilateral-bloom">Option 1: Bilateral Bloom &amp; Horizon Collapse</option>
-              <option value="thermal-warmup">Option 2: Planckian Thermal Glow (Halogen Filament)</option>
-              <option value="quantum-sweep">Option 3: Fluid Quantum Ion Sweep</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- ESP32 Hub Diagnostics -->
-        <div class="settings-section">
-          <h4>ESP32 Hub Telemetry</h4>
-          <div class="telemetry-grid">
-            <div class="telem-box">
-              <span class="telem-key">HUB IP</span>
-              <span id="telem-hub-ip" class="telem-val mono">192.168.1.99</span>
-            </div>
-            <div class="telem-box">
-              <span class="telem-key">WI-FI RSSI</span>
-              <span id="telem-hub-rssi" class="telem-val mono">-52 dBm (Excellent)</span>
-            </div>
-            <div class="telem-box">
-              <span class="telem-key">UPTIME</span>
-              <span id="telem-hub-uptime" class="telem-val mono">14h 22m</span>
-            </div>
-            <div class="telem-box">
-              <span class="telem-key">WS2812B FPS</span>
-              <span id="telem-hub-fps" class="telem-val mono">60.2 FPS</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Wi-Fi & Network Provisioning Section -->
-        <div class="settings-section">
-          <div class="section-inline-header">
-            <div>
-              <h4>Wi-Fi &amp; Network Provisioning</h4>
-              <p class="section-note">Dynamic NVS Wi-Fi credentials management &amp; Setup Mode Hotspot</p>
-            </div>
-            <button id="btn-toggle-wifi-change" class="action-btn-sm" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
-                <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
-              </svg>
-              <span>Change Network</span>
-            </button>
-          </div>
-
-          <div class="telemetry-grid" style="margin-bottom:12px">
-            <div class="telem-box">
-              <span class="telem-key">CONNECTED SSID</span>
-              <span id="wifi-current-ssid" class="telem-val mono">--</span>
-            </div>
-            <div class="telem-box">
-              <span class="telem-key">WI-FI RSSI</span>
-              <span id="wifi-current-rssi" class="telem-val mono">--</span>
-            </div>
-          </div>
-
-          <!-- Expandable Network Change Form (collapsed by default) -->
-          <div id="wifi-change-panel" class="hidden" style="margin-top:12px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
-              <span style="font-size:0.75rem; font-weight:700; letter-spacing:1px; color:var(--accent-cyan); text-transform:uppercase">Scan &amp; Reconfigure Wi-Fi</span>
-              <button type="button" id="btn-scan-wifi" class="action-btn-sm">
-                <span>⚡ Scan Nearby Networks</span>
+        <!-- TAB 1: Network & WiZ Provisioning -->
+        <div id="settings-panel-network" class="settings-tab-panel active" role="tabpanel" aria-labelledby="tab-settings-network">
+          <!-- Wi-Fi & Network Provisioning Section -->
+          <div class="settings-section">
+            <div class="section-inline-header">
+              <div>
+                <h4>Wi-Fi &amp; Network Provisioning</h4>
+                <p class="section-note">Dynamic NVS Wi-Fi credentials management &amp; Setup Mode Hotspot</p>
+              </div>
+              <button id="btn-toggle-wifi-change" class="action-btn-sm" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
+                </svg>
+                <span>Change Network</span>
               </button>
             </div>
 
-            <div class="form-group" style="margin-bottom:12px">
-              <label for="select-wifi-networks">Discovered 2.4GHz Networks</label>
-              <select id="select-wifi-networks" class="custom-select mono">
-                <option value="">Select a network or enter below...</option>
-              </select>
+            <div class="telemetry-grid" style="margin-bottom:12px">
+              <div class="telem-box">
+                <span class="telem-key">CONNECTED SSID</span>
+                <span id="wifi-current-ssid" class="telem-val mono">--</span>
+              </div>
+              <div class="telem-box">
+                <span class="telem-key">WI-FI RSSI</span>
+                <span id="wifi-current-rssi" class="telem-val mono">--</span>
+              </div>
             </div>
 
-            <div class="ip-form-grid" style="margin-bottom:12px">
-              <div class="form-group">
-                <label for="input-wifi-ssid">Network Name (SSID)</label>
-                <input type="text" id="input-wifi-ssid" class="custom-input mono" placeholder="Wi-Fi SSID">
+            <!-- Expandable Network Change Form (collapsed by default) -->
+            <div id="wifi-change-panel" class="hidden" style="margin-top:12px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+                <span style="font-size:0.75rem; font-weight:700; letter-spacing:1px; color:var(--accent-cyan); text-transform:uppercase">Scan &amp; Reconfigure Wi-Fi</span>
+                <button type="button" id="btn-scan-wifi" class="action-btn-sm">
+                  <span>⚡ Scan Nearby Networks</span>
+                </button>
               </div>
-              <div class="form-group">
-                <label for="input-wifi-pass">Wi-Fi Password</label>
-                <div style="position:relative">
-                  <input type="password" id="input-wifi-pass" class="custom-input mono" placeholder="Password">
-                  <button type="button" id="btn-toggle-wifi-pass-visibility" class="action-btn-sm" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); padding:4px 8px; font-size:11px" title="Toggle password visibility">👁</button>
+
+              <div class="form-group" style="margin-bottom:12px">
+                <label for="select-wifi-networks">Discovered 2.4GHz Networks</label>
+                <select id="select-wifi-networks" class="custom-select mono">
+                  <option value="">Select a network or enter below...</option>
+                </select>
+              </div>
+
+              <div class="ip-form-grid" style="margin-bottom:12px">
+                <div class="form-group">
+                  <label for="input-wifi-ssid">Network Name (SSID)</label>
+                  <input type="text" id="input-wifi-ssid" class="custom-input mono" placeholder="Wi-Fi SSID">
+                </div>
+                <div class="form-group">
+                  <label for="input-wifi-pass">Wi-Fi Password</label>
+                  <div style="position:relative">
+                    <input type="password" id="input-wifi-pass" class="custom-input mono" placeholder="Password">
+                    <button type="button" id="btn-toggle-wifi-pass-visibility" class="action-btn-sm" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); padding:4px 8px; font-size:11px" title="Toggle password visibility">👁</button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px">
-              <button type="button" id="btn-submit-wifi-change" class="primary-btn" style="flex:1">Save &amp; Connect</button>
-              <button type="button" id="btn-reset-wifi" class="action-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3)" title="Clears Wi-Fi credentials and launches Aura-Studio-Setup hotspot">Reset to Setup Hotspot</button>
-            </div>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px">
+                <button type="button" id="btn-submit-wifi-change" class="primary-btn" style="flex:1">Save &amp; Connect</button>
+                <button type="button" id="btn-reset-wifi" class="action-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3)" title="Clears Wi-Fi credentials and launches Aura-Studio-Setup hotspot">Reset to Setup Hotspot</button>
+              </div>
 
-            <div id="wifi-status-feedback" class="section-note" style="margin-top:10px; display:none"></div>
-          </div>
-        </div>
-
-        <!-- Wireless Firmware OTA Update Section -->
-        <div class="settings-section">
-          <div class="section-inline-header">
-            <h4>Wireless Firmware &amp; UI Update (OTA)</h4>
-            <span class="badge-ota-status" id="badge-firmware-version">v01.04.001</span>
-          </div>
-          <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or
-            <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
-
-          <div class="ota-compact-bar" id="ota-drop-zone">
-            <input type="file" id="input-ota-file" accept=".bin" style="display:none">
-            <div class="ota-file-info">
-              <span class="ota-status-dot"></span>
-              <span class="ota-file-name mono" id="ota-file-label">Choose or drag .bin file...</span>
-              <span class="ota-file-meta mono" id="ota-file-size">Dual Slot</span>
-            </div>
-            <div class="ota-btn-group">
-              <button type="button" id="btn-select-ota-file" class="action-btn">Browse</button>
-              <button type="button" id="btn-start-ota-upload" class="primary-btn btn-ota-compact" disabled>Flash
-                OTA</button>
+              <div id="wifi-status-feedback" class="section-note" style="margin-top:10px; display:none"></div>
             </div>
           </div>
 
-          <!-- Real-time Progress Bar & Status -->
-          <div id="ota-progress-container" class="ota-progress-container hidden">
-            <div class="ota-progress-bar-bg">
-              <div id="ota-progress-bar" class="ota-progress-bar-fill"></div>
+          <!-- WiZ Auto Discovery Section -->
+          <div class="settings-section">
+            <div class="section-inline-header">
+              <div>
+                <h4>Philips WiZ Auto-Discovery</h4>
+                <p class="section-note">Broadcasts UDP packet <code>{"method":"getSystemConfig"}</code> on port 38899.</p>
+              </div>
+              <button id="btn-scan-wiz" class="action-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-on-scan">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                <span>Scan Network</span>
+              </button>
             </div>
-            <div class="ota-progress-meta">
-              <span id="ota-status-text" class="ota-status-text">Uploading firmware... 0%</span>
-              <span id="ota-pct-text" class="ota-pct-text mono">0%</span>
+            <div id="discovery-results" class="discovery-list">
+              <div class="empty-state">Click "Scan Network" to discover Philips WiZ bulbs on your local Wi-Fi.</div>
             </div>
           </div>
-        </div>
 
-        <!-- Hardware & Pixel Diagnostics Section -->
-        <div class="settings-section">
-          <h4>Hardware &amp; Pixel Diagnostic</h4>
-          <p class="section-note">Inspect individual WS2812B LEDs (0 to 59) to test continuity and pinpoint physical
-            solder glitches.</p>
-          <div class="pixel-diag-row">
-            <div class="row-header">
-              <span class="row-label">Pixel Under Test:</span>
-              <div class="pixel-diag-status-wrap">
-                <span id="val-pixel-diag" class="row-val mono">None (Normal Mode)</span>
-                <button type="button" id="btn-pixel-diag-reset" class="action-btn-sm"
-                  title="Restore normal lighting mode">Restore All LEDs</button>
+          <!-- Manual IP Configuration -->
+          <div class="settings-section">
+            <h4>Manual IP &amp; Hub Host Assignments</h4>
+            <div class="ip-form-grid">
+              <div class="form-group">
+                <label for="input-wiz-left-ip">Left Corner WiZ IP</label>
+                <input type="text" id="input-wiz-left-ip" class="custom-input mono" placeholder="192.168.1.101"
+                  value="192.168.1.101">
+              </div>
+              <div class="form-group">
+                <label for="input-wiz-right-ip">Right Corner WiZ IP</label>
+                <input type="text" id="input-wiz-right-ip" class="custom-input mono" placeholder="192.168.1.102"
+                  value="192.168.1.102">
+              </div>
+              <div class="form-group" style="grid-column: span 2">
+                <label for="input-hub-host">Smart Light Hub Address (mDNS or IP)</label>
+                <input type="text" id="input-hub-host" class="custom-input mono" placeholder="aura-hub.local"
+                  value="aura-hub.local">
+                <p class="section-note" style="margin-top:4px">Target ESP32 host used when running the dashboard locally
+                  from <code>http://localhost</code>.</p>
               </div>
             </div>
-            <input type="range" id="slider-pixel-diag" class="custom-range" min="-1" max="59" value="-1"
-              aria-label="Individual Pixel Diagnostic Index">
           </div>
         </div>
 
-        <!-- Test Ping Action -->
-        <div class="settings-actions">
-          <button id="btn-save-settings" class="primary-btn">Save &amp; Apply</button>
+        <!-- TAB 2: Lighting & Optics -->
+        <div id="settings-panel-optics" class="settings-tab-panel" role="tabpanel" aria-labelledby="tab-settings-optics" hidden>
+          <!-- Advanced Gamma Correction Toggle -->
+          <div class="settings-section">
+            <h4>Optical Dimming &amp; Perceptual Gamma</h4>
+            <div class="section-inline-header">
+              <div>
+                <strong style="font-size:0.84rem; color:#fff">Perceptual CIE 1931 Gamma Curve ($Y = X^{2.2}$)</strong>
+                <p class="section-note" style="margin-top:4px">Applies human eye logarithmic luminance curve for ultra-smooth dimming and rich, banding-free shadows.</p>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggle-gamma" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Desk Strip On/Off Transition Animation Section -->
+          <div class="settings-section">
+            <h4>Desk Strip Power Ignition &amp; Collapse</h4>
+            <p class="section-note">Select the physical ignition &amp; collapse animation for the WS2812B desktop strip.
+            </p>
+            <div class="setting-select-wrap">
+              <select id="select-onoff-anim" class="custom-select mono" aria-label="Desk Strip On/Off Animation">
+                <option value="gaussian-ripple" selected>Option 4: Gaussian Harmonic Ripple (Default)</option>
+                <option value="bilateral-bloom">Option 1: Bilateral Bloom &amp; Horizon Collapse</option>
+                <option value="thermal-warmup">Option 2: Planckian Thermal Glow (Halogen Filament)</option>
+                <option value="quantum-sweep">Option 3: Fluid Quantum Ion Sweep</option>
+              </select>
+            </div>
+          </div>
         </div>
+
+        <!-- TAB 3: Diagnostics & Telemetry -->
+        <div id="settings-panel-diagnostics" class="settings-tab-panel" role="tabpanel" aria-labelledby="tab-settings-diagnostics" hidden>
+          <!-- ESP32 Hub Diagnostics -->
+          <div class="settings-section">
+            <h4>ESP32 Hub Telemetry &amp; Performance</h4>
+            <div class="telemetry-grid">
+              <div class="telem-box">
+                <span class="telem-key">HUB IP</span>
+                <span id="telem-hub-ip" class="telem-val mono">192.168.1.99</span>
+              </div>
+              <div class="telem-box">
+                <span class="telem-key">WI-FI RSSI</span>
+                <span id="telem-hub-rssi" class="telem-val mono">-52 dBm (Excellent)</span>
+              </div>
+              <div class="telem-box">
+                <span class="telem-key">UPTIME</span>
+                <span id="telem-hub-uptime" class="telem-val mono">14h 22m</span>
+              </div>
+              <div class="telem-box">
+                <span class="telem-key">WS2812B FPS</span>
+                <span id="telem-hub-fps" class="telem-val mono">60.2 FPS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hardware & Pixel Diagnostics Section -->
+          <div class="settings-section">
+            <div class="section-inline-header">
+              <h4>Hardware Pixel Diagnostic</h4>
+              <button type="button" id="btn-pixel-diag-reset" class="action-btn-sm"
+                title="Restore normal lighting mode">Restore All LEDs</button>
+            </div>
+            <p class="section-note">Isolate individual WS2812B LEDs (0 to 59) to test continuity and pinpoint physical
+              solder glitches.</p>
+            <div class="pixel-diag-row">
+              <div class="row-header">
+                <span class="row-label">Pixel Under Test:</span>
+                <div class="pixel-diag-status-wrap">
+                  <span id="val-pixel-diag" class="row-val mono">None (Normal Mode)</span>
+                </div>
+              </div>
+              <input type="range" id="slider-pixel-diag" class="custom-range" min="-1" max="59" value="-1"
+                aria-label="Individual Pixel Diagnostic Index">
+            </div>
+          </div>
+
+          <!-- Browser Security & Media Permissions (Secure Context) -->
+          <div class="settings-section">
+            <div class="section-inline-header">
+              <div>
+                <h4>Browser Security &amp; Permissions</h4>
+                <p class="section-note">W3C Secure Context status for Screen Share (Ambilight) and Microphone (SoundSync).</p>
+              </div>
+              <button id="btn-open-security-guide" class="action-btn-sm" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  style="width:14px;height:14px">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Setup Guide</span>
+              </button>
+            </div>
+            <div class="security-mini-card">
+              <span class="security-mini-label">CURRENT CONTEXT:</span>
+              <span id="security-status-badge" class="badge-secure-status">Checking...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Firmware OTA -->
+        <div id="settings-panel-firmware" class="settings-tab-panel" role="tabpanel" aria-labelledby="tab-settings-firmware" hidden>
+          <!-- Wireless Firmware OTA Update Section -->
+          <div class="settings-section">
+            <div class="section-inline-header">
+              <div>
+                <h4>Wireless Dual-Partition OTA</h4>
+                <p class="section-note">Zero-downtime updates with automatic rollback protection.</p>
+              </div>
+              <span class="badge-ota-status" id="badge-firmware-version">v01.05.000</span>
+            </div>
+            <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or
+              <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
+
+            <div class="ota-compact-bar" id="ota-drop-zone">
+              <input type="file" id="input-ota-file" accept=".bin" style="display:none">
+              <div class="ota-file-info">
+                <span class="ota-status-dot"></span>
+                <span class="ota-file-name mono" id="ota-file-label">Choose or drag .bin file...</span>
+                <span class="ota-file-meta mono" id="ota-file-size">Dual Slot</span>
+              </div>
+              <div class="ota-btn-group">
+                <button type="button" id="btn-select-ota-file" class="action-btn">Browse</button>
+                <button type="button" id="btn-start-ota-upload" class="primary-btn btn-ota-compact" disabled>Flash
+                  OTA</button>
+              </div>
+            </div>
+
+            <!-- Real-time Progress Bar & Status -->
+            <div id="ota-progress-container" class="ota-progress-container hidden">
+              <div class="ota-progress-bar-bg">
+                <div id="ota-progress-bar" class="ota-progress-bar-fill"></div>
+              </div>
+              <div class="ota-progress-meta">
+                <span id="ota-status-text" class="ota-status-text">Uploading firmware... 0%</span>
+                <span id="ota-pct-text" class="ota-pct-text mono">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Actions (Sticky Footer) -->
+      <div class="settings-actions">
+        <span class="settings-actions-hint mono">Persistent Flash NVS</span>
+        <button id="btn-save-settings" class="primary-btn">Save &amp; Apply</button>
       </div>
     </div>
   </dialog>

@@ -2549,6 +2549,32 @@ function bindEvents() {
     updateSecurityContextUI();
   });
 
+  // Settings Dialog Category Tabs
+  const settingsTabBtns = document.querySelectorAll('.settings-tab-btn');
+  const settingsTabPanels = document.querySelectorAll('.settings-tab-panel');
+  function switchSettingsTab(target) {
+    settingsTabBtns.forEach(b => {
+      const isMatch = (b.dataset.settingsTab === target);
+      b.classList.toggle('active', isMatch);
+      b.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+    settingsTabPanels.forEach(panel => {
+      const isMatch = (panel.id === `settings-panel-${target}`);
+      panel.classList.toggle('active', isMatch);
+      if (isMatch) {
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', '');
+      }
+    });
+  }
+  settingsTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      triggerHaptic('light');
+      switchSettingsTab(btn.dataset.settingsTab);
+    });
+  });
+
   DOM.btnCloseSettings.addEventListener('click', () => {
     triggerHaptic('light');
     DOM.modalSettings.close();

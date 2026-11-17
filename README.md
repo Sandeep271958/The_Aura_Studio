@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.04.001-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.05.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.04.001.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.05.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -606,6 +606,46 @@ When smart lighting hubs experience an apartment power outage or are replugged:
 
 ---
 
+## 🎛️ Clean Architectural Settings Deck (`v01.05.000`)
+
+### 🛑 The Problem with Growing IoT Configuration Panels
+As The Aura Studio expanded to introduce Wi-Fi captive provisioning, CIE 1931 perceptual gamma tuning, desk ignition physics animations, real-time hub telemetry, pixel hardware diagnostics, and dual-OTA web flashing, the settings modal grew into an endless 9-section vertical wall. Users had to scroll through dense technical controls to find everyday network options.
+
+### ✨ The Redesigned Segmented Settings Deck
+In **`v01.05.000`**, the settings deck was completely reimagined into a clean, modern, card-based interface with segmented category navigation adhering to WAI-ARIA standards:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  The Aura Studio Reimagined Settings Architecture (v01.05.000)        │
+│                                                                        │
+│  [ Studio System Settings ] ────────────────────────────── [ ✕ Close ] │
+│                                                                        │
+│  ┌───────────────────┬───────────────────┬──────────────┬───────────┐  │
+│  │ 🌐 Network & WiZ  │ 💡 Optics & Strip │ 📊 Telemetry │ ⚡ OTA    │  │
+│  └───────────────────┴───────────────────┴──────────────┴───────────┘  │
+│                                                                        │
+│  [ Dynamic Glassmorphic Card Container ]                               │
+│  • Focused, uncluttered layout: only relevant controls are displayed   │
+│  • Smooth cubic-bezier transitions between categories                  │
+│  • Dedicated scroll container with custom minimalist scrollbars        │
+│                                                                        │
+│  ────────────────────────────────────────────────────────────────────  │
+│  [ 🟢 Persistent Flash NVS ]                 [ Save & Apply Settings ] │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Segmented Category Navigation:**
+   - **🌐 Network & WiZ:** Live Wi-Fi connection telemetry, on-the-fly network re-provisioning scanner, UDP 38899 Philips WiZ bulb auto-discovery, manual IP assignments, and mDNS Hub host address.
+   - **💡 Lighting & Optics:** Perceptual CIE 1931 logarithmic gamma dimming curve toggle ($Y = X^{2.2}$) and WS2812B desk strip physical ignition & collapse dropdown (Gaussian Harmonic Ripple, Bilateral Bloom, Planckian Thermal Glow, Fluid Quantum Ion Sweep).
+   - **📊 Diagnostics & Stats:** Real-time ESP32 hub telemetry (IP, Wi-Fi RSSI, uptime, 60 FPS monitor), individual pixel continuity diagnostic slider (-1 to 59) with one-click restore, and W3C Secure Context status for Screen Share & Mic permissions.
+   - **⚡ Firmware OTA:** Wireless dual-partition OTA engine (`ota_0`/`ota_1`), drag-and-drop firmware upload zone, live upload progress bar, and instant version registry badge (`v01.05.000`).
+2. **Persistent Sticky Action Footer:**
+   - The **Save & Apply** button and persistent flash NVS indicator are anchored to the bottom of the dialog, ensuring instant one-click saving without scrolling.
+3. **Ergonomic & Accessible UX:**
+   - Uses `role="tablist"`, `role="tab"`, and `role="tabpanel"` with ARIA attributes and haptic feedback for smooth mobile and desktop interaction.
+
+---
+
 ## 🛡️ Anti-Flicker Hardware & Firmware Engineering
 
 To guarantee zero LED flicker, strobing, or AC shimmer across high-intensity fluid physics animations:
@@ -652,8 +692,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.04.001.bin     # Production Dual-OTA Release Binary (v01.04.001)
-│   ├── littlefs_01.04.001.bin     # Web Dashboard LittleFS Release Binary (v01.04.001)
+│   ├── firmware_01.05.000.bin     # Production Dual-OTA Release Binary (v01.05.000)
+│   ├── littlefs_01.05.000.bin     # Web Dashboard LittleFS Release Binary (v01.05.000)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes
