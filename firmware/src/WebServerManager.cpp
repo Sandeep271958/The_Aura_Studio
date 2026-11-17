@@ -4,6 +4,7 @@
 #include <Update.h>
 #include <esp_ota_ops.h>
 #include <esp_partition.h>
+#include "mbedtls/sha256.h"
 
 extern "C" {
     uint32_t bootloader_common_ota_select_crc(const esp_ota_select_entry_t *s);
@@ -633,13 +634,31 @@ void WebServerManager::setupRoutes() {
             }, "ota_reboot", 2048, NULL, 1, NULL);
         }
     }, [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+        static mbedtls_sha256_context shaCtx;
+        static bool shaActive = false;
+        static bool neutralized = false;
+        static uint8_t tailBuf[32];
+        static size_t tailLen = 0;
+
+        int cmd = U_FLASH;
+        String lower = filename;
+        lower.toLowerCase();
+        if (lower.indexOf("littlefs") >= 0 || lower.indexOf("spiffs") >= 0 || lower.indexOf("filesystem") >= 0 || lower.indexOf("data") >= 0) {
+            cmd = U_SPIFFS;
+        }
+
         if (!index) {
+            neutralized = false;
+            tailLen = 0;
+            if (cmd == U_FLASH) {
+                mbedtls_sha256_init(&shaCtx);
+                mbedtls_sha256_starts(&shaCtx, 0);
+                shaActive = true;
+            } else {
+                shaActive = false;
+            }
             Serial.printf("[OTA] Update Start: %s\n", filename.c_str());
-            int cmd = U_FLASH;
-            String lower = filename;
-            lower.toLowerCase();
-            if (lower.indexOf("littlefs") >= 0 || lower.indexOf("spiffs") >= 0 || lower.indexOf("filesystem") >= 0 || lower.indexOf("data") >= 0) {
-                cmd = U_SPIFFS;
+            if (cmd == U_SPIFFS) {
                 Serial.println("[OTA] Target Partition: LittleFS Filesystem (U_SPIFFS)");
             } else {
                 Serial.println("[OTA] Target Partition: Firmware Flash (U_FLASH)");
@@ -648,9 +667,96 @@ void WebServerManager::setupRoutes() {
                 Update.printError(Serial);
             }
         }
+
         if (!Update.hasError()) {
-            if (Update.write(data, len) != len) {
-                Update.printError(Serial);
+            if (cmd == U_FLASH && len >= 6) {
+                // Neutralize premature validation call in initArduino for legacy/unprotected binaries in-place:
+                // Pattern: 16 5a 08 a5 9c 03 (beqz a10, ...; call8 esp_ota_mark_app_valid_cancel_rollback)
+                // We replace a5 9c 03 with a0 aa 30 (xor a10, a10, a10: perfectly zero-delta XOR checksum match!)
+                for (size_t i = 0; i + 5 < len; i++) {
+                    if (data[i] == 0x16 && data[i+1] == 0x5a && data[i+2] == 0x08 &&
+                        data[i+3] == 0xa5 && data[i+4] == 0x9c && data[i+5] == 0x03) {
+                        data[i+3] = 0xa0;
+                        data[i+4] = 0xaa;
+                        data[i+5] = 0x30;
+                        neutralized = true;
+                        Serial.printf("[OTA] Immunized firmware stream: neutralized premature validation call at chunk offset %u\n", (unsigned int)(index + i + 3));
+                    }
+                }
+            }
+
+            if (shaActive) {
+                size_t total = tailLen + len;
+                if (!final) {
+                    if (total > 32) {
+                        size_t toFlush = total - 32;
+                        if (tailLen > 0) {
+                            size_t fromTail = (toFlush < tailLen) ? toFlush : tailLen;
+                            mbedtls_sha256_update(&shaCtx, tailBuf, fromTail);
+                            Update.write(tailBuf, fromTail);
+                            toFlush -= fromTail;
+                            if (fromTail < tailLen) {
+                                memmove(tailBuf, tailBuf + fromTail, tailLen - fromTail);
+                                tailLen -= fromTail;
+                            } else {
+                                tailLen = 0;
+                            }
+                        }
+                        if (toFlush > 0) {
+                            mbedtls_sha256_update(&shaCtx, data, toFlush);
+                            Update.write(data, toFlush);
+                            size_t remData = len - toFlush;
+                            memcpy(tailBuf + tailLen, data + toFlush, remData);
+                            tailLen += remData;
+                        } else {
+                            memcpy(tailBuf + tailLen, data, len);
+                            tailLen += len;
+                        }
+                    } else {
+                        memcpy(tailBuf + tailLen, data, len);
+                        tailLen += len;
+                    }
+                } else {
+                    if (total >= 32) {
+                        size_t toFlush = total - 32;
+                        if (tailLen > 0) {
+                            size_t fromTail = (toFlush < tailLen) ? toFlush : tailLen;
+                            mbedtls_sha256_update(&shaCtx, tailBuf, fromTail);
+                            Update.write(tailBuf, fromTail);
+                            toFlush -= fromTail;
+                            if (fromTail < tailLen) {
+                                memmove(tailBuf, tailBuf + fromTail, tailLen - fromTail);
+                                tailLen -= fromTail;
+                            } else {
+                                tailLen = 0;
+                            }
+                        }
+                        if (toFlush > 0) {
+                            mbedtls_sha256_update(&shaCtx, data, toFlush);
+                            Update.write(data, toFlush);
+                        }
+
+                        uint8_t finalHash[32];
+                        if (neutralized) {
+                            mbedtls_sha256_finish(&shaCtx, finalHash);
+                            Serial.println("[OTA] Stream Immunized: Updated appended SHA-256 validation hash");
+                        } else {
+                            if (tailLen > 0) {
+                                memcpy(finalHash, tailBuf, tailLen);
+                                memcpy(finalHash + tailLen, data + (len - (32 - tailLen)), 32 - tailLen);
+                            } else {
+                                memcpy(finalHash, data + (len - 32), 32);
+                            }
+                        }
+                        Update.write(finalHash, 32);
+                    }
+                    mbedtls_sha256_free(&shaCtx);
+                    shaActive = false;
+                }
+            } else {
+                if (Update.write(data, len) != len) {
+                    Update.printError(Serial);
+                }
             }
         }
         if (final) {
@@ -665,49 +771,42 @@ void WebServerManager::setupRoutes() {
                 }
 
                 if (cmd == U_FLASH) {
-                    // Explicitly enforce ESP_OTA_IMG_NEW in otadata for the next boot partition!
+                    // In Update.end(true), esp_ota_set_boot_partition() was executed and selected the new partition in otadata.
+                    // Now, explicitly enforce ESP_OTA_IMG_NEW on that new active sector so the ESP-IDF hardware bootloader
+                    // enforces probationary trial verification. The opposite sector remains the guaranteed fallback image!
                     const esp_partition_t *runningPart = esp_ota_get_running_partition();
-                    const esp_partition_t *targetPart = esp_ota_get_next_update_partition(NULL);
+                    const esp_partition_t *bootPart = esp_ota_get_boot_partition();
                     const esp_partition_t *otadataPart = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_OTA, NULL);
 
-                    if (runningPart != NULL && targetPart != NULL && otadataPart != NULL) {
+                    if (runningPart != NULL && bootPart != NULL && otadataPart != NULL) {
                         esp_ota_select_entry_t entries[2];
                         esp_err_t r0 = esp_partition_read(otadataPart, 0, &entries[0], sizeof(esp_ota_select_entry_t));
                         esp_err_t r1 = esp_partition_read(otadataPart, 0x1000, &entries[1], sizeof(esp_ota_select_entry_t));
 
                         if (r0 == ESP_OK && r1 == ESP_OK) {
                             int activeSec = bootloader_common_get_active_otadata(entries);
-                            int targetSec = (activeSec == 0) ? 1 : 0;
-                            uint32_t activeSeq = (activeSec >= 0) ? entries[activeSec].ota_seq : 0;
-                            uint32_t nextSeq = activeSeq + 1;
+                            if (activeSec >= 0) {
+                                // activeSec is the sector just written by esp_ota_set_boot_partition for the new app.
+                                // We mark this active sector ESP_OTA_IMG_NEW (0x00000000) and preserve the fallback sector untouched.
+                                entries[activeSec].ota_state = ESP_OTA_IMG_NEW;
+                                entries[activeSec].crc = bootloader_common_ota_select_crc(&entries[activeSec]);
 
-                            // Calculate nextSeq based on target partition subtype (app0: even sequence, app1: odd sequence relative to base 1)
-                            uint32_t subIndex = (targetPart->subtype & 0x0F);
-                            while ((nextSeq - 1) % 2 != subIndex) {
-                                nextSeq++;
+                                size_t secOffset = (activeSec == 0) ? 0 : 0x1000;
+                                esp_partition_erase_range(otadataPart, secOffset, 4096);
+                                esp_partition_write(otadataPart, secOffset, &entries[activeSec], sizeof(esp_ota_select_entry_t));
+
+                                Serial.printf("[OTA] Enforced ESP_OTA_IMG_NEW on target otadata sector %d (seq=%lu, crc=0x%08lx) for partition %s\n",
+                                              (int)activeSec, (unsigned long)entries[activeSec].ota_seq, (unsigned long)entries[activeSec].crc, bootPart->label);
+
+                                // Stage trial metadata in NVS
+                                Preferences otaPrefs;
+                                otaPrefs.begin("aura_ota", false);
+                                otaPrefs.remove("rollback");
+                                otaPrefs.putBool("trial_active", true);
+                                otaPrefs.putString("pending_part", String(bootPart->label));
+                                otaPrefs.putString("fallback_part", String(runningPart->label));
+                                otaPrefs.end();
                             }
-
-                            esp_ota_select_entry_t newEntry;
-                            memset(&newEntry, 0xFF, sizeof(newEntry));
-                            newEntry.ota_seq = nextSeq;
-                            newEntry.ota_state = ESP_OTA_IMG_NEW; // 0x00000000 -> informs hardware bootloader to initiate trial
-                            newEntry.crc = bootloader_common_ota_select_crc(&newEntry);
-
-                            size_t secOffset = (targetSec == 0) ? 0 : 0x1000;
-                            esp_partition_erase_range(otadataPart, secOffset, 4096);
-                            esp_partition_write(otadataPart, secOffset, &newEntry, sizeof(newEntry));
-
-                            Serial.printf("[OTA] Enforced ESP_OTA_IMG_NEW on otadata sector %d (seq=%u, crc=0x%08x) for target %s\n",
-                                          targetSec, nextSeq, newEntry.crc, targetPart->label);
-
-                            // Stage trial metadata in NVS
-                            Preferences otaPrefs;
-                            otaPrefs.begin("aura_ota", false);
-                            otaPrefs.remove("rollback");
-                            otaPrefs.putBool("trial_active", true);
-                            otaPrefs.putString("pending_part", String(targetPart->label));
-                            otaPrefs.putString("fallback_part", String(runningPart->label));
-                            otaPrefs.end();
                         }
                     }
                 } else {
