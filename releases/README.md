@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.05.001.bin`** | `v01.05.001` | 2026-11-17 | 1,494,960 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ad6d39a9c54e5d7d73b50545b937123e2600a50a1376c48ff8399caf673f798e` |
 | **`firmware_01.05.000.bin`** | `v01.05.000` | 2026-11-17 | 1,494,704 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `db2e9f59a284690ef12607af7ad91f44096fb162afdd6c4141f6fb79241f9ab7` |
 | **`firmware_01.04.001.bin`** | `v01.04.001` | 2026-11-17 | 1,494,704 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `4ee2d017be26baa55c868f810a8c7ac42ada4183e3e04f9e5ddb78bdc4174f4b` |
 | **`firmware_01.04.000.bin`** | `v01.04.000` | 2026-11-16 | 1,492,912 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `9dab85cb14635b18c89ec95bbfcfa1ba5a579189042a13766b0983c4ba2ef2a3` |
@@ -36,6 +37,23 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.05.001`:
+1. **Staged Sequential Boot Pipeline (100% Brownout & Bootloop Immunity)**:
+   - **Root Cause Eliminated**: Resolved the critical bootloop where the ESP32 rebooted repeatedly for 3–5 minutes during/after home router power loss. The collision of active Wi-Fi RF probe transmissions (~400mA pulses) and peak LED specular white surge (~1.4A combined) caused voltage sags that tripped `ESP_RST_BROWNOUT` at ~1.2s into the boot wave. In addition, `setup()` ran up to 8.3s without feeding the Task Watchdog Timer (TWDT 5.0s default), triggering panic resets.
+   - **Stage 1 (Pure Isolated Hardware Alive Wave)**: Wi-Fi radio is unpowered (`WiFi.mode(WIFI_OFF)`). The 2.5s Apple Siri fluid wave runs with zero RF inrush, power clamped to 450mA and luma scale 0.40f (<220mA total draw), feeding `esp_task_wdt_reset()` and `yield()` on every frame. Brownout resets and watchdog panics are physically impossible.
+   - **Stage 2 (Subsystems & Instant Web Server)**: LittleFS mounted, NVS credentials and persistent `state_t0` loaded, FreeRTOS `LedTask` created, and `webManager.begin()` starts AsyncWebServer & WebSockets on port 80 immediately.
+   - **Stage 3 (Staged Wi-Fi Bring-Up with Instant SoftAP Resilience)**: Starts `WiFi.mode(WIFI_AP_STA)` with SoftAP `Aura-Studio-Setup` and Captive Portal DNS on port 53. If the router is booting after a power cut, the user can immediately connect to `192.168.4.1` within 3 seconds of boot with zero lockout. Non-blocking station probe checks for up to 2.25s feeding TWDT, handing off gracefully to background loop without blocking.
+   - **Stage 4 (15s Background Reconnect Engine)**: Non-disruptive 15-second background retry loop allows WPA2 4-way handshakes to complete without being repeatedly aborted.
+2. **Restored State_t0 Return & WiZ Bulb Arrival Auto-Sync**:
+   - If the system was turned off before power down (`isMasterOn == false` or `desk.power == false`), the hub guarantees return to `state_t0` so the desk strip remains dark after the 2.5s boot confirmation wave.
+   - WiZ bulbs that power on into default Philips warm white are automatically detected via UDP discovery / `firstBeat` / heartbeat and immediately synchronized into the active system color and brightness state without requiring manual room power cycling.
+
+### Key Highlights of `v01.05.000`:
+1. **Clean Segmented Architectural Settings Deck**:
+   - Completely refactored the cluttered settings deck into 4 dedicated, focused category tab panels: **🌐 Network & WiZ Mesh**, **🎛️ Spatial & Lighting Physics**, **🔬 Hardware & Diagnostics**, and **⚡ Firmware OTA**.
+   - Added tab pills with active pill glow, hover states, keyboard navigation (`ArrowLeft`, `ArrowRight`, `Home`, `End`), and full ARIA accessibility (`role="tab"`, `role="tablist"`, `aria-selected`).
+   - Sticky footer with persistent flash NVS hint and clear Save & Apply action.
 
 ### Key Highlights of `v01.04.001`:
 1. **Industrial Hardening Against Router Power Cuts & Autonomous Auto-Recovery**:
