@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.06.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.07.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.06.000.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.07.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -717,6 +717,25 @@ In **`v01.05.001`**, the ESP32 firmware architecture was thoroughly redesigned t
 
 ---
 
+## 🛡️ Industrial Bootloop Immunity & Panic Elimination Architecture (`v01.07.000`)
+
+In **`v01.07.000`**, the ESP32 firmware architecture was thoroughly redesigned to eliminate a critical post-bootup panic and bootloop condition:
+
+### Root Cause Analysis & Resolution
+1. **Network Interface Availability**:
+   - *Previous Flaw*: `WiFi.mode(WIFI_OFF)` was executed during the boot wave. Subsequently, `wizCtrl.begin()` called `udp.begin(38899)` and `webManager.begin()` called `server.begin()` while lwIP network interfaces were uninitialized. Calling `WiFi.mode(WIFI_AP_STA)` afterwards triggered lwIP kernel assertions and fatal panics right as the bootup animation finished.
+   - *Architectural Fix*: Kept standard idle Wi-Fi station mode during the 2.5s boot wave. Services (`AsyncWebServer`, `WiFiUDP`) are strictly initialized *after* network modes and interfaces are established.
+2. **FreeRTOS Task Priority & Preemption**:
+   - *Previous Flaw*: The Core 1 FastLED rendering task (`LedTask`) was spawned at Priority 2 while `setup()` ran on Core 1 at Priority 1. The moment `LedTask` was created, it preempted `setup()` mid-initialization, causing race conditions with FastLED interrupt disabling during Wi-Fi connection attempts.
+   - *Architectural Fix*: `LedTask` is now spawned at the very end of `setup()` at cooperative Priority 1.
+3. **Non-Destructive SoftAP Management**:
+   - *Previous Flaw*: When home Wi-Fi connected, `WiFi.softAPdisconnect(true)` was called. In ESP32 Arduino core, passing `true` invokes `esp_wifi_stop()`, shutting down the hardware Wi-Fi controller completely.
+   - *Architectural Fix*: SoftAP is cleanly deactivated with `WiFi.softAPdisconnect(false)` and `WiFi.enableAP(false)`, keeping the station interface running smoothly.
+4. **Task Watchdog & Yielding**:
+   - Standardized on FreeRTOS cooperative task scheduling with `yield()` and `vTaskDelay()` across all loops and animation frames, preventing CPU starvation and watchdog timeouts.
+
+---
+
 ## 🧭 Physical Strip Spatial Orientation & Coordinate Architecture (`v01.06.000`)
 
 In **`v01.06.000`**, the physical hardware topology of the WS2812B desk strip was explicitly defined, synchronized, and documented across the firmware, visualizer, and UI diagnostics without altering system timing or core lighting physics:
@@ -779,8 +798,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.06.000.bin     # Production Dual-OTA Release Binary (v01.06.000)
-│   ├── littlefs_01.06.000.bin     # Web Dashboard LittleFS Release Binary (v01.06.000)
+│   ├── firmware_01.07.000.bin     # Production Dual-OTA Release Binary (v01.07.000)
+│   ├── littlefs_01.07.000.bin     # Web Dashboard LittleFS Release Binary (v01.07.000)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes

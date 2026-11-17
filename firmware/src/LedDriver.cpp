@@ -1,6 +1,5 @@
 #include "LedDriver.h"
 #include <cmath>
-#include <esp_task_wdt.h>
 
 // 256-Entry CIE 1931 Perceptual Lightness Lookup Table: Y = ((L* + 16)/116)^3
 const uint8_t PROGMEM cie1931[256] = {
@@ -85,7 +84,6 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     uint32_t bootStart = millis();
 
     while (millis() - bootStart < durationMs) {
-        esp_task_wdt_reset(); // Feed Task Watchdog Timer to prevent reboot loops during long boot sequence
         yield();
         uint32_t elapsed = millis() - bootStart;
         float tau = (float)elapsed / (float)durationMs; // 0.0 -> 1.0
@@ -211,7 +209,6 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
 
     FastLED.clear(true);
     FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS); // Restore full operational power budget
-    esp_task_wdt_reset();
     Serial.println("[Aura Bootup] Siri HomePod Fluid Sequence Complete! Resuming Live Functionality.\n");
 }
 

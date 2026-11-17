@@ -4,7 +4,6 @@
 #include <LittleFS.h>
 #include <ArduinoOTA.h>
 #include <Preferences.h>
-#include <esp_task_wdt.h>
 #include "Config.h"
 #include "WizController.h"
 #include "LedDriver.h"
@@ -50,14 +49,12 @@ void LedTask(void *pvParameters) {
 
 void setup() {
     Serial.begin(115200);
-    esp_task_wdt_reset();
-    delay(100);
-    esp_task_wdt_reset();
+    delay(500); // 500ms power supply voltage stabilization delay
 
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Industrial Robustness & Staged Boot      ");
+    Serial.println("   Firmware: v01.07.000                     ");
     Serial.println("==========================================");
 
     // Hardware Reset Reason Audit
@@ -67,34 +64,17 @@ void setup() {
         Serial.println("[Boot] WARNING: Hardware Brownout Detected! Enforcing conservative power profile.");
     }
 
-    // -------------------------------------------------------------
-    // STAGE 1: Pure Isolated Hardware Alive Wave (Zero RF Inrush)
-    // -------------------------------------------------------------
-    // Keep Wi-Fi radio completely unpowered during LED boot animation to eliminate power brownouts
-    WiFi.mode(WIFI_OFF);
-    ledCtrl.initHardware();
-
-    // ALWAYS play Apple Siri HomePod Physics Fluid Wave on boot!
-    // Provides immediate visual confirmation that the ESP32 is powered and alive.
-    // Clamped to 450mA (<220mA total current draw) with watchdog reset on every frame.
-    ledCtrl.playSiriBootupAnimation(2500);
-    esp_task_wdt_reset();
-
-    // -------------------------------------------------------------
-    // STAGE 2: Core Subsystems & Web Server Initialization
-    // -------------------------------------------------------------
-    // Initialize Mutex
+    // 1. Initialize Mutex
     stateMutex = xSemaphoreCreateMutex();
 
-    // Initialize LittleFS
+    // 2. Initialize LittleFS
     if (!LittleFS.begin(true)) {
         Serial.println("[FS] LittleFS Mount Failed. Formatting...");
     } else {
         Serial.println("[FS] LittleFS Mounted Successfully.");
     }
-    esp_task_wdt_reset();
 
-    // Load Network Credentials safely from NVS
+    // 3. Load Network Credentials safely from NVS
     Preferences bootPrefs;
     bootPrefs.begin("aura", false);
     activeSsid = bootPrefs.getString("wifiSsid", "");
@@ -106,83 +86,52 @@ void setup() {
         activePass = DEFAULT_WIFI_PASSWORD;
     }
 
-    // Load Full Persistent State from NVS (Ensures Hub returns to exact previous state_t0)
+    // 4. Load Full Persistent State from NVS (Ensures Hub returns to exact previous state_t0)
     webManager.loadPersistentState();
-    esp_task_wdt_reset();
 
-    // Check if system was switched off before power down
     bool systemWasSwitchedOff = (!hubState.isMasterOn || !hubState.desk.power);
     Serial.printf("[Boot] Restored previous power state: %s (Master: %s | Desk: %s)\n",
                   systemWasSwitchedOff ? "OFF" : "ON",
                   hubState.isMasterOn ? "ON" : "OFF",
                   hubState.desk.power ? "ON" : "OFF");
 
-    // Initialize WiZ Controller (UDP) with HubState binding
-    wizCtrl.begin(&hubState);
+    // 5. Initialize Hardware LED Strip
+    ledCtrl.initHardware();
 
-    // Initialize Web Server, Captive Portal, and WebSockets (Port 80 ready immediately)
-    webManager.begin();
-    esp_task_wdt_reset();
+    // 6. ALWAYS play Apple Siri HomePod Physics Fluid Wave on boot!
+    // Clamped to 450mA (<220mA total current draw). Provides immediate visual confirmation that ESP32 is powered and alive.
+    ledCtrl.playSiriBootupAnimation(2500);
 
-    // Spawn Core 1 FreeRTOS Task for 45-60 FPS WS2812B Rendering (8192 bytes stack headroom)
-    xTaskCreatePinnedToCore(
-        LedTask,
-        "LedTask",
-        8192,
-        NULL,
-        2,
-        &LedTaskHandle,
-        1
-    );
-
-    // -------------------------------------------------------------
-    // STAGE 3: Staged Wi-Fi Bring-Up with Instant SoftAP Resilience
-    // -------------------------------------------------------------
+    // 7. Network Bring-Up:
     bool wifiConnected = false;
     if (activeSsid.length() > 0) {
-        Serial.printf("[WiFi] Initiating connection to '%s' (SoftAP '%s' active for immediate dashboard access)...\n",
-                      activeSsid.c_str(), SOFTAP_SSID);
-
-        // Start AP+STA mode immediately so the setup dashboard at 192.168.4.1 is available within seconds,
-        // even if the home router is offline or booting after a power cut.
-        WiFi.mode(WIFI_AP_STA);
-        WiFi.softAP(SOFTAP_SSID, SOFTAP_PASS);
-        webManager.enableCaptivePortal();
-
+        Serial.printf("[WiFi] Initiating connection to '%s'...\n", activeSsid.c_str());
         WiFi.setTxPower(WIFI_POWER_17dBm); // Prevent high-current RF inrush spikes
+        WiFi.mode(WIFI_STA);
         WiFi.setAutoReconnect(true);
+        WiFi.persistent(true);
         WiFi.begin(activeSsid.c_str(), activePass.c_str());
 
-        // Non-blocking connection probe with watchdog feed (max 15 attempts * 150ms = ~2.25s)
+        // Probe for Wi-Fi connection (max 30 attempts * 150ms = 4.5s)
         int attempts = 0;
-        while (WiFi.status() != WL_CONNECTED && attempts < 15) {
-            esp_task_wdt_reset();
+        while (WiFi.status() != WL_CONNECTED && attempts < 30) {
             delay(150);
+            yield();
             Serial.print(".");
             attempts++;
         }
         wifiConnected = (WiFi.status() == WL_CONNECTED);
-    } else {
-        // Fresh device without configured credentials
-        WiFi.mode(WIFI_AP);
-        WiFi.softAP(SOFTAP_SSID, SOFTAP_PASS);
-        webManager.enableCaptivePortal();
     }
-    esp_task_wdt_reset();
 
     if (wifiConnected) {
         Serial.println("\n[WiFi] Connected successfully to home network!");
         Serial.printf("[WiFi] IP Address: %s\n", WiFi.localIP().toString().c_str());
 
-        // Station connected: shut down setup hotspot and captive portal
-        webManager.disableCaptivePortal();
-        WiFi.softAPdisconnect(true);
-        WiFi.mode(WIFI_STA);
-        WiFi.setSleep(false); // Disable Wi-Fi power-save sleep to eliminate latency spikes
-
         hubState.wifiSsid = activeSsid;
         hubState.wifiRssi = WiFi.RSSI();
         hubState.isSetupMode = false;
+
+        WiFi.setSleep(false); // Low latency on local network
 
         // Setup mDNS (http://aura-hub.local)
         if (MDNS.begin(HOSTNAME)) {
@@ -201,21 +150,23 @@ void setup() {
         ArduinoOTA.begin();
         Serial.println("[OTA] ArduinoOTA service initialized and listening.");
 
-        // Trigger boot-time UDP discovery broadcast & initial state sync for WiZ bulbs
-        Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast & initial state sync...");
-        wizCtrl.broadcastDiscovery();
-        wizCtrl.syncAllBulbs();
-
         // Restore full operational power budget
         FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS);
     } else {
-        Serial.printf("\n[WiFi] Station not connected yet (Router may be starting). Autonomous SoftAP active at %s!\n",
-                      WiFi.softAPIP().toString().c_str());
+        Serial.println("\n[WiFi] Station not connected yet (Router may be starting). Entering Autonomous AP+STA Mode...");
         hubState.isSetupMode = true;
         hubState.wifiSsid = activeSsid;
         hubState.wifiRssi = 0;
 
-        // Amber breathing beacon is only activated if no network was ever configured (fresh setup)
+        // Start AP+STA mode to broadcast setup hotspot while background station reconnection continues
+        WiFi.mode(WIFI_AP_STA);
+        WiFi.softAP(SOFTAP_SSID, SOFTAP_PASS);
+        Serial.printf("[WiFi] SoftAP started! SSID: '%s' | IP: %s\n", SOFTAP_SSID, WiFi.softAPIP().toString().c_str());
+
+        // Start Captive Portal DNS on port 53 (redirects all domains to 192.168.4.1)
+        webManager.enableCaptivePortal();
+
+        // Amber breathing beacon is only activated if no network was configured (fresh setup)
         // If the system has saved Wi-Fi credentials, PRESERVE restored state_t0!
         if (activeSsid.length() == 0 || activeSsid == DEFAULT_WIFI_SSID) {
             hubState.isMasterOn = true;
@@ -232,13 +183,34 @@ void setup() {
         }
     }
 
-    esp_task_wdt_reset();
+    // 8. Initialize WiZ Controller (UDP) with HubState binding
+    wizCtrl.begin(&hubState);
+
+    // 9. Initialize Web Server, Captive Portal, and WebSockets (Port 80 ready)
+    webManager.begin();
+
+    // Trigger background UDP discovery on boot if connected to local LAN
+    if (wifiConnected) {
+        Serial.println("[WiZ] Triggering boot-time UDP discovery broadcast & initial state sync...");
+        wizCtrl.broadcastDiscovery();
+        wizCtrl.syncAllBulbs();
+    }
+
+    // 10. Spawn Core 1 FreeRTOS Task for LED Rendering at the very end of setup
+    xTaskCreatePinnedToCore(
+        LedTask,
+        "LedTask",
+        8192,
+        NULL,
+        1,
+        &LedTaskHandle,
+        1
+    );
+
     Serial.println("[System] The Aura Studio Hub Ready & Operational.\n");
 }
 
 void loop() {
-    esp_task_wdt_reset();
-
     // Process Captive Portal DNS queries if in setup mode
     webManager.processDns();
 
@@ -247,7 +219,7 @@ void loop() {
 
     // Autonomous Background Wi-Fi Reconnection Engine (Self-heals after router power outage)
     static uint32_t lastStaRetryMs = 0;
-    if (hubState.isSetupMode && activeSsid.length() > 0 && (millis() - lastStaRetryMs >= 15000)) {
+    if (hubState.isSetupMode && activeSsid.length() > 0 && (millis() - lastStaRetryMs >= 5000)) {
         lastStaRetryMs = millis();
         if (WiFi.status() == WL_CONNECTED) {
             Serial.println("\n[WiFi Auto-Recovery] Home network detected and connected in background!");
@@ -260,8 +232,9 @@ void loop() {
             // Stop captive portal
             webManager.disableCaptivePortal();
 
-            // Switch to pure station mode
-            WiFi.softAPdisconnect(true);
+            // Switch cleanly to pure station mode (softAPdisconnect false does NOT stop WiFi)
+            WiFi.softAPdisconnect(false);
+            WiFi.enableAP(false);
             WiFi.mode(WIFI_STA);
             WiFi.setSleep(false);
 
@@ -284,8 +257,6 @@ void loop() {
             FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS);
         } else {
             Serial.printf("[WiFi Auto-Recovery] Probing background reconnect to '%s'...\n", activeSsid.c_str());
-            WiFi.disconnect();
-            delay(50);
             WiFi.begin(activeSsid.c_str(), activePass.c_str());
         }
     }
@@ -325,6 +296,5 @@ void loop() {
     // Commit debounced state changes to NVS if dirty
     webManager.updatePersistence();
 
-    esp_task_wdt_reset();
     delay(20);
 }

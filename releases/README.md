@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.07.000.bin`** | `v01.07.000` | 2026-11-17 | 1,494,752 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `653dba68368fa3ee40aa47f011e8bcbee956ca99a29ac4ffb39ff15963c8b132` |
 | **`firmware_01.06.000.bin`** | `v01.06.000` | 2026-11-17 | 1,494,976 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `c2cf39c4eb8bd77b34ae6098392e1b67cfd479c16286fc05d794267703e59da4` |
 | **`firmware_01.05.001.bin`** | `v01.05.001` | 2026-11-17 | 1,494,960 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ad6d39a9c54e5d7d73b50545b937123e2600a50a1376c48ff8399caf673f798e` |
 | **`firmware_01.05.000.bin`** | `v01.05.000` | 2026-11-17 | 1,494,704 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `db2e9f59a284690ef12607af7ad91f44096fb162afdd6c4141f6fb79241f9ab7` |
@@ -38,6 +39,18 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.07.000`:
+1. **Permanent Bootloop & Post-Animation Crash Elimination**:
+   - **Root Cause Identified & Fixed**: The previous staged boot pipeline called `WiFi.mode(WIFI_OFF)` during the boot animation wave, and subsequently called `wizCtrl.begin()` (`WiFiUDP::begin()`) and `webManager.begin()` (`AsyncWebServer::begin()`) before Wi-Fi netifs were initialized. This triggered lwIP socket binding failures and AsyncTCP kernel panics upon boot animation completion.
+   - **Clean Sequential Initialization**: Restored standard idle station mode during the boot animation wave. WiZ controller and AsyncWebServer are now initialized strictly after Wi-Fi interfaces are active.
+   - **Preemption Race Condition Resolved**: In `v01.05.001`, `LedTask` was spawned at FreeRTOS Priority 2 on Core 1 before Wi-Fi initialization finished, preempting `setup()` (Priority 1) and causing timing collisions. In `v01.07.000`, `LedTask` is spawned at the very end of `setup()` at cooperative Priority 1.
+   - **Non-Destructive SoftAP Teardown**: Replaced destructive `WiFi.softAPdisconnect(true)` (which called `esp_wifi_stop()` and killed the Wi-Fi hardware controller) with `WiFi.softAPdisconnect(false)` and `WiFi.enableAP(false)`.
+   - **TWDT Stability**: Removed unconfigured raw TWDT calls, relying on native FreeRTOS task yielding via `yield()` and `vTaskDelay()` across all loops and animation frames.
+2. **Preserved Physical Strip Orientation & Coordinate Architecture**:
+   - Anchored LED 1 [Index 0] adjacent to Left Lamp (`wizLeft`) and LED 60 [Index 59] adjacent to Right Lamp (`wizRight`).
+3. **USB Emergency Flashing Support**:
+   - Added automated one-click USB recovery script `scripts/flash_usb.sh` for unbricking boards when OTA network access is unavailable.
 
 ### Key Highlights of `v01.06.000`:
 1. **Physical Strip Spatial Orientation & Coordinate Alignment**:
