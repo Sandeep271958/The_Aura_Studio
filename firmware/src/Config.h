@@ -10,8 +10,8 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.05.001"
-#define FIRMWARE_NAME "firmware_01.05.001.bin"
+#define FIRMWARE_VERSION "01.06.000"
+#define FIRMWARE_NAME "firmware_01.06.000.bin"
 #define FIRMWARE_BUILD "2026-11-17"
 
 // ============================================================================
@@ -24,16 +24,22 @@ extern SemaphoreHandle_t stateMutex;
 #define HOSTNAME "aura-hub" // Accessible at http://aura-hub.local
 
 // ============================================================================
-// HARDWARE: WS2812B DESK STRIP
+// HARDWARE: WS2812B DESK STRIP & SPATIAL ORIENTATION
 // ============================================================================
 #define FASTLED_SHOW_CORE                                                      \
   1                 // Bind FastLED show to Core 1 away from Wi-Fi interrupts
 #define LED_PIN 4   // Active: GPIO 4 (Labeled D4 on NodeMCU ESP32)
-#define NUM_LEDS 60 // 1 meter strip with 60 LEDs
+#define NUM_LEDS 60 // 1 meter strip with 60 LEDs (Indices 0 to 59)
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 #define MAX_POWER_MILLIAMPS 1500 // Safety power limit: 1.5A for 60 LEDs
 #define TARGET_FPS 60            // Smooth 60 FPS animation loop
+
+// Physical Hardware Spatial Orientation:
+// - LED 1  [Index 0]  is located near the Left LED Lamp (wizLeft)
+// - LED 60 [Index 59] is located near the Right LED Lamp (wizRight)
+#define STRIP_LEFT_INDEX  0  // Left Corner Lamp Edge (Index 0)
+#define STRIP_RIGHT_INDEX 59 // Right Corner Lamp Edge (Index 59)
 
 // ============================================================================
 // PHILIPS WIZ LOCAL PROTOCOL

@@ -21,7 +21,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=01.05.001">
+  <link rel="stylesheet" href="style.css?v=01.06.000">
 </head>
 
 <body class="theme-obsidian">
@@ -209,7 +209,7 @@
               <div class="monitor-stand"></div>
             </div>
             <!-- Addressable Strip Representation -->
-            <div id="virtual-led-strip" class="virtual-led-strip"></div>
+            <div id="virtual-led-strip" class="virtual-led-strip" title="WS2812B Strip: LED 1 [0] (Left Lamp) ➔ LED 60 [59] (Right Lamp)"></div>
             <div class="desk-surface">
               <div class="keyboard-mock"></div>
             </div>
@@ -1503,7 +1503,7 @@
                 title="Restore normal lighting mode">Restore All LEDs</button>
             </div>
             <p class="section-note">Isolate individual WS2812B LEDs (0 to 59) to test continuity and pinpoint physical
-              solder glitches.</p>
+              solder glitches. <strong>Orientation:</strong> LED 1 [0] is near Left Lamp &bull; LED 60 [59] is near Right Lamp.</p>
             <div class="pixel-diag-row">
               <div class="row-header">
                 <span class="row-label">Pixel Under Test:</span>
@@ -1513,6 +1513,10 @@
               </div>
               <input type="range" id="slider-pixel-diag" class="custom-range" min="-1" max="59" value="-1"
                 aria-label="Individual Pixel Diagnostic Index">
+              <div class="diag-orientation-labels">
+                <span class="mono-label">&#9668; LED 1 [0] (Left Lamp)</span>
+                <span class="mono-label">LED 60 [59] (Right Lamp) &#9658;</span>
+              </div>
             </div>
           </div>
 
@@ -1547,7 +1551,7 @@
                 <h4>Wireless Dual-Partition OTA</h4>
                 <p class="section-note">Zero-downtime updates with automatic rollback protection.</p>
               </div>
-              <span class="badge-ota-status" id="badge-firmware-version">v01.05.001</span>
+              <span class="badge-ota-status" id="badge-firmware-version">v01.06.000</span>
             </div>
             <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or
               <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
@@ -1696,7 +1700,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=01.05.001"></script>
+  <script src="app.js?v=01.06.000"></script>
 </body>
 
 </html>

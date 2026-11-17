@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.06.000.bin`** | `v01.06.000` | 2026-11-17 | 1,494,976 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `c2cf39c4eb8bd77b34ae6098392e1b67cfd479c16286fc05d794267703e59da4` |
 | **`firmware_01.05.001.bin`** | `v01.05.001` | 2026-11-17 | 1,494,960 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ad6d39a9c54e5d7d73b50545b937123e2600a50a1376c48ff8399caf673f798e` |
 | **`firmware_01.05.000.bin`** | `v01.05.000` | 2026-11-17 | 1,494,704 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `db2e9f59a284690ef12607af7ad91f44096fb162afdd6c4141f6fb79241f9ab7` |
 | **`firmware_01.04.001.bin`** | `v01.04.001` | 2026-11-17 | 1,494,704 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `4ee2d017be26baa55c868f810a8c7ac42ada4183e3e04f9e5ddb78bdc4174f4b` |
@@ -37,6 +38,17 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.06.000`:
+1. **Physical Strip Spatial Orientation & Coordinate Alignment**:
+   - **Hardware Topology Standardized**: Formally anchored the physical strip orientation where **LED 1 [Index 0]** is located adjacent to the Left WiZ Corner Lamp (`wizLeft`), and **LED 60 [Index 59]** is located adjacent to the Right WiZ Corner Lamp (`wizRight`).
+   - **Hardware Constants in `Config.h`**: Added `STRIP_LEFT_INDEX (0)` and `STRIP_RIGHT_INDEX (59)` hardware topology definitions.
+   - **Hardware Pixel Diagnostic UI Enhancements**:
+     - Embedded clear spatial orientation indicators directly below the diagnostic slider: `◄ LED 1 [0] (Left Lamp)` and `LED 60 [59] (Right Lamp) ►`.
+     - Added dynamic zone telemetry tooltips mapping indices 0–29 to Left Zone and 30–59 to Right Zone.
+   - **Spatial Gradient Sync Consistency**: Gradient Stop 1 ($0\%$) corresponds to LED 1 [0] and Left Lamp; Gradient Stop 4 ($100\%$) corresponds to LED 60 [59] and Right Lamp.
+   - **Interactive 2.5D Room Viewport**: Added orientation metadata tooltips to the desk virtual LED strip fixture.
+2. **Zero Functional Regression**: All existing system functionalities, timing, transitions, power protections, and animations remain 100% intact and verified.
 
 ### Key Highlights of `v01.05.001`:
 1. **Staged Sequential Boot Pipeline (100% Brownout & Bootloop Immunity)**:

@@ -2787,6 +2787,17 @@ body {
   border: 1px solid var(--border-glass);
 }
 
+.diag-orientation-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-muted);
+  padding: 2px 2px 0;
+  letter-spacing: 0.02em;
+}
+
 .pixel-diag-status-wrap {
   display: flex;
   align-items: center;

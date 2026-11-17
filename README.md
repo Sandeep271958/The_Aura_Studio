@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.05.001-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.06.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.05.001.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.06.000.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -717,6 +717,42 @@ In **`v01.05.001`**, the ESP32 firmware architecture was thoroughly redesigned t
 
 ---
 
+## 🧭 Physical Strip Spatial Orientation & Coordinate Architecture (`v01.06.000`)
+
+In **`v01.06.000`**, the physical hardware topology of the WS2812B desk strip was explicitly defined, synchronized, and documented across the firmware, visualizer, and UI diagnostics without altering system timing or core lighting physics:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│  The Aura Studio Spatial Hardware Topology (v01.06.000)               │
+│                                                                        │
+│   [ Left WiZ Bulb ]                               [ Right WiZ Bulb ]   │
+│      (wizLeft)                                       (wizRight)        │
+│          │                                               │             │
+│          ▼                                               ▼             │
+│   ┌──────────────┐                               ┌──────────────┐      │
+│   │ LED 1  [0]   │ ◄─── WS2812B 60-LED Strip ──► │ LED 60 [59]  │      │
+│   └──────────────┘                               └──────────────┘      │
+│     Stop 1 (0%)                                    Stop 4 (100%)       │
+│                                                                        │
+│   • Left Zone:   Indices 0 to 29 (Midpoint x = 29.5)                   │
+│   • Right Zone:  Indices 30 to 59 (Repeater Solder Joint at LED #36)   │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+1. **Hardware Coordinate Specification:**
+   - **LED 1 [Index 0]:** Positioned adjacent to the **Left Corner LED Lamp** (`wizLeft`).
+   - **LED 60 [Index 59]:** Positioned adjacent to the **Right Corner LED Lamp** (`wizRight`).
+   - Standardized in `firmware/src/Config.h` via `STRIP_LEFT_INDEX` ($0$) and `STRIP_RIGHT_INDEX` ($59$).
+2. **Diagnostic Alignment:**
+   - The Hardware Pixel Diagnostic slider is fitted with spatial boundary indicators: `◄ LED 1 [0] (Left Lamp)` to `LED 60 [59] (Right Lamp) ►`.
+   - Tooltips dynamically indicate whether a pixel under test resides in the Left Zone (near Left Lamp) or Right Zone (near Right Lamp).
+3. **Spatial Gradient Synchronization:**
+   - In Gradient Lab Spatial Corner Sync mode, **Stop 1 ($0\%$)** mirrors the Left WiZ fixture and physical **LED 1 [0]**, while **Stop 4 ($100\%$)** mirrors the Right WiZ fixture and physical **LED 60 [59]**, providing seamless 1:1 room-scale coherence.
+4. **Non-Invasive Architecture:**
+   - Strictly preserves all underlying lighting physics (soliton waves, Marangoni convection, thermal plumes, and thin-film soap bubble interference) and FreeRTOS timing with zero functional regression.
+
+---
+
 ## 📂 Project Structure
 
 ```
@@ -743,8 +779,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.05.001.bin     # Production Dual-OTA Release Binary (v01.05.001)
-│   ├── littlefs_01.05.001.bin     # Web Dashboard LittleFS Release Binary (v01.05.001)
+│   ├── firmware_01.06.000.bin     # Production Dual-OTA Release Binary (v01.06.000)
+│   ├── littlefs_01.06.000.bin     # Web Dashboard LittleFS Release Binary (v01.06.000)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes

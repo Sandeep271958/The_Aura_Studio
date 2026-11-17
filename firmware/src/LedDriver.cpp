@@ -64,7 +64,8 @@ void LedDriver::initHardware() {
 void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     Serial.println("\n=======================================================");
     Serial.println("   [AURA BOOTUP] APPLE SIRI HOMEPOD FLUID WAVE         ");
-    Serial.printf("   Active Pin: GPIO %d | %d LEDs | Dither: OFF | %u ms\n", LED_PIN, NUM_LEDS, (unsigned int)durationMs);
+    Serial.printf("   Active Pin: GPIO %d | %d LEDs [LED 1 -> Left Lamp | LED 60 -> Right Lamp] | %u ms\n",
+                  LED_PIN, NUM_LEDS, (unsigned int)durationMs);
     Serial.println("   Palette: Apple Intelligence (Orchid, Violet, Cyan, Coral, White)");
     Serial.println("   Physics: Conic Solitons, Frosted Glass Diffusion, Cosine Dissolve");
     Serial.println("=======================================================\n");

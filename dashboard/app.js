@@ -2888,6 +2888,13 @@ function bindEvents() {
       const val = parseInt(e.target.value, 10);
       if (DOM.valPixelDiag) {
         DOM.valPixelDiag.textContent = val === -1 ? 'None (Normal Mode)' : `LED #${val}`;
+        if (val >= 0) {
+          DOM.valPixelDiag.title = val <= 29
+            ? `LED ${val + 1} of 60: Left Zone (Near Left WiZ Lamp)`
+            : `LED ${val + 1} of 60: Right Zone (Near Right WiZ Lamp)`;
+        } else {
+          DOM.valPixelDiag.title = 'Normal Mode';
+        }
       }
     });
 
