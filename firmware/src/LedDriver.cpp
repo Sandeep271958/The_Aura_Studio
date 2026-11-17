@@ -79,6 +79,7 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     struct RawColor { float r, g, b; };
     RawColor rawFrame[NUM_LEDS];
 
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, 950); // Soft-start inrush current limiter during Wi-Fi negotiation
     uint32_t bootStart = millis();
 
     while (millis() - bootStart < durationMs) {
@@ -153,12 +154,13 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
             if (rawSpec > 1.0f) rawSpec = 1.0f;
             float specular = powf(rawSpec, 1.35f) * (1.0f - 0.70f * settleFactor);
 
-            // Additive light amplitude synthesis
+            // Additive light amplitude synthesis with soft-start peak luminance guard (prevents voltage sags)
             float amp = (0.70f + 0.35f * (s1 + s2)) * mask;
+            float bootLumaScale = 0.75f;
 
-            float r = (baseR * amp + specular * (255.0f - baseR) * mask);
-            float g = (baseG * amp + specular * (255.0f - baseG) * mask);
-            float b = (baseB * amp + specular * (255.0f - baseB) * mask);
+            float r = (baseR * amp + specular * (255.0f - baseR) * mask) * bootLumaScale;
+            float g = (baseG * amp + specular * (255.0f - baseG) * mask) * bootLumaScale;
+            float b = (baseB * amp + specular * (255.0f - baseB) * mask) * bootLumaScale;
 
             // Soft saturation tone-mapping (protects chromaticity at peak luminance)
             float maxC = fmaxf(r, fmaxf(g, b));
@@ -204,6 +206,7 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     }
 
     FastLED.clear(true);
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS); // Restore full operational power budget
     Serial.println("[Aura Bootup] Siri HomePod Fluid Sequence Complete! Resuming Live Functionality.\n");
 }
 

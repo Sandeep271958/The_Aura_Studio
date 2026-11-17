@@ -15,6 +15,10 @@ WizController wizCtrl;
 LedDriver ledCtrl;
 WebServerManager webManager(hubState, wizCtrl);
 
+// Persistent active network credentials
+static String activeSsid = "";
+static String activePass = "";
+
 // FreeRTOS Mutex & Task handle for LED rendering on Core 1
 SemaphoreHandle_t stateMutex = NULL;
 TaskHandle_t LedTaskHandle = NULL;
@@ -49,8 +53,16 @@ void setup() {
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Autonomous Provisioning & Dual-OTA       ");
+    Serial.println("   Industrial Robustness & Dual-OTA         ");
     Serial.println("==========================================");
+
+    // Hardware Reset Reason Audit
+    esp_reset_reason_t rstReason = esp_reset_reason();
+    Serial.printf("[Boot] Hardware Reset Reason: %d\n", (int)rstReason);
+    if (rstReason == ESP_RST_BROWNOUT) {
+        Serial.println("[Boot] WARNING: Hardware Brownout Detected! Enforcing conservative power profile.");
+        FastLED.setMaxPowerInVoltsAndMilliamps(5, 950);
+    }
 
     // Initialize Mutex
     stateMutex = xSemaphoreCreateMutex();
@@ -62,28 +74,14 @@ void setup() {
         Serial.println("[FS] LittleFS Mounted Successfully.");
     }
 
-    // 2. Hardware Power-Cycle Guard (3-Cycle Emergency Wi-Fi Reset)
+    // 2. Load Network Credentials safely from NVS (Never wipe credentials on rapid power cycles!)
     Preferences bootPrefs;
     bootPrefs.begin("aura", false);
-    uint8_t bootCount = bootPrefs.getUChar("bootCount", 0);
-    bootCount++;
-    bootPrefs.putUChar("bootCount", bootCount);
-    Serial.printf("[Boot] Consecutive boot count: %u\n", bootCount);
-
-    bool forceSetupMode = false;
-    if (bootCount >= 3) {
-        Serial.println("[Reset] 3 Rapid Power Cycles detected! Resetting Wi-Fi credentials to Setup Mode...");
-        bootPrefs.putString("wifiSsid", "");
-        bootPrefs.putString("wifiPass", "");
-        bootPrefs.putUChar("bootCount", 0);
-        forceSetupMode = true;
-    }
-
-    String activeSsid = bootPrefs.getString("wifiSsid", "");
-    String activePass = bootPrefs.getString("wifiPass", "");
+    activeSsid = bootPrefs.getString("wifiSsid", "");
+    activePass = bootPrefs.getString("wifiPass", "");
     bootPrefs.end();
 
-    if (activeSsid.length() == 0 && !forceSetupMode) {
+    if (activeSsid.length() == 0) {
         activeSsid = DEFAULT_WIFI_SSID;
         activePass = DEFAULT_WIFI_PASSWORD;
     }
@@ -99,8 +97,9 @@ void setup() {
 
     // 4. Wi-Fi Negotiation or SoftAP Setup
     bool wifiConnected = false;
-    if (!forceSetupMode && activeSsid.length() > 0) {
-        Serial.printf("[WiFi] Initiating connection to '%s' in background...\n", activeSsid.c_str());
+    if (activeSsid.length() > 0) {
+        Serial.printf("[WiFi] Initiating connection to '%s'...\n", activeSsid.c_str());
+        WiFi.setTxPower(WIFI_POWER_17dBm); // Prevent high-current RF inrush spikes
         WiFi.mode(WIFI_STA);
         WiFi.setAutoReconnect(true);
         WiFi.persistent(true);
@@ -110,8 +109,8 @@ void setup() {
             Serial.println("[Boot] Restored previous power state: SWITCHED OFF. Keeping hardware LEDs dark.");
             FastLED.clear(true);
             int attempts = 0;
-            while (WiFi.status() != WL_CONNECTED && attempts < 25) {
-                delay(100);
+            while (WiFi.status() != WL_CONNECTED && attempts < 35) {
+                delay(150);
                 Serial.print(".");
                 attempts++;
             }
@@ -122,7 +121,7 @@ void setup() {
             ledCtrl.playSiriBootupAnimation(2500);
 
             int attempts = 0;
-            while (WiFi.status() != WL_CONNECTED && attempts < 15) {
+            while (WiFi.status() != WL_CONNECTED && attempts < 30) {
                 delay(150);
                 Serial.print(".");
                 attempts++;
@@ -157,12 +156,12 @@ void setup() {
         ArduinoOTA.begin();
         Serial.println("[OTA] ArduinoOTA service initialized and listening.");
     } else {
-        Serial.println("\n[WiFi] Entering Autonomous SoftAP Setup Mode...");
+        Serial.println("\n[WiFi] Station connection timed out (Router may be booting). Entering Autonomous AP+STA Mode...");
         hubState.isSetupMode = true;
-        hubState.wifiSsid = "";
+        hubState.wifiSsid = activeSsid; // Preserve activeSsid for background auto-reconnect
         hubState.wifiRssi = 0;
 
-        // Start AP+STA mode to broadcast setup hotspot while scanning channels concurrently
+        // Start AP+STA mode to broadcast setup hotspot while background station reconnection probes continue
         WiFi.mode(WIFI_AP_STA);
         WiFi.softAP(SOFTAP_SSID, SOFTAP_PASS);
         Serial.printf("[WiFi] SoftAP started! SSID: '%s' | IP: %s\n", SOFTAP_SSID, WiFi.softAPIP().toString().c_str());
@@ -194,13 +193,13 @@ void setup() {
         wizCtrl.syncAllBulbs();
     }
 
-    // 7. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering
+    // 7. Spawn Core 1 FreeRTOS Task for 60 FPS WS2812B Rendering (8192 bytes stack headroom)
     xTaskCreatePinnedToCore(
         LedTask,
         "LedTask",
-        4096,
+        8192,
         NULL,
-        1,
+        2,
         &LedTaskHandle,
         1
     );
@@ -215,15 +214,47 @@ void loop() {
     // Handle background OTA requests
     ArduinoOTA.handle();
 
-    // Clear consecutive bootCount after 4 seconds of stable run
-    static bool bootCountResetDone = false;
-    if (!bootCountResetDone && millis() > 4000) {
-        bootCountResetDone = true;
-        Preferences p;
-        p.begin("aura", false);
-        p.putUChar("bootCount", 0);
-        p.end();
-        Serial.println("[Boot] Stable operation confirmed: bootCount cleared.");
+    // Autonomous Background Wi-Fi Reconnection Engine (Self-heals after router power outage)
+    static uint32_t lastStaRetryMs = 0;
+    if (hubState.isSetupMode && activeSsid.length() > 0 && (millis() - lastStaRetryMs >= 5000)) {
+        lastStaRetryMs = millis();
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("\n[WiFi Auto-Recovery] Home network detected and connected in background!");
+            Serial.printf("[WiFi] IP Address: %s\n", WiFi.localIP().toString().c_str());
+
+            hubState.isSetupMode = false;
+            hubState.wifiSsid = activeSsid;
+            hubState.wifiRssi = WiFi.RSSI();
+
+            // Stop captive portal
+            webManager.disableCaptivePortal();
+
+            // Switch to pure station mode
+            WiFi.softAPdisconnect(true);
+            WiFi.mode(WIFI_STA);
+            WiFi.setSleep(false);
+
+            // Start mDNS and OTA
+            if (MDNS.begin(HOSTNAME)) {
+                Serial.printf("[mDNS] Responder started at http://%s.local\n", HOSTNAME);
+                MDNS.addService("http", "tcp", 80);
+            }
+            ArduinoOTA.setHostname(HOSTNAME);
+            ArduinoOTA.begin();
+
+            // Sync WiZ bulbs now that local LAN is reachable
+            wizCtrl.broadcastDiscovery();
+            wizCtrl.syncAllBulbs();
+
+            // Broadcast updated state to all connected clients
+            webManager.broadcastState();
+
+            // Restore normal power limit
+            FastLED.setMaxPowerInVoltsAndMilliamps(5, MAX_POWER_MILLIAMPS);
+        } else {
+            Serial.printf("[WiFi Auto-Recovery] Probing background reconnect to '%s'...\n", activeSsid.c_str());
+            WiFi.begin(activeSsid.c_str(), activePass.c_str());
+        }
     }
 
     // Periodically update Wi-Fi RSSI signal telemetry

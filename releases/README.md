@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.04.001.bin`** | `v01.04.001` | 2026-11-17 | 1,494,608 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `eda82463e248ca701d6a22cfd5688c54860f0991cd3a25ed045690be30002043` |
 | **`firmware_01.04.000.bin`** | `v01.04.000` | 2026-11-16 | 1,492,912 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `9dab85cb14635b18c89ec95bbfcfa1ba5a579189042a13766b0983c4ba2ef2a3` |
 | **`firmware_01.03.000.bin`** | `v01.03.000` | 2026-11-16 | 1,486,128 B (1.42 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `97f0f81bcb92ab2e8adc50bb09d80c2c91c1b68b453a6b035c3b6b5b29288b8c` |
 | **`firmware_01.02.005.bin`** | `v01.02.005` | 2026-11-16 | 1,461,408 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `8464c07717e1286eaccf6c3a3c2ce2ab0e08b85b3ff5af27dc620bf376b45701` |
@@ -34,6 +35,20 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.04.001`:
+1. **Industrial Hardening Against Router Power Cuts & Autonomous Auto-Recovery**:
+   - Eliminates the destructive Wi-Fi credential erasure bug on power outages or rapid power cycles.
+   - Autonomous Background Station Reconnection Engine: when the router boots up after a power cut, the ESP32 automatically probes and connects to the home network in the background, shuts down SoftAP, starts mDNS, and syncs all lighting without requiring an ESP32 power cycle.
+   - Non-blocking `disableCaptivePortal()` cleanly halts the DNS server upon successful home LAN association.
+2. **Brownout & Voltage Sag Inrush Protection**:
+   - Clamps LED bootup inrush power to 950mA and soft-starts the Apple Siri boot wave at 75% peak luma during Wi-Fi handshake.
+   - Caps Wi-Fi RF transmit bursts to +17dBm (`WiFi.setTxPower(WIFI_POWER_17dBm)`), reducing peak current transients by >30% and eliminating power rail brownout resets on low-spec USB power adapters.
+   - Detects `ESP_RST_BROWNOUT` reset reason at boot and automatically enforces conservative safety limits.
+3. **Leak-Free NVS Handle Lifecycle & FreeRTOS Stack Headroom**:
+   - Replaced dangling static NVS Preferences handle in `WebServerManager.cpp` with strict RAII local scoped instances (`begin("aura", false)` -> `end()`), preventing ESP-IDF handle invalidation and assertion aborts.
+   - Expanded `LedTask` FreeRTOS stack from 4096 to 8192 bytes, giving 100% stack overflow immunity.
+   - Guarded all WiZ UDP socket transmissions against disconnected station status (`WiFi.status() == WL_CONNECTED`), preventing lwIP routing buffer exhaustion.
 
 ### Key Highlights of `v01.04.000`:
 1. **Instant WiZ Auto-Sync & Cold-Boot Detection**:

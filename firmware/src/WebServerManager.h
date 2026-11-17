@@ -17,6 +17,7 @@ public:
 
     // SoftAP Captive Portal & Wi-Fi Provisioning
     void enableCaptivePortal();
+    void disableCaptivePortal();
     void processDns();
     bool isCaptivePortalActive() const { return captiveActive; }
 

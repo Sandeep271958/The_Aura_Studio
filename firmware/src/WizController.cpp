@@ -1,4 +1,5 @@
 #include "WizController.h"
+#include <WiFi.h>
 #include <Preferences.h>
 
 WizController::WizController(HubState* state) 
@@ -286,7 +287,7 @@ void WizController::updateDiscovery() {
 }
 
 void WizController::syncBulb(int bulbIndex) {
-  if (hubState == nullptr) return;
+  if (hubState == nullptr || WiFi.status() != WL_CONNECTED) return;
 
   String targetIp = "";
   bool masterOn = true;
@@ -342,6 +343,7 @@ void WizController::syncAllBulbs() {
 }
 
 void WizController::updateHeartbeat() {
+  if (WiFi.status() != WL_CONNECTED) return;
   uint32_t now = millis();
 
   // 1. Periodic non-blocking UDP status poll every 2500ms
@@ -410,6 +412,9 @@ void WizController::clearDiscoveredBulbs() {
 
 void WizController::sendUdpPacket(const IPAddress &ip,
                                   const String &jsonPayload) {
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
   if (udpMutex != NULL && xSemaphoreTake(udpMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
     udp.beginPacket(ip, WIZ_UDP_PORT);
     udp.write((const uint8_t *)jsonPayload.c_str(), jsonPayload.length());
