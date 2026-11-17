@@ -10,8 +10,8 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.07.000"
-#define FIRMWARE_NAME "firmware_01.07.000.bin"
+#define FIRMWARE_VERSION "01.07.001"
+#define FIRMWARE_NAME "firmware_01.07.001.bin"
 #define FIRMWARE_BUILD "2026-11-17"
 
 // ============================================================================
@@ -102,6 +102,11 @@ struct HubState {
   String wifiSsid = "";
   int8_t wifiRssi = 0;
   bool isSetupMode = false;
+
+  // Dual-OTA Partition & Rollback Telemetry
+  String activePartition = "app0"; // "app0" (ota_0) or "app1" (ota_1)
+  bool otaRollbackOccurred = false;
+  bool otaPendingVerify = false;
 
   DeviceDesk desk;
   DeviceWiz wizLeft;

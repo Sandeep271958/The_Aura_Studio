@@ -243,6 +243,13 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
             broadcastState();
         } else if (msgType == "scanWiz") {
             wiz.broadcastDiscovery();
+        } else if (msgType == "dismissRollback") {
+            state.otaRollbackOccurred = false;
+            Preferences otaPrefs;
+            otaPrefs.begin("aura_ota", false);
+            otaPrefs.remove("rollback");
+            otaPrefs.end();
+            broadcastState();
         } else if (msgType == "update") {
             JsonObject payload = doc["payload"];
             if (payload.containsKey("state")) {
@@ -642,10 +649,25 @@ void WebServerManager::setupRoutes() {
         if (final) {
             if (Update.end(true)) {
                 Serial.printf("[OTA] Update Success: %u bytes\n", index + len);
+                Preferences otaPrefs;
+                otaPrefs.begin("aura_ota", false);
+                otaPrefs.remove("rollback");
+                otaPrefs.end();
             } else {
                 Update.printError(Serial);
             }
         }
+    });
+
+    // REST API - Dismiss Rollback Alert Banner
+    server.on("/api/ota/dismiss-rollback", HTTP_POST, [this](AsyncWebServerRequest *request) {
+        state.otaRollbackOccurred = false;
+        Preferences otaPrefs;
+        otaPrefs.begin("aura_ota", false);
+        otaPrefs.remove("rollback");
+        otaPrefs.end();
+        broadcastState();
+        request->send(200, "application/json", "{\"status\":\"ok\"}");
     });
 
     // REST API - Direct WiZ Diagnostic Test with immediate response
@@ -840,6 +862,9 @@ String WebServerManager::serializeState() {
     payload["firmwareVersion"] = localState.firmwareVersion;
     payload["useGammaCorrection"] = localState.useGammaCorrection;
     payload["onOffAnimation"] = localState.onOffAnimation;
+    payload["activePartition"] = localState.activePartition;
+    payload["otaRollbackOccurred"] = localState.otaRollbackOccurred;
+    payload["otaPendingVerify"] = localState.otaPendingVerify;
 
     JsonObject net = payload["network"].to<JsonObject>();
     net["hubIp"] = WiFi.localIP().toString();

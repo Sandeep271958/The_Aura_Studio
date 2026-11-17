@@ -346,6 +346,9 @@ const DOM = {
 
   // Wireless OTA Firmware Update
   badgeFirmwareVersion: document.getElementById('badge-firmware-version'),
+  badgeOtaPartition: document.getElementById('badge-ota-partition'),
+  otaRollbackBanner: document.getElementById('ota-rollback-banner'),
+  btnDismissRollback: document.getElementById('btn-dismiss-rollback'),
   otaDropZone: document.getElementById('ota-drop-zone'),
   inputOtaFile: document.getElementById('input-ota-file'),
   btnSelectOtaFile: document.getElementById('btn-select-ota-file'),
@@ -514,6 +517,23 @@ function handleIncomingMessage(msg) {
     Object.assign(appState, msg.payload);
     if (msg.payload && msg.payload.firmwareVersion && DOM.badgeFirmwareVersion) {
       DOM.badgeFirmwareVersion.textContent = `v${msg.payload.firmwareVersion}`;
+    }
+    if (msg.payload && DOM.badgeOtaPartition && msg.payload.activePartition) {
+      const partName = msg.payload.activePartition === 'app0' ? 'ota_0' : (msg.payload.activePartition === 'app1' ? 'ota_1' : msg.payload.activePartition);
+      const isTrial = !!msg.payload.otaPendingVerify;
+      DOM.badgeOtaPartition.textContent = `Slot: ${partName}${isTrial ? ' [Trial]' : ''}`;
+      if (isTrial) {
+        DOM.badgeOtaPartition.classList.add('trial');
+      } else {
+        DOM.badgeOtaPartition.classList.remove('trial');
+      }
+    }
+    if (msg.payload && DOM.otaRollbackBanner) {
+      if (msg.payload.otaRollbackOccurred) {
+        DOM.otaRollbackBanner.classList.remove('hidden');
+      } else {
+        DOM.otaRollbackBanner.classList.add('hidden');
+      }
     }
     if (msg.payload && msg.payload.onOffAnimation) {
       appState.onOffAnimation = msg.payload.onOffAnimation;
@@ -2854,6 +2874,14 @@ function bindEvents() {
       };
 
       xhr.send(formData);
+    });
+  }
+
+  if (DOM.btnDismissRollback) {
+    DOM.btnDismissRollback.addEventListener('click', () => {
+      triggerHaptic('light');
+      if (DOM.otaRollbackBanner) DOM.otaRollbackBanner.classList.add('hidden');
+      sendWsAction({ action: 'dismissRollback' });
     });
   }
 

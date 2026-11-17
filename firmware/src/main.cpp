@@ -4,6 +4,7 @@
 #include <LittleFS.h>
 #include <ArduinoOTA.h>
 #include <Preferences.h>
+#include <esp_ota_ops.h>
 #include "Config.h"
 #include "WizController.h"
 #include "LedDriver.h"
@@ -18,6 +19,9 @@ WebServerManager webManager(hubState, wizCtrl);
 // Persistent active network credentials
 static String activeSsid = "";
 static String activePass = "";
+
+// RTC Memory variable: survives warm reboots, panics, and software resets
+RTC_DATA_ATTR static int rtcBootFailures = 0;
 
 // FreeRTOS Mutex & Task handle for LED rendering on Core 1
 SemaphoreHandle_t stateMutex = NULL;
@@ -54,7 +58,7 @@ void setup() {
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Firmware: v01.07.000                     ");
+    Serial.println("   Firmware: v01.07.001 (Fail-Safe Dual-OTA)");
     Serial.println("==========================================");
 
     // Hardware Reset Reason Audit
@@ -62,6 +66,55 @@ void setup() {
     Serial.printf("[Boot] Hardware Reset Reason: %d\n", (int)rstReason);
     if (rstReason == ESP_RST_BROWNOUT) {
         Serial.println("[Boot] WARNING: Hardware Brownout Detected! Enforcing conservative power profile.");
+    }
+
+    // -------------------------------------------------------------
+    // DUAL-OTA PARTITION AUDIT & TIER-1 AUTO-ROLLBACK WATCHDOG
+    // -------------------------------------------------------------
+    const esp_partition_t *runningPart = esp_ota_get_running_partition();
+    if (runningPart != NULL) {
+        hubState.activePartition = String(runningPart->label);
+        Serial.printf("[OTA] Active Boot Partition: %s (Address: 0x%06x)\n",
+                      runningPart->label, runningPart->address);
+
+        esp_ota_img_states_t otaState;
+        if (esp_ota_get_state_partition(runningPart, &otaState) == ESP_OK) {
+            hubState.otaPendingVerify = (otaState == ESP_OTA_IMG_PENDING_VERIFY);
+            Serial.printf("[OTA] Partition Verification State: %s\n",
+                          hubState.otaPendingVerify ? "PENDING_VERIFY (20s Trial)" : "VALID");
+        }
+    }
+
+    // Read persistent rollback flag from NVS
+    Preferences otaPrefs;
+    otaPrefs.begin("aura_ota", false);
+    hubState.otaRollbackOccurred = otaPrefs.getBool("rollback", false);
+    if (hubState.otaRollbackOccurred) {
+        Serial.println("[OTA Fail-Safe] ⚠️ System running on recovered partition after automatic rollback!");
+    }
+    otaPrefs.end();
+
+    // Track consecutive boot crash count in RTC Memory (survives panics and resets)
+    rtcBootFailures++;
+    Serial.printf("[OTA Fail-Safe] Boot Trial Counter: %d / 3\n", rtcBootFailures);
+
+    if (rtcBootFailures >= 3) {
+        Serial.println("\n[OTA Fail-Safe] ⚠️ 3 CONSECUTIVE CRASHES DETECTED!");
+        Serial.println("[OTA Fail-Safe] Initiating emergency hardware rollback to previous stable partition...");
+
+        otaPrefs.begin("aura_ota", false);
+        otaPrefs.putBool("rollback", true);
+        otaPrefs.putString("failed_part", hubState.activePartition);
+        otaPrefs.end();
+
+        rtcBootFailures = 0; // Reset counter for the fallback partition
+
+        if (esp_ota_check_rollback_is_possible()) {
+            esp_ota_mark_app_invalid_rollback_and_reboot();
+        } else {
+            Update.rollBack();
+            ESP.restart();
+        }
     }
 
     // 1. Initialize Mutex
@@ -295,6 +348,27 @@ void loop() {
 
     // Commit debounced state changes to NVS if dirty
     webManager.updatePersistence();
+
+    // Tier-1 Autonomous Dual-OTA Stability Trial Guard (20-Second Verification Window)
+    static bool otaTrialPassed = false;
+    static uint32_t bootTimestamp = millis();
+    if (!otaTrialPassed && (millis() - bootTimestamp >= 20000)) {
+        otaTrialPassed = true;
+        rtcBootFailures = 0; // Successfully ran stably for 20s! Reset crash counter!
+
+        const esp_partition_t *running = esp_ota_get_running_partition();
+        esp_ota_img_states_t otaState;
+        if (running != NULL && esp_ota_get_state_partition(running, &otaState) == ESP_OK) {
+            if (otaState == ESP_OTA_IMG_PENDING_VERIFY) {
+                esp_ota_mark_app_valid_cancel_rollback();
+                Serial.println("[OTA Fail-Safe] 20-second stability trial passed. Partition marked VALID.");
+            }
+        }
+        if (hubState.otaPendingVerify) {
+            hubState.otaPendingVerify = false;
+            webManager.broadcastState();
+        }
+    }
 
     delay(20);
 }

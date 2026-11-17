@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.07.001.bin`** | `v01.07.001` | 2026-11-17 | 1,497,168 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `88066e18c003316fb37cfe270b68bb084e873dd53dc57c8b9f2767e619c8681c` |
 | **`firmware_01.07.000.bin`** | `v01.07.000` | 2026-11-17 | 1,494,752 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `653dba68368fa3ee40aa47f011e8bcbee956ca99a29ac4ffb39ff15963c8b132` |
 | **`firmware_01.06.000.bin`** | `v01.06.000` | 2026-11-17 | 1,494,976 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `c2cf39c4eb8bd77b34ae6098392e1b67cfd479c16286fc05d794267703e59da4` |
 | **`firmware_01.05.001.bin`** | `v01.05.001` | 2026-11-17 | 1,494,960 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ad6d39a9c54e5d7d73b50545b937123e2600a50a1376c48ff8399caf673f798e` |
@@ -39,6 +40,16 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.07.001`:
+1. **Tier-1 Autonomous Dual-Partition Hardware Rollback**:
+   - **Automatic Bootloop Protection**: Integrated `<esp_ota_ops.h>` with RTC memory crash counting (`rtcBootFailures`). If any newly flashed OTA update crashes or bootloops 3 times consecutively before reaching 20 seconds of stable operation, the ESP32 automatically flips `otadata` and executes `esp_ota_mark_app_invalid_rollback_and_reboot()`, instantly restoring the previous stable partition with zero user intervention and zero box disassembly.
+   - **20-Second Stability Handshake**: Newly flashed partitions run in trial verification mode (`ESP_OTA_IMG_PENDING_VERIFY`) until surviving 20 seconds of stable runtime, at which point `esp_ota_mark_app_valid_cancel_rollback()` marks the partition permanent and resets the crash counter.
+2. **Dashboard Partition & Rollback Telemetry**:
+   - **Active Slot Pill**: Live telemetry pill (`Slot: ota_0` or `Slot: ota_1`) with real-time `[Trial]` state indication.
+   - **Auto-Rollback Recovery Banner**: If an automatic rollback occurred, a dedicated alert banner in the Settings deck notifies the user that the previous update crashed and was self-healed, with a 1-click dismiss button.
+3. **Infinite Ping-Pong Storage Management**:
+   - Memory is strictly isolated in dedicated 1.44 MB slots (`ota_0` and `ota_1`), alternating on each flash without accumulating flash fragmentation or running out of memory.
 
 ### Key Highlights of `v01.07.000`:
 1. **Permanent Bootloop & Post-Animation Crash Elimination**:

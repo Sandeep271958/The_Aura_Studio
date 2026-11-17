@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.07.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.07.001-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -352,7 +352,7 @@ $$\Large \mathbf{firmware\_XX.YY.ZZZ.bin}$$
 ### 🌐 Minimalist In-Dashboard Web Flasher
 1. Open the dashboard at `http://aura-hub.local` and click the **Settings (Gear)** icon.
 2. Scroll to the sleek **Wireless Firmware Update** section.
-3. Select or drag the compiled binary (e.g., `releases/firmware_01.07.000.bin`).
+3. Select or drag the compiled binary (e.g., `releases/firmware_01.07.001.bin`).
 4. Click **Flash OTA**. The real-time progress bar uploads the firmware to the inactive partition, verifies the cryptographic image checksum, triggers a safe 6-second reboot countdown, and reloads automatically.
 
 ---
@@ -717,6 +717,25 @@ In **`v01.05.001`**, the ESP32 firmware architecture was thoroughly redesigned t
 
 ---
 
+## 🛡️ Autonomous Dual-Partition Hardware Rollback & Safe Mode (`v01.07.001`)
+
+In **`v01.07.001`**, the ESP32 firmware architecture introduces **Tier-1 Zero-Disassembly Auto-Rollback Protection**:
+
+### How It Works (Zero Box Disassembly)
+1. **Trial Verification Handshake (`ESP_OTA_IMG_PENDING_VERIFY`)**:
+   - When a wireless update is uploaded, it is flashed into the alternate inactive partition (`ota_0` or `ota_1`) and marked in state `PENDING_VERIFY`.
+   - On reboot, the new firmware enters a **20-second trial window**.
+   - If the new firmware runs stably for 20 seconds, it calls `esp_ota_mark_app_valid_cancel_rollback()`, marks the partition permanently valid, and resets the crash counter.
+2. **Crash Watchdog in RTC Memory**:
+   - `rtcBootFailures` tracks consecutive boots in ultra-low-power RTC memory (which survives panics, resets, and watchdog restarts).
+   - If a new firmware update crashes or bootloops **3 times consecutively** before reaching 20 seconds of stable uptime, the ESP32 automatically flips `otadata` and executes `esp_ota_mark_app_invalid_rollback_and_reboot()`.
+   - **Result**: The device automatically falls back to the previous stable firmware without you touching a single cable, button, or screw!
+3. **Dashboard Real-Time Telemetry**:
+   - Displays the **Active Partition Slot** (`Slot: ota_0` or `Slot: ota_1`) with real-time `[Trial]` state indication.
+   - If an auto-rollback occurred, a dedicated amber warning banner appears in the Settings deck informing you that the previous update crashed and was automatically recovered.
+
+---
+
 ## 🛡️ Industrial Bootloop Immunity & Panic Elimination Architecture (`v01.07.000`)
 
 In **`v01.07.000`**, the ESP32 firmware architecture was thoroughly redesigned to eliminate a critical post-bootup panic and bootloop condition:
@@ -798,8 +817,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.07.000.bin     # Production Dual-OTA Release Binary (v01.07.000)
-│   ├── littlefs_01.07.000.bin     # Web Dashboard LittleFS Release Binary (v01.07.000)
+│   ├── firmware_01.07.001.bin     # Production Dual-OTA Release Binary (v01.07.001)
+│   ├── littlefs_01.07.001.bin     # Web Dashboard LittleFS Release Binary (v01.07.001)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes

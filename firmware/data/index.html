@@ -21,7 +21,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=01.07.000">
+  <link rel="stylesheet" href="style.css?v=01.07.001">
 </head>
 
 <body class="theme-obsidian">
@@ -1551,7 +1551,22 @@
                 <h4>Wireless Dual-Partition OTA</h4>
                 <p class="section-note">Zero-downtime updates with automatic rollback protection.</p>
               </div>
-              <span class="badge-ota-status" id="badge-firmware-version">v01.07.000</span>
+              <div class="ota-badges-group">
+                <span class="badge-ota-partition" id="badge-ota-partition">Slot: app0</span>
+                <span class="badge-ota-status" id="badge-firmware-version">v01.07.001</span>
+              </div>
+            </div>
+
+            <!-- Rollback Recovery Alert Banner (Hidden by default, shown if auto-rollback occurred) -->
+            <div id="ota-rollback-banner" class="ota-rollback-banner hidden">
+              <div class="rollback-banner-content">
+                <span class="rollback-banner-icon">🛡️</span>
+                <div class="rollback-banner-text">
+                  <strong>Auto-Rollback Protection Activated</strong>
+                  <p>Previous firmware update crashed during startup. The ESP32 hardware watchdog automatically self-healed and restored the stable partition with zero downtime.</p>
+                </div>
+              </div>
+              <button type="button" id="btn-dismiss-rollback" class="rollback-dismiss-btn" aria-label="Dismiss banner">&times;</button>
             </div>
             <p class="section-note">Upload <code>firmware_*.bin</code> to update C++ engine, or
               <code>littlefs_latest.bin</code> to update the Web Dashboard UI with zero downtime.</p>
@@ -1700,7 +1715,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=01.07.000"></script>
+  <script src="app.js?v=01.07.001"></script>
 </body>
 
 </html>
