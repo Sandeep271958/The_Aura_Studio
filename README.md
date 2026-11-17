@@ -546,36 +546,45 @@ When a WiZ bulb powers up from a cold wall switch, its internal firmware default
 
 ---
 
-## 💾 Full System State Persistence & Power-Cycle Recovery (`v01.04.000`)
+## 💾 Full System State Persistence & Power-Cycle Recovery (`v01.04.000` / `v01.04.001`)
 
-### 🛑 The Traditional Problem
-When smart lighting hubs experience a power outage or are unplugged, they typically revert to default factory settings (usually blasting 100% white or bright neon colors). If you switched off your lights before sleeping and unplugged the hub or suffered a brownout, upon power restoration the hub would wake you up by illuminating the room.
+### 🛑 The Traditional Problem & Real-World User Usability
+When smart lighting hubs experience an apartment power outage or are replugged:
+1. **The Default Blasting Problem:** Legacy hubs revert to 100% white or bright neon colors. If you switched off your lights before sleeping and suffered a power interruption, upon power restoration standard bulbs wake you up.
+2. **The "Dead Hub" Usability Dilemma:** If a hub completely skips its boot indication when previously turned off, the user receives zero visual confirmation that the hardware is powered and alive. When ambient bulbs (like Philips WiZ) turn on to factory default warm white while the hub stays pitch black, users assume the hub is broken or unpowered, leading to repeated, damaging power cycling.
 
-### 🛡️ The Zero-Disturbance Power-Cycle Recovery Engine
-**The Aura Studio `v01.04.000` implements comprehensive NVS state persistence and a smart bootloader guard:**
+### 🛡️ The Industrial Hardware Alive Signal & State Restoration Engine (`v01.04.001`)
+**The Aura Studio `v01.04.001` resolves this with a dual-stage hardware alive indication and state restoration flow:**
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  Smart Power-Cycle Bootloader & State Restoration Engine               │
+│  Smart Power-Cycle Bootloader & State Restoration Engine (v01.04.001)  │
 │                                                                        │
 │  [ESP32 Power Restoration / Reboot]                                    │
 │          │                                                             │
 │          ▼                                                             │
 │  [Early loadPersistentState() from NVS "aura" Namespace]               │
 │          │                                                             │
+│          ▼                                                             │
+│  [ALWAYS Play Apple Siri HomePod Fluid Wave (2500ms Soft-Start)]       │
+│  • Essential visual heartbeat: Confirms ESP32 has power & is booting   │
+│  • Wi-Fi association runs concurrently in background                   │
+│          │                                                             │
 │          ├───────────────────────────────┬─────────────────────────────┤
 │          ▼                               ▼                             │
-│   [State Was SWITCHED OFF]        [State Was SWITCHED ON]              │
+│   [State Was SWITCHED OFF (state_t0)]   [State Was SWITCHED ON]       │
 │          │                               │                             │
 │          ▼                               ▼                             │
-│  • Hardware LEDs Kept Dark        • Play Apple Siri Wave Animation     │
-│  • Boot Animation SKIPPED         • Restore Exact Color & Effect       │
-│  • Silent Wi-Fi Negotiation       • Restore Custom Speed & Intensity   │
-│  • WiZ Bulbs Commanded OFF        • Restore 4-Stop Gradient Palette    │
-│  • Core 1 Renders Black (0W)      • Sync WiZ Bulbs with Saved Spectrum │
+│  • Boot Wave smoothly fades to dark      • Smooth transition to state  │
+│  • Core 1 maintains black (0W)           • Restore exact color/effect  │
+│  • Silent Wi-Fi connection handshake     • Restore custom speed/luma   │
+│  • WiZ Bulbs commanded OFF immediately   • WiZ Bulbs sync with saved   │
+│    upon LAN association or discovery       palette and kelvin          │
+│  • Preserves state_t0 if router boots    • Resumes full room ambience  │
+│    slowly (no amber overwrite)           │                             │
 │          │                               │                             │
 │          ▼                               ▼                             │
-│  [Room Remains Peacefully Dark]   [Studio Resumes Custom Ambience]     │
+│  [Room Returns to Dark State_t0]         [Studio Resumes Ambience]     │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -586,15 +595,14 @@ When smart lighting hubs experience a power outage or are unplugged, they typica
 2. **Flash Wear Protection (100,000+ Write Longevity):**
    - **Instant Commit:** High-impact power toggles (`isMasterOn`, `desk.power`, bulb power) and preset selections commit to flash immediately. If power is pulled 1 second after turning off the room, the OFF state is guaranteed saved.
    - **Debounced Commit (1.2s):** Continuous slider scrubbing (dragging brightness, speed, intensity, or the color spectrum) updates memory and hardware at 60 FPS, and commits to NVS flash only after 1.2 seconds of stillness.
-3. **Smart Bootloader Guard (Dark Room Guarantee):**
+3. **Smart Bootloader & Hardware Alive Signal:**
    - `webManager.loadPersistentState()` executes at step 2.5 of `setup()`, before hardware LED initialization.
-   - If the system was switched off before power down:
-     - The WS2812B strip initializes dark (`FastLED.clear(true)`).
-     - The Siri boot animation is **completely bypassed**.
-     - Wi-Fi negotiates silently in the dark.
-     - As soon as Wi-Fi connects, power OFF (`sendPower(false)`) is dispatched to WiZ bulbs.
+   - The Apple Siri bootup wave **always executes** at soft-start 950mA power limit to reassure the user that the microcontroller is functioning.
+   - If the system was switched off prior to power down (`state_t0`):
+     - The LEDs smoothly transition to dark once the 2.5s alive pulse completes.
      - Core 1 `LedTask` maintains 0-luma black.
-     - **The room stays dark and undisturbed.**
+     - If the home router is booting slowly, SoftAP fallback **preserves `state_t0`** rather than overriding with amber breathing.
+     - As soon as the router finishes booting and Wi-Fi connects (or when WiZ bulbs emit heartbeats on boot), power OFF (`effectivePower = false`) is dispatched to WiZ bulbs, overriding their default factory warm white and returning the entire room to `state_t0`.
 
 ---
 

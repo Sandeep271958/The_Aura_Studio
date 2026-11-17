@@ -94,6 +94,10 @@ void setup() {
 
     // Check if system was switched off before power down
     bool systemWasSwitchedOff = (!hubState.isMasterOn || !hubState.desk.power);
+    Serial.printf("[Boot] Restored previous power state: %s (Master: %s | Desk: %s)\n",
+                  systemWasSwitchedOff ? "OFF" : "ON",
+                  hubState.isMasterOn ? "ON" : "OFF",
+                  hubState.desk.power ? "ON" : "OFF");
 
     // 4. Wi-Fi Negotiation or SoftAP Setup
     bool wifiConnected = false;
@@ -105,29 +109,21 @@ void setup() {
         WiFi.persistent(true);
         WiFi.begin(activeSsid.c_str(), activePass.c_str());
 
-        if (systemWasSwitchedOff) {
-            Serial.println("[Boot] Restored previous power state: SWITCHED OFF. Keeping hardware LEDs dark.");
-            FastLED.clear(true);
-            int attempts = 0;
-            while (WiFi.status() != WL_CONNECTED && attempts < 35) {
-                delay(150);
-                Serial.print(".");
-                attempts++;
-            }
-            wifiConnected = (WiFi.status() == WL_CONNECTED);
-        } else {
-            // Play Apple Siri HomePod Physics Fluid Wave (2500ms at 60 FPS on Core 1)
-            // Wi-Fi handshake negotiates concurrently during the fluid wave!
-            ledCtrl.playSiriBootupAnimation(2500);
+        // ALWAYS play Apple Siri HomePod Physics Fluid Wave on boot!
+        // Provides essential hardware alive confirmation that the ESP32 is powered and operational.
+        // Wi-Fi handshake negotiates concurrently in the background during the fluid wave.
+        ledCtrl.playSiriBootupAnimation(2500);
 
-            int attempts = 0;
-            while (WiFi.status() != WL_CONNECTED && attempts < 30) {
-                delay(150);
-                Serial.print(".");
-                attempts++;
-            }
-            wifiConnected = (WiFi.status() == WL_CONNECTED);
+        int attempts = 0;
+        while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+            delay(150);
+            Serial.print(".");
+            attempts++;
         }
+        wifiConnected = (WiFi.status() == WL_CONNECTED);
+    } else {
+        // Play bootup animation even in unconfigured state to signal hardware power
+        ledCtrl.playSiriBootupAnimation(2500);
     }
 
     if (wifiConnected) {
@@ -169,15 +165,21 @@ void setup() {
         // Start Captive Portal DNS on port 53 (redirects all domains to 192.168.4.1)
         webManager.enableCaptivePortal();
 
-        // Amber breathing beacon signals Hub is in Setup Mode awaiting Wi-Fi configuration
-        hubState.isMasterOn = true;
-        hubState.desk.power = true;
-        hubState.desk.effect = "breathe";
-        hubState.desk.r = 251;
-        hubState.desk.g = 146;
-        hubState.desk.b = 60;
-        hubState.desk.brightness = 90;
-        hubState.desk.speed = 45;
+        // Amber breathing beacon is only activated if no network is configured (fresh setup)
+        // If the system has saved Wi-Fi credentials, PRESERVE restored state_t0!
+        if (activeSsid.length() == 0) {
+            hubState.isMasterOn = true;
+            hubState.desk.power = true;
+            hubState.desk.effect = "breathe";
+            hubState.desk.r = 251;
+            hubState.desk.g = 146;
+            hubState.desk.b = 60;
+            hubState.desk.brightness = 90;
+            hubState.desk.speed = 45;
+        } else {
+            Serial.printf("[Boot] Preserving state_t0 (Power: %s) while waiting for router in background.\n",
+                          systemWasSwitchedOff ? "OFF" : "ON");
+        }
     }
 
     // 5. Initialize WiZ Controller (UDP) with HubState binding
