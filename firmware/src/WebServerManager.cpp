@@ -2,6 +2,13 @@
 #include <LittleFS.h>
 #include <Preferences.h>
 #include <Update.h>
+#include <esp_ota_ops.h>
+#include <esp_partition.h>
+
+extern "C" {
+    uint32_t bootloader_common_ota_select_crc(const esp_ota_select_entry_t *s);
+    int bootloader_common_get_active_otadata(const esp_ota_select_entry_t *two_otadata);
+}
 
 WebServerManager::WebServerManager(HubState& stateRef, WizController& wizRef)
     : server(80), ws("/ws"), state(stateRef), wiz(wizRef) {}
@@ -649,10 +656,66 @@ void WebServerManager::setupRoutes() {
         if (final) {
             if (Update.end(true)) {
                 Serial.printf("[OTA] Update Success: %u bytes\n", index + len);
-                Preferences otaPrefs;
-                otaPrefs.begin("aura_ota", false);
-                otaPrefs.remove("rollback");
-                otaPrefs.end();
+
+                int cmd = U_FLASH;
+                String lower = filename;
+                lower.toLowerCase();
+                if (lower.indexOf("littlefs") >= 0 || lower.indexOf("spiffs") >= 0 || lower.indexOf("filesystem") >= 0 || lower.indexOf("data") >= 0) {
+                    cmd = U_SPIFFS;
+                }
+
+                if (cmd == U_FLASH) {
+                    // Explicitly enforce ESP_OTA_IMG_NEW in otadata for the next boot partition!
+                    const esp_partition_t *runningPart = esp_ota_get_running_partition();
+                    const esp_partition_t *targetPart = esp_ota_get_next_update_partition(NULL);
+                    const esp_partition_t *otadataPart = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_OTA, NULL);
+
+                    if (runningPart != NULL && targetPart != NULL && otadataPart != NULL) {
+                        esp_ota_select_entry_t entries[2];
+                        esp_err_t r0 = esp_partition_read(otadataPart, 0, &entries[0], sizeof(esp_ota_select_entry_t));
+                        esp_err_t r1 = esp_partition_read(otadataPart, 0x1000, &entries[1], sizeof(esp_ota_select_entry_t));
+
+                        if (r0 == ESP_OK && r1 == ESP_OK) {
+                            int activeSec = bootloader_common_get_active_otadata(entries);
+                            int targetSec = (activeSec == 0) ? 1 : 0;
+                            uint32_t activeSeq = (activeSec >= 0) ? entries[activeSec].ota_seq : 0;
+                            uint32_t nextSeq = activeSeq + 1;
+
+                            // Calculate nextSeq based on target partition subtype (app0: even sequence, app1: odd sequence relative to base 1)
+                            uint32_t subIndex = (targetPart->subtype & 0x0F);
+                            while ((nextSeq - 1) % 2 != subIndex) {
+                                nextSeq++;
+                            }
+
+                            esp_ota_select_entry_t newEntry;
+                            memset(&newEntry, 0xFF, sizeof(newEntry));
+                            newEntry.ota_seq = nextSeq;
+                            newEntry.ota_state = ESP_OTA_IMG_NEW; // 0x00000000 -> informs hardware bootloader to initiate trial
+                            newEntry.crc = bootloader_common_ota_select_crc(&newEntry);
+
+                            size_t secOffset = (targetSec == 0) ? 0 : 0x1000;
+                            esp_partition_erase_range(otadataPart, secOffset, 4096);
+                            esp_partition_write(otadataPart, secOffset, &newEntry, sizeof(newEntry));
+
+                            Serial.printf("[OTA] Enforced ESP_OTA_IMG_NEW on otadata sector %d (seq=%u, crc=0x%08x) for target %s\n",
+                                          targetSec, nextSeq, newEntry.crc, targetPart->label);
+
+                            // Stage trial metadata in NVS
+                            Preferences otaPrefs;
+                            otaPrefs.begin("aura_ota", false);
+                            otaPrefs.remove("rollback");
+                            otaPrefs.putBool("trial_active", true);
+                            otaPrefs.putString("pending_part", String(targetPart->label));
+                            otaPrefs.putString("fallback_part", String(runningPart->label));
+                            otaPrefs.end();
+                        }
+                    }
+                } else {
+                    Preferences otaPrefs;
+                    otaPrefs.begin("aura_ota", false);
+                    otaPrefs.remove("rollback");
+                    otaPrefs.end();
+                }
             } else {
                 Update.printError(Serial);
             }

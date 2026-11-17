@@ -16,7 +16,7 @@
 
 [![Designed by Sandy](https://img.shields.io/badge/Designed%20by-Sandy-a855f7?style=for-the-badge&logoColor=white)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Firmware](https://img.shields.io/badge/Firmware-FreeRTOS%20ESP32-00f2fe?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
-[![Version](https://img.shields.io/badge/Release-v01.07.001-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
+[![Version](https://img.shields.io/badge/Release-v01.08.000-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio/releases)
 [![Dual OTA](https://img.shields.io/badge/OTA-Dual%20Partition%20Fail--Safe-38bdf8?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Lighting Grade](https://img.shields.io/badge/Lighting-Lutron%20Ketra%20Grade-ec4899?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
 [![Local Latency](https://img.shields.io/badge/Latency-%3C10ms%20Local-10b981?style=for-the-badge)](https://github.com/Sandeep271958/The_Aura_Studio)
@@ -717,22 +717,24 @@ In **`v01.05.001`**, the ESP32 firmware architecture was thoroughly redesigned t
 
 ---
 
-## 🛡️ Autonomous Dual-Partition Hardware Rollback & Safe Mode (`v01.07.001`)
+## 🛡️ Autonomous Dual-Partition Hardware Rollback & Safe Mode (`v01.08.000`)
 
-In **`v01.07.001`**, the ESP32 firmware architecture introduces **Tier-1 Zero-Disassembly Auto-Rollback Protection**:
+In **`v01.08.000`**, the ESP32 firmware architecture establishes **True Hardware Bootloader-Enforced Tier-1 Auto-Rollback**:
 
 ### How It Works (Zero Box Disassembly)
-1. **Trial Verification Handshake (`ESP_OTA_IMG_PENDING_VERIFY`)**:
-   - When a wireless update is uploaded, it is flashed into the alternate inactive partition (`ota_0` or `ota_1`) and marked in state `PENDING_VERIFY`.
-   - On reboot, the new firmware enters a **20-second trial window**.
-   - If the new firmware runs stably for 20 seconds, it calls `esp_ota_mark_app_valid_cancel_rollback()`, marks the partition permanently valid, and resets the crash counter.
-2. **Crash Watchdog in RTC Memory**:
-   - `rtcBootFailures` tracks consecutive boots in ultra-low-power RTC memory (which survives panics, resets, and watchdog restarts).
-   - If a new firmware update crashes or bootloops **3 times consecutively** before reaching 20 seconds of stable uptime, the ESP32 automatically flips `otadata` and executes `esp_ota_mark_app_invalid_rollback_and_reboot()`.
-   - **Result**: The device automatically falls back to the previous stable firmware without you touching a single cable, button, or screw!
-3. **Dashboard Real-Time Telemetry**:
-   - Displays the **Active Partition Slot** (`Slot: ota_0` or `Slot: ota_1`) with real-time `[Trial]` state indication.
-   - If an auto-rollback occurred, a dedicated amber warning banner appears in the Settings deck informing you that the previous update crashed and was automatically recovered.
+1. **Hardware Bootloader State Enforcement (`ESP_OTA_IMG_NEW` -> `ESP_OTA_IMG_PENDING_VERIFY`)**:
+   - When a wireless update is uploaded, `WebServerManager.cpp` writes the binary to the inactive partition (`app0` or `app1`), and explicitly sets the target `otadata` record to **`ESP_OTA_IMG_NEW`** (`0x00000000`) with a freshly computed CRC32.
+   - Upon reboot, the **ESP32 second-stage hardware bootloader** detects `ESP_OTA_IMG_NEW`, transitions it to **`ESP_OTA_IMG_PENDING_VERIFY`** (`1`), and boots into the new firmware.
+2. **Deferred Validation via `verifyRollbackLater()`**:
+   - The Arduino-ESP32 core startup routine (`initArduino()`) normally auto-validates new images immediately on boot. `v01.08.000` overrides `extern "C" bool verifyRollbackLater(void) { return true; }` to defer validation until the system completes a full **20-second stability trial**.
+3. **Autonomous Hardware Rollback on Crash**:
+   - If the newly flashed firmware crashes, panics (e.g. testing with broken `01.05.001`), or suffers a watchdog reset *before* completing the 20-second trial, the hardware bootloader detects that the image is still in `ESP_OTA_IMG_PENDING_VERIFY` on the next reboot.
+   - The bootloader automatically marks the partition as **`ESP_OTA_IMG_ABORTED`** (`4`), rejects it, and **rolls back to the previous working partition completely in hardware**—even if the flashed binary contains zero rollback code of its own!
+4. **Application-Level Watchdog Guard (Defense-in-Depth)**:
+   - `rtcBootFailures` tracks consecutive boots in RTC memory. If 3 consecutive crashes occur, `esp_ota_mark_app_invalid_rollback_and_reboot()` is triggered as a secondary safety net.
+5. **Dashboard Real-Time Telemetry & Safe Recovery Notification**:
+   - Displays the **Active Partition Slot** (`Slot: app0` or `Slot: app1`) with real-time `[Trial]` state indication.
+   - When safely recovered after a rollback, a persistent warning banner appears in the Settings deck informing you that the previous update crashed and was automatically rolled back. Dismissing the banner restores normal UI readout.
 
 ---
 
@@ -817,8 +819,8 @@ The_Aura_Studio/
 │       ├── WebServerManager.h / .cpp # AsyncWebServer, WebSocket & OTA Web Flasher
 │       └── main.cpp               # FreeRTOS dual-core initialization
 ├── releases/                      # Numbered Production Firmware Binaries
-│   ├── firmware_01.07.001.bin     # Production Dual-OTA Release Binary (v01.07.001)
-│   ├── littlefs_01.07.001.bin     # Web Dashboard LittleFS Release Binary (v01.07.001)
+│   ├── firmware_01.08.000.bin     # Production Dual-OTA Release Binary (v01.08.000)
+│   ├── littlefs_01.08.000.bin     # Web Dashboard LittleFS Release Binary (v01.08.000)
 │   ├── firmware_latest.bin        # Copy of the latest production release
 │   ├── littlefs_latest.bin        # Copy of the latest web dashboard release
 │   └── README.md                  # Release log, checksums, and architecture notes

@@ -8,10 +8,10 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-BINARY="$PROJECT_ROOT/releases/firmware_01.07.001.bin"
+BINARY="$PROJECT_ROOT/releases/firmware_01.08.000.bin"
 
 echo "========================================================================"
-echo "   ✦ THE AURA STUDIO — USB RECOVERY FLASHER (v01.07.001)"
+echo "   ✦ THE AURA STUDIO — USB RECOVERY FLASHER (v01.08.000)"
 echo "========================================================================"
 echo ""
 

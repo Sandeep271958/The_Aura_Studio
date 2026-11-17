@@ -200,7 +200,8 @@ def main():
 
     # Compilation
     print("▶ Compiling firmware via PlatformIO...")
-    res = subprocess.run(["pio", "run", "-d", os.path.join(PROJECT_ROOT, "firmware")], check=True)
+    pio_bin = "pio" if shutil.which("pio") else "/Library/Frameworks/Python.framework/Versions/3.11/bin/pio"
+    res = subprocess.run([pio_bin, "run", "-d", os.path.join(PROJECT_ROOT, "firmware")], check=True)
 
     if not os.path.exists(BUILD_BIN):
         print(f"Error: Build binary not found at {BUILD_BIN}", file=sys.stderr)
@@ -223,7 +224,7 @@ def main():
 
     # Build LittleFS filesystem image
     print("▶ Building LittleFS filesystem image via PlatformIO...")
-    subprocess.run(["pio", "run", "--target", "buildfs", "-d", os.path.join(PROJECT_ROOT, "firmware")], check=True)
+    subprocess.run([pio_bin, "run", "--target", "buildfs", "-d", os.path.join(PROJECT_ROOT, "firmware")], check=True)
     build_fs = os.path.join(PROJECT_ROOT, "firmware", ".pio", "build", "esp32dev", "littlefs.bin")
     if os.path.exists(build_fs):
         fs_target_path = os.path.join(RELEASES_DIR, f"littlefs_{version}.bin")

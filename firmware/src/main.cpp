@@ -20,6 +20,11 @@ WebServerManager webManager(hubState, wizCtrl);
 static String activeSsid = "";
 static String activePass = "";
 
+// Arduino-ESP32 weak hook override: Defer auto-validation so the 20-second stability trial enforces rollback on boot crashes
+extern "C" bool verifyRollbackLater(void) {
+    return true;
+}
+
 // RTC Memory variable: survives warm reboots, panics, and software resets
 RTC_DATA_ATTR static int rtcBootFailures = 0;
 
@@ -58,7 +63,7 @@ void setup() {
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Firmware: v01.07.001 (Fail-Safe Dual-OTA)");
+    Serial.println("   Firmware: v01.08.000 (Fail-Safe Dual-OTA)");
     Serial.println("==========================================");
 
     // Hardware Reset Reason Audit
@@ -72,6 +77,7 @@ void setup() {
     // DUAL-OTA PARTITION AUDIT & TIER-1 AUTO-ROLLBACK WATCHDOG
     // -------------------------------------------------------------
     const esp_partition_t *runningPart = esp_ota_get_running_partition();
+    const esp_partition_t *otherPart = esp_ota_get_next_update_partition(NULL);
     if (runningPart != NULL) {
         hubState.activePartition = String(runningPart->label);
         Serial.printf("[OTA] Active Boot Partition: %s (Address: 0x%06x)\n",
@@ -85,12 +91,40 @@ void setup() {
         }
     }
 
-    // Read persistent rollback flag from NVS
+    // Inspect hardware bootloader state & persistent trial metadata from NVS
     Preferences otaPrefs;
     otaPrefs.begin("aura_ota", false);
-    hubState.otaRollbackOccurred = otaPrefs.getBool("rollback", false);
-    if (hubState.otaRollbackOccurred) {
-        Serial.println("[OTA Fail-Safe] ⚠️ System running on recovered partition after automatic rollback!");
+    bool trialActive = otaPrefs.getBool("trial_active", false);
+    String fallbackPart = otaPrefs.getString("fallback_part", "");
+    String failedPart = otaPrefs.getString("pending_part", "");
+
+    bool bootloaderRolledBack = false;
+    if (otherPart != NULL) {
+        esp_ota_img_states_t otherState;
+        if (esp_ota_get_state_partition(otherPart, &otherState) == ESP_OK) {
+            if (otherState == ESP_OTA_IMG_ABORTED || otherState == ESP_OTA_IMG_INVALID) {
+                bootloaderRolledBack = true;
+                failedPart = String(otherPart->label);
+            }
+        }
+    }
+
+    if (trialActive && fallbackPart.length() > 0 && hubState.activePartition == fallbackPart) {
+        bootloaderRolledBack = true;
+    }
+
+    if (bootloaderRolledBack) {
+        hubState.otaRollbackOccurred = true;
+        otaPrefs.putBool("rollback", true);
+        otaPrefs.remove("trial_active");
+        otaPrefs.putString("failed_part", failedPart);
+        Serial.printf("[OTA Fail-Safe] ⚠️ Automatic rollback detected! System safely recovered to %s.\n",
+                      hubState.activePartition.c_str());
+    } else {
+        hubState.otaRollbackOccurred = otaPrefs.getBool("rollback", false);
+        if (hubState.otaRollbackOccurred) {
+            Serial.println("[OTA Fail-Safe] ⚠️ System running on recovered partition after automatic rollback!");
+        }
     }
     otaPrefs.end();
 
@@ -105,6 +139,7 @@ void setup() {
         otaPrefs.begin("aura_ota", false);
         otaPrefs.putBool("rollback", true);
         otaPrefs.putString("failed_part", hubState.activePartition);
+        otaPrefs.remove("trial_active");
         otaPrefs.end();
 
         rtcBootFailures = 0; // Reset counter for the fallback partition
@@ -355,6 +390,11 @@ void loop() {
     if (!otaTrialPassed && (millis() - bootTimestamp >= 20000)) {
         otaTrialPassed = true;
         rtcBootFailures = 0; // Successfully ran stably for 20s! Reset crash counter!
+
+        Preferences otaPrefs;
+        otaPrefs.begin("aura_ota", false);
+        otaPrefs.remove("trial_active");
+        otaPrefs.end();
 
         const esp_partition_t *running = esp_ota_get_running_partition();
         esp_ota_img_states_t otaState;

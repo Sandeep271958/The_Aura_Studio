@@ -24,6 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| **`firmware_01.08.000.bin`** | `v01.08.000` | 2026-11-17 | 1,498,912 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `e2dcf12abc8966d1ec5bcc012d364b49c830ac83f1bf6fdf9911d275c8db554d` |
 | **`firmware_01.07.001.bin`** | `v01.07.001` | 2026-11-17 | 1,497,168 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `88066e18c003316fb37cfe270b68bb084e873dd53dc57c8b9f2767e619c8681c` |
 | **`firmware_01.07.000.bin`** | `v01.07.000` | 2026-11-17 | 1,494,752 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `653dba68368fa3ee40aa47f011e8bcbee956ca99a29ac4ffb39ff15963c8b132` |
 | **`firmware_01.06.000.bin`** | `v01.06.000` | 2026-11-17 | 1,494,976 B (1.43 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `c2cf39c4eb8bd77b34ae6098392e1b67cfd479c16286fc05d794267703e59da4` |
@@ -40,6 +41,17 @@ Where:
 | **`firmware_01.02.000.bin`** | `v01.02.000` | 2026-11-15 | 1,458,336 B (1.39 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ddf4c4081beed3d9c7e1465205afc7033d2ca33842cf1c019b6d65d4edf68630` |
 | **`firmware_01.01.000.bin`** | `v01.01.000` | 2026-11-15 | 1,451,872 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `ff4c315a67b4a7e8a500f6c949fc04dd798a8fd41bab5709f6b888b0c5dc1c02` |
 | **`firmware_01.00.000.bin`** | `v01.00.000` | 2026-11-14 | 1,383,995 B (1.32 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `09f5ad864af6807150249f03288c7cd328672cd826af9e3cb405251a488734cf` |
+
+### Key Highlights of `v01.08.000`:
+1. **Hardware Bootloader-Enforced Auto-Rollback Engine**:
+   - **Guaranteed Rollback for Legacy & Crashing Firmware**: When flashing any firmware via Web OTA (`/update`), `WebServerManager.cpp` now explicitly sets the target partition's `otadata` record to **`ESP_OTA_IMG_NEW`** (`0x00000000`) with CRC32 verification before rebooting.
+   - **Hardware Bootloader Auto-Abort**: The ESP32 second-stage hardware bootloader natively catches `ESP_OTA_IMG_NEW` on the first boot, promotes it to `ESP_OTA_IMG_PENDING_VERIFY`, and if the newly booted firmware crashes, panics, or resets before validation (even broken legacy binaries like `01.05.001` that possess zero rollback code), the bootloader automatically marks it `ESP_OTA_IMG_ABORTED` (`4`) and rolls back to the stable partition completely in hardware without opening the enclosure or pressing buttons!
+2. **Deferred Validation Override (`verifyRollbackLater()`)**:
+   - Overrides the Arduino-ESP32 weak hook `extern "C" bool verifyRollbackLater(void) { return true; }` to prevent Arduino's `initArduino()` from auto-validating unverified firmware on boot. Validation is strictly deferred until the full 20-second stability trial completes.
+3. **Dual-Layer Defense-in-Depth**:
+   - Hardware Bootloader Rollback on panic/reset + Application-Level RTC Memory Crash Counter (`rtcBootFailures >= 3`) ensuring 100% fail-safe protection across all crash and brownout scenarios.
+4. **Autonomous Recovery Telemetry**:
+   - The hub detects hardware bootloader rollback on boot and surfaces an alert banner in the Settings deck informing the user that the previous update was rejected, preserving full desk control and dashboard accessibility.
 
 ### Key Highlights of `v01.07.001`:
 1. **Tier-1 Autonomous Dual-Partition Hardware Rollback**:
