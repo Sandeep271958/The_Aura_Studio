@@ -90,6 +90,54 @@ const PRESETS = {
     desk: { power: true, brightness: 90, color: '#00f2fe', effect: 'soap-bubble', speed: 50, intensity: 85 },
     wizLeft: { power: true, brightness: 70, mode: 'rgb', color: '#0b192c', kelvin: 4000 },
     wizRight: { power: true, brightness: 70, mode: 'rgb', color: '#0b192c', kelvin: 4000 }
+  },
+  'nordic-twilight': {
+    name: 'Nordic Twilight',
+    masterBrightness: 80,
+    contrast: 10,
+    desk: { power: true, brightness: 85, color: '#38bdf8', effect: 'celestial-drift', speed: 35, intensity: 65 },
+    wizLeft: { power: true, brightness: 50, mode: 'cct', color: '#ffffff', kelvin: 4000 },
+    wizRight: { power: true, brightness: 50, mode: 'rgb', color: '#1e1b4b', kelvin: 4000 }
+  },
+  'ember-candle': {
+    name: 'Hearth & Smoked Oak',
+    masterBrightness: 75,
+    contrast: -5,
+    desk: { power: true, brightness: 75, color: '#f97316', effect: 'ember-hearth', speed: 40, intensity: 75 },
+    wizLeft: { power: true, brightness: 60, mode: 'cct', color: '#ff8a12', kelvin: 1800 },
+    wizRight: { power: true, brightness: 60, mode: 'cct', color: '#ff8a12', kelvin: 2000 }
+  },
+  'tokyo-dusk': {
+    name: 'Tokyo Neon Horizon',
+    masterBrightness: 85,
+    contrast: 20,
+    desk: { power: true, brightness: 90, color: '#d946ef', effect: 'spatial-flow', speed: 50, intensity: 80 },
+    wizLeft: { power: true, brightness: 70, mode: 'rgb', color: '#00f2fe', kelvin: 4000 },
+    wizRight: { power: true, brightness: 70, mode: 'rgb', color: '#7c3aed', kelvin: 4000 }
+  },
+  'emerald-rainforest': {
+    name: 'Kyoto Bamboo Canopy',
+    masterBrightness: 75,
+    contrast: 0,
+    desk: { power: true, brightness: 80, color: '#10b981', effect: 'wave', speed: 30, intensity: 60 },
+    wizLeft: { power: true, brightness: 65, mode: 'cct', color: '#ff9b3d', kelvin: 2400 },
+    wizRight: { power: true, brightness: 65, mode: 'cct', color: '#ff8a12', kelvin: 2200 }
+  },
+  'maldives-biolum': {
+    name: 'Maldives Bioluminescent Tide',
+    masterBrightness: 85,
+    contrast: 25,
+    desk: { power: true, brightness: 95, color: '#14b8a6', effect: 'bioluminescent-tide', speed: 45, intensity: 85 },
+    wizLeft: { power: true, brightness: 65, mode: 'rgb', color: '#1e3a8a', kelvin: 4000 },
+    wizRight: { power: true, brightness: 65, mode: 'rgb', color: '#0f172a', kelvin: 4000 }
+  },
+  'solaris-golden': {
+    name: 'Ketra Solaris 2700K',
+    masterBrightness: 90,
+    contrast: 0,
+    desk: { power: true, brightness: 85, color: '#fbbf24', effect: 'breathe', speed: 25, intensity: 40 },
+    wizLeft: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 },
+    wizRight: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 }
   }
 };
 

@@ -60,4 +60,10 @@ private:
   void effectSoliton(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
   void effectThermalPlume(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
   void effectMarangoni(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectSpatialFlow(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectCelestialDrift(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectEmberHearth(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectChromaticPrism(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectBioluminescentTide(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectNordicAurora(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
 };

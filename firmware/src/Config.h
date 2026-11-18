@@ -10,9 +10,9 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.08.000"
-#define FIRMWARE_NAME "firmware_01.08.000.bin"
-#define FIRMWARE_BUILD "2026-11-17"
+#define FIRMWARE_VERSION "01.09.000"
+#define FIRMWARE_NAME "firmware_01.09.000.bin"
+#define FIRMWARE_BUILD "2026-11-18"
 
 // ============================================================================
 // WI-FI & NETWORK CONFIGURATION

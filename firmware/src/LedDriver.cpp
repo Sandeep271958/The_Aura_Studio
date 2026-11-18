@@ -537,6 +537,18 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
             effectThermalPlume(baseColor, targetDim, config.speed, config.intensity);
         } else if (config.effect == "marangoni") {
             effectMarangoni(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "spatial-flow") {
+            effectSpatialFlow(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "celestial-drift") {
+            effectCelestialDrift(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "ember-hearth") {
+            effectEmberHearth(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "chromatic-prism") {
+            effectChromaticPrism(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "bioluminescent-tide") {
+            effectBioluminescentTide(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "nordic-aurora") {
+            effectNordicAurora(baseColor, targetDim, config.speed, config.intensity);
         } else {
             fill_solid(leds, NUM_LEDS, baseColor);
         }
@@ -669,6 +681,70 @@ void LedDriver::effectGradientPhysics(const DeviceDesk &config) {
             float pulse = sinf(phase * 1.5f) * 0.35f;
             float sampleT = constrain(0.5f + (normX - 0.5f) * (1.0f + pulse), 0.0f, 1.0f);
             leds[i] = interpolate4Stops(config.stops, sampleT);
+        } else if (config.effect == "spatial-flow") {
+            // Bilateral convergence: stops flow inward towards desk center (LEDs 29-30)
+            float distCenter = fabsf(normX - 0.5f) * 2.0f;
+            float flowPhase = fmodf(distCenter * 2.5f - phase * 1.2f + 10.0f, 1.0f);
+            if (flowPhase < 0.0f) flowPhase += 1.0f;
+            float sampleT = (normX < 0.5f) ? (flowPhase * 0.5f) : (1.0f - flowPhase * 0.5f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float crest = sinf(distCenter * 6.28f * 1.5f - phase * 2.0f) * 35.0f * turbNorm;
+            if (crest > 0.0f) {
+                base = blend(base, CRGB::White, constrain((int)crest, 0, 100));
+            }
+            leds[i] = base;
+        } else if (config.effect == "celestial-drift") {
+            float drift = sinf(normX * 3.14159f * 1.5f - phase * 0.5f) * 0.15f * turbNorm;
+            float sampleT = constrain(normX + drift, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            uint8_t sparkle = inoise8(i * 90, (uint16_t)(phase * 300.0f));
+            if (sparkle > 215) {
+                uint8_t sparkBoost = map(sparkle, 215, 255, 0, (uint8_t)(70 * turbNorm));
+                base += CRGB(sparkBoost, sparkBoost, sparkBoost);
+            }
+            leds[i] = base;
+        } else if (config.effect == "ember-hearth") {
+            float draft = sinf(normX * 8.0f - phase * 1.8f) * 0.12f * turbNorm;
+            float sampleT = constrain(normX + draft, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            uint8_t emberNoise = inoise8(i * 120, (uint16_t)(phase * 400.0f));
+            if (emberNoise > 195) {
+                uint8_t emberBoost = map(emberNoise, 195, 255, 0, (uint8_t)(95 * turbNorm));
+                base += CRGB(emberBoost, emberBoost / 2, 0);
+            }
+            leds[i] = base;
+        } else if (config.effect == "chromatic-prism") {
+            float dispersion = sinf(normX * 6.28f * 1.2f - phase) * 0.18f * turbNorm;
+            float sampleR = constrain(normX + dispersion * 0.8f, 0.0f, 1.0f);
+            float sampleG = constrain(normX + dispersion * 1.0f, 0.0f, 1.0f);
+            float sampleB = constrain(normX + dispersion * 1.25f, 0.0f, 1.0f);
+            CRGB rStop = interpolate4Stops(config.stops, sampleR);
+            CRGB gStop = interpolate4Stops(config.stops, sampleG);
+            CRGB bStop = interpolate4Stops(config.stops, sampleB);
+            leds[i] = CRGB(rStop.r, gStop.g, bStop.b);
+        } else if (config.effect == "bioluminescent-tide") {
+            float p = fmodf(phase * 0.22f, 1.0f);
+            if (p < 0.0f) p += 1.0f;
+            float d = fabsf(normX - p);
+            if (d > 0.5f) d = 1.0f - d;
+            float soliton = 1.0f / powf(coshf(d * 18.0f), 2.0f);
+            float sampleT = constrain(normX * 0.4f + soliton * 0.6f * turbNorm, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float glow = soliton * 180.0f * (0.5f + turbNorm * 0.5f);
+            base.r = qadd8(base.r, (uint8_t)(glow * 0.1f));
+            base.g = qadd8(base.g, (uint8_t)(glow * 0.8f));
+            base.b = qadd8(base.b, (uint8_t)(glow * 1.0f));
+            leds[i] = base;
+        } else if (config.effect == "nordic-aurora") {
+            float curtain1 = sinf(normX * 5.0f - phase * 1.2f);
+            float curtain2 = sinf(normX * 11.0f + phase * 0.8f) * 0.5f;
+            float fold = (curtain1 + curtain2) * 0.2f * turbNorm;
+            float sampleT = constrain(normX + fold, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            float shimmer = sinf(normX * 30.0f + phase * 3.0f) * 25.0f * turbNorm;
+            base.g = qadd8(base.g, (uint8_t)fmaxf(0.0f, shimmer * 1.2f));
+            base.b = qadd8(base.b, (uint8_t)fmaxf(0.0f, shimmer * 0.8f));
+            leds[i] = base;
         } else { // shimmer or fallback
             float sparkle = sinf(normX * 60.0f + phase * 8.0f) * turbNorm * 35.0f;
             float sampleT = fmodf(normX - (phase * 0.15f) + 10.0f, 1.0f);
@@ -867,5 +943,154 @@ void LedDriver::effectMarangoni(CRGB baseColor, uint8_t brightness, uint8_t spee
         secondary.b = qadd8(secondary.b, 65);
 
         leds[i] = blend(baseColor, secondary, blendFactor);
+    }
+}
+
+void LedDriver::effectSpatialFlow(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint8_t step = animationStep * (speed / 12 + 1);
+    uint8_t turb = map(intensity, 0, 100, 30, 90);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        // Normalized distance from center (0.0 at center LEDs 29-30, 1.0 at outer ends LED 0 & 59)
+        float distFromCenter = fabsf(((float)i - 29.5f) / 29.5f);
+
+        // Inward travelling wave: phase advances as distFromCenter decreases
+        uint8_t inwardWave = sin8((uint8_t)(distFromCenter * 140.0f) - step);
+        // Standing interference wave at center
+        uint8_t centerInterference = (distFromCenter < 0.35f) ? sin8((uint8_t)(distFromCenter * 200.0f) + step * 2) : 0;
+
+        // Chromatic spatial split: Left half (LEDs 0-29 near Left WiZ) vs Right half (LEDs 30-59 near Right WiZ)
+        CRGB sideTint = (i < 30) ? CRGB(0, 180, 240) : CRGB(220, 60, 230); // Left=Glacial Cyan, Right=Royal Magenta
+        CRGB mixed = blend(baseColor, sideTint, (uint8_t)(distFromCenter * 180.0f));
+
+        // Wave crest highlight
+        if (inwardWave > 180) {
+            uint8_t boost = map(inwardWave, 180, 255, 0, turb * 2);
+            mixed = blend(mixed, CRGB::White, boost);
+        }
+        if (centerInterference > 200) {
+            uint8_t centerGlow = map(centerInterference, 200, 255, 0, turb);
+            mixed += CRGB(centerGlow / 2, centerGlow, centerGlow);
+        }
+        leds[i] = mixed;
+    }
+}
+
+void LedDriver::effectCelestialDrift(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint16_t offset = animationStep * (speed / 16 + 1);
+    uint8_t sparkChance = map(intensity, 0, 100, 20, 70);
+
+    CRGB midnightIndigo = CRGB(15, 23, 42);   // #0f172a
+    CRGB celestialCyan = CRGB(56, 189, 248);  // #38bdf8
+    CRGB moonWhite = CRGB(240, 249, 255);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        // Slow undulating lunar drift
+        uint8_t drift = sin8((i * 4) + (offset / 2));
+        CRGB ambient = blend(baseColor, midnightIndigo, 140);
+        ambient = blend(ambient, celestialCyan, drift / 2);
+
+        // Micro-scintillation stardust
+        uint8_t starNoise = inoise8(i * 100, offset * 4);
+        if (starNoise > (255 - sparkChance)) {
+            uint8_t sparkle = map(starNoise, 255 - sparkChance, 255, 40, 220);
+            ambient = blend(ambient, moonWhite, sparkle);
+        }
+        leds[i] = ambient;
+    }
+}
+
+void LedDriver::effectEmberHearth(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    static uint8_t emberHeat[NUM_LEDS];
+    uint8_t cooling = map(speed, 0, 100, 3, 12);
+
+    // Cool down each ember
+    for (int i = 0; i < NUM_LEDS; i++) {
+        emberHeat[i] = qsub8(emberHeat[i], random8(0, cooling));
+    }
+
+    // Lateral draft convection (heat gently diffuses from ends inward)
+    for (int k = 1; k < 29; k++) {
+        emberHeat[k] = (emberHeat[k - 1] + emberHeat[k] * 2 + emberHeat[k + 1]) / 4;
+    }
+    for (int k = 58; k > 30; k--) {
+        emberHeat[k] = (emberHeat[k + 1] + emberHeat[k] * 2 + emberHeat[k - 1]) / 4;
+    }
+
+    // Stochastic ember ignition based on intensity
+    uint8_t sparkChance = map(intensity, 0, 100, 40, 150);
+    if (random8() < sparkChance) {
+        int cell = random8(NUM_LEDS);
+        emberHeat[cell] = qadd8(emberHeat[cell], random8(120, 230));
+    }
+
+    // Map to rich architectural 1800K–2400K amber/gold/crimson palette
+    for (int j = 0; j < NUM_LEDS; j++) {
+        CRGB c = HeatColor(emberHeat[j]);
+        leds[j] = blend(baseColor, c, 180);
+    }
+}
+
+void LedDriver::effectChromaticPrism(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint16_t phase = animationStep * (speed / 14 + 1);
+    uint8_t prismSpread = map(intensity, 0, 100, 8, 32);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        // Cauchy dispersion wavelength separation
+        uint8_t rPhase = sin8((i * prismSpread) + phase);
+        uint8_t gPhase = sin8((i * prismSpread) + phase + 40);
+        uint8_t bPhase = sin8((i * prismSpread) + phase + 80);
+
+        CRGB prismColor = CRGB(rPhase, gPhase, bPhase);
+        CRGB pearl = CRGB(255, 250, 245);
+        CRGB core = blend(baseColor, pearl, 160);
+        leds[i] = blend(core, prismColor, 110);
+    }
+}
+
+void LedDriver::effectBioluminescentTide(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint8_t waveStep = animationStep * (speed / 14 + 1);
+    uint8_t sparkleRate = map(intensity, 0, 100, 15, 60);
+
+    CRGB abyssNavy = CRGB(2, 6, 23);         // #020617 deep trench
+    CRGB bioTurquoise = CRGB(20, 184, 166);  // #14b8a6 electric bioluminescence
+    CRGB bioCyan = CRGB(0, 242, 254);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t swell1 = sin8((i * 6) - (waveStep * 2));
+        uint8_t swell2 = sin8((i * 12) + waveStep);
+        uint8_t wave = (swell1 + swell2) / 2;
+
+        CRGB tide = blend(abyssNavy, bioTurquoise, wave);
+        if (wave > 190) {
+            uint8_t crest = map(wave, 190, 255, 0, 180);
+            tide = blend(tide, bioCyan, crest);
+        }
+
+        // Dinoflagellate shear stress micro-sparkles
+        if (random8() < sparkleRate && wave > 150) {
+            tide += CRGB(60, 120, 140);
+        }
+        leds[i] = blend(baseColor, tide, 210);
+    }
+}
+
+void LedDriver::effectNordicAurora(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint8_t drift = animationStep * (speed / 16 + 1);
+    uint8_t foldFreq = map(intensity, 0, 100, 3, 9);
+
+    CRGB emerald = CRGB(16, 185, 129);       // #10b981
+    CRGB glacialCyan = CRGB(6, 182, 212);     // #06b6d4
+    CRGB celestialViolet = CRGB(139, 92, 246);// #8b5cf6
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t fold1 = sin8((i * foldFreq) + drift);
+        uint8_t fold2 = cos8((i * (foldFreq + 2)) - (drift / 2));
+        uint8_t curtain = (fold1 + fold2) / 2;
+
+        CRGB auroralGrad = blend(emerald, celestialViolet, curtain);
+        auroralGrad = blend(auroralGrad, glacialCyan, sin8(i * 4 + drift * 2));
+
+        leds[i] = blend(baseColor, auroralGrad, 190);
     }
 }

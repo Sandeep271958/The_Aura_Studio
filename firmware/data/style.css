@@ -1087,6 +1087,30 @@ body {
   background: linear-gradient(135deg, #00f2fe, #4facfe, #0b192c);
 }
 
+.scene-grad-nordic {
+  background: linear-gradient(135deg, #0284c7, #38bdf8, #1e1b4b);
+}
+
+.scene-grad-hearth {
+  background: linear-gradient(135deg, #f97316, #ea580c, #78350f);
+}
+
+.scene-grad-tokyo {
+  background: linear-gradient(135deg, #00f2fe, #d946ef, #7c3aed);
+}
+
+.scene-grad-rainforest {
+  background: linear-gradient(135deg, #059669, #10b981, #d97706);
+}
+
+.scene-grad-maldives {
+  background: linear-gradient(135deg, #14b8a6, #0284c7, #0f172a);
+}
+
+.scene-grad-solaris {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #ea580c);
+}
+
 .scene-content {
   position: relative;
   z-index: 2;

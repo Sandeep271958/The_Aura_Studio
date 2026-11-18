@@ -676,7 +676,12 @@ assert.strictEqual(simAppState.isMasterOn, true, 'Master power toggle on failed'
 recordPass('Master power toggle on/off verified.');
 
 // 2. Preserved Presets Simulation
-const testPresets = ['cyberpunk', 'warm-minimal', 'deep-focus', 'sunset', 'aurora', 'cinema', 'zen-sanctuary', 'grand-welcome', 'bio-spa', 'ocean-abyss'];
+const testPresets = [
+  'cyberpunk', 'warm-minimal', 'deep-focus', 'sunset', 'aurora', 'cinema',
+  'zen-sanctuary', 'grand-welcome', 'bio-spa', 'ocean-abyss',
+  'nordic-twilight', 'ember-candle', 'tokyo-dusk', 'emerald-rainforest',
+  'maldives-biolum', 'solaris-golden'
+];
 testPresets.forEach(p => {
   const card = simElementsById.get(`scene-${p}`);
   if (card) card.click();
@@ -1101,7 +1106,7 @@ while ((match = paletteChipRegex.exec(html)) !== null) {
   }
 }
 assert.strictEqual(paletteErrors, 0, 'Palette verification errors detected');
-assert.strictEqual(paletteCount, 14, 'Expected exactly 14 curated luxury palettes');
+assert.strictEqual(paletteCount, 20, 'Expected exactly 20 curated luxury palettes');
 recordPass(`All ${paletteCount} curated luxury designer palettes have 4 valid hex stops and valid physics motion profiles.`);
 
 // 4b. 4-Stop Linear Interpolation Math
