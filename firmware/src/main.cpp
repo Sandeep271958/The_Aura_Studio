@@ -80,8 +80,8 @@ void setup() {
     const esp_partition_t *otherPart = esp_ota_get_next_update_partition(NULL);
     if (runningPart != NULL) {
         hubState.activePartition = String(runningPart->label);
-        Serial.printf("[OTA] Active Boot Partition: %s (Address: 0x%06x)\n",
-                      runningPart->label, runningPart->address);
+        Serial.printf("[OTA] Active Boot Partition: %s (Address: 0x%06lx)\n",
+                      runningPart->label, (unsigned long)runningPart->address);
 
         esp_ota_img_states_t otaState;
         if (esp_ota_get_state_partition(runningPart, &otaState) == ESP_OK) {
@@ -99,18 +99,20 @@ void setup() {
     String failedPart = otaPrefs.getString("pending_part", "");
 
     bool bootloaderRolledBack = false;
-    if (otherPart != NULL) {
-        esp_ota_img_states_t otherState;
-        if (esp_ota_get_state_partition(otherPart, &otherState) == ESP_OK) {
-            if (otherState == ESP_OTA_IMG_ABORTED || otherState == ESP_OTA_IMG_INVALID) {
-                bootloaderRolledBack = true;
-                failedPart = String(otherPart->label);
+    if (trialActive) {
+        if (otherPart != NULL) {
+            esp_ota_img_states_t otherState;
+            if (esp_ota_get_state_partition(otherPart, &otherState) == ESP_OK) {
+                if (otherState == ESP_OTA_IMG_ABORTED || otherState == ESP_OTA_IMG_INVALID) {
+                    bootloaderRolledBack = true;
+                    failedPart = String(otherPart->label);
+                }
             }
         }
-    }
 
-    if (trialActive && fallbackPart.length() > 0 && hubState.activePartition == fallbackPart) {
-        bootloaderRolledBack = true;
+        if (fallbackPart.length() > 0 && hubState.activePartition == fallbackPart) {
+            bootloaderRolledBack = true;
+        }
     }
 
     if (bootloaderRolledBack) {
@@ -123,33 +125,45 @@ void setup() {
     } else {
         hubState.otaRollbackOccurred = otaPrefs.getBool("rollback", false);
         if (hubState.otaRollbackOccurred) {
-            Serial.println("[OTA Fail-Safe] ⚠️ System running on recovered partition after automatic rollback!");
+            Serial.println("[OTA Fail-Safe] System running on recovered partition after automatic rollback.");
         }
     }
     otaPrefs.end();
 
-    // Track consecutive boot crash count in RTC Memory (survives panics and resets)
-    rtcBootFailures++;
-    Serial.printf("[OTA Fail-Safe] Boot Trial Counter: %d / 3\n", rtcBootFailures);
+    // Tier-1 Auto-Rollback Crash Watchdog (active ONLY during unverified OTA trial)
+    bool isOtaTrial = (hubState.otaPendingVerify || trialActive);
 
-    if (rtcBootFailures >= 3) {
-        Serial.println("\n[OTA Fail-Safe] ⚠️ 3 CONSECUTIVE CRASHES DETECTED!");
-        Serial.println("[OTA Fail-Safe] Initiating emergency hardware rollback to previous stable partition...");
-
-        otaPrefs.begin("aura_ota", false);
-        otaPrefs.putBool("rollback", true);
-        otaPrefs.putString("failed_part", hubState.activePartition);
-        otaPrefs.remove("trial_active");
-        otaPrefs.end();
-
-        rtcBootFailures = 0; // Reset counter for the fallback partition
-
-        if (esp_ota_check_rollback_is_possible()) {
-            esp_ota_mark_app_invalid_rollback_and_reboot();
+    if (isOtaTrial) {
+        // Cold power-on reset (ESP_RST_POWERON) is a manual user power switch, not an in-flight crash
+        if (rstReason != ESP_RST_POWERON) {
+            rtcBootFailures++;
+            Serial.printf("[OTA Fail-Safe] Active Trial Crash Counter: %d / 3 (Reason: %d)\n", rtcBootFailures, (int)rstReason);
         } else {
-            Update.rollBack();
-            ESP.restart();
+            Serial.println("[OTA Fail-Safe] Cold power-on detected during trial (preserving stability window).");
         }
+
+        if (rtcBootFailures >= 3) {
+            Serial.println("\n[OTA Fail-Safe] ⚠️ 3 CONSECUTIVE CRASHES DETECTED DURING OTA TRIAL!");
+            Serial.println("[OTA Fail-Safe] Initiating emergency hardware rollback to previous stable partition...");
+
+            otaPrefs.begin("aura_ota", false);
+            otaPrefs.putBool("rollback", true);
+            otaPrefs.putString("failed_part", hubState.activePartition);
+            otaPrefs.remove("trial_active");
+            otaPrefs.end();
+
+            rtcBootFailures = 0; // Reset counter for the fallback partition
+
+            if (esp_ota_check_rollback_is_possible()) {
+                esp_ota_mark_app_invalid_rollback_and_reboot();
+            } else {
+                Serial.println("[OTA Fail-Safe] Rollback partition not bootable; staying on current partition.");
+            }
+        }
+    } else {
+        // System is running on a permanently verified stable partition.
+        // Routine reboots, brownouts, or power switches NEVER trigger rollback!
+        rtcBootFailures = 0;
     }
 
     // 1. Initialize Mutex
