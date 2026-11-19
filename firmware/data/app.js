@@ -818,25 +818,41 @@ function syncAllInputs() {
     }
   }
 
-  if (DOM.btnMasterPower) DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
+  if (DOM.btnMasterPower) {
+    DOM.btnMasterPower.classList.toggle('active', appState.isMasterOn);
+    DOM.btnMasterPower.setAttribute('aria-checked', appState.isMasterOn ? 'true' : 'false');
+  }
   if (DOM.btnRoomPowerCard) {
     DOM.btnRoomPowerCard.classList.toggle('active', appState.isMasterOn);
+    DOM.btnRoomPowerCard.setAttribute('aria-checked', appState.isMasterOn ? 'true' : 'false');
     if (DOM.labelRoomPowerCard) {
       DOM.labelRoomPowerCard.textContent = appState.isMasterOn ? 'ROOM ON' : 'ROOM OFF';
     }
   }
+  if (DOM.btnIslandQuickPower) {
+    DOM.btnIslandQuickPower.setAttribute('aria-checked', appState.isMasterOn ? 'true' : 'false');
+  }
+
+  // Accessible Master Sliders
   DOM.sliderMasterBrightness.value = appState.masterBrightness;
+  DOM.sliderMasterBrightness.setAttribute('aria-valuenow', appState.masterBrightness);
+  DOM.sliderMasterBrightness.setAttribute('aria-valuetext', `${appState.masterBrightness}% room brightness`);
   DOM.valMasterBrightness.textContent = `${appState.masterBrightness}%`;
   syncRangeProgress(DOM.sliderMasterBrightness);
 
   DOM.sliderMasterContrast.value = appState.contrastRatio;
   const cVal = appState.contrastRatio;
+  DOM.sliderMasterContrast.setAttribute('aria-valuenow', cVal);
+  DOM.sliderMasterContrast.setAttribute('aria-valuetext', cVal === 0 ? 'Balanced 1 to 1' : (cVal > 0 ? `+${cVal}% bias` : `${cVal}% ambient`));
   DOM.valMasterContrast.textContent = cVal === 0 ? 'Balanced (1:1)' : (cVal > 0 ? `+${cVal}% Bias` : `${cVal}% Ambient`);
   syncRangeProgress(DOM.sliderMasterContrast);
 
   // Desk inputs
   DOM.toggleDeskPower.checked = appState.devices.desk.power;
+  DOM.toggleDeskPower.setAttribute('aria-checked', appState.devices.desk.power ? 'true' : 'false');
   DOM.sliderDeskBrightness.value = appState.devices.desk.brightness;
+  DOM.sliderDeskBrightness.setAttribute('aria-valuenow', appState.devices.desk.brightness);
+  DOM.sliderDeskBrightness.setAttribute('aria-valuetext', `${appState.devices.desk.brightness}% desk brightness`);
   DOM.valDeskBrightness.textContent = `${appState.devices.desk.brightness}%`;
   syncRangeProgress(DOM.sliderDeskBrightness);
 
@@ -864,7 +880,10 @@ function syncAllInputs() {
 
   // WiZ Left inputs
   DOM.toggleWizLeftPower.checked = appState.devices.wizLeft.power;
+  DOM.toggleWizLeftPower.setAttribute('aria-checked', appState.devices.wizLeft.power ? 'true' : 'false');
   DOM.sliderWizLeftBrightness.value = appState.devices.wizLeft.brightness;
+  DOM.sliderWizLeftBrightness.setAttribute('aria-valuenow', appState.devices.wizLeft.brightness);
+  DOM.sliderWizLeftBrightness.setAttribute('aria-valuetext', `${appState.devices.wizLeft.brightness}% left lamp brightness`);
   DOM.valWizLeftBrightness.textContent = `${appState.devices.wizLeft.brightness}%`;
   syncRangeProgress(DOM.sliderWizLeftBrightness);
 
@@ -888,7 +907,10 @@ function syncAllInputs() {
 
   // WiZ Right inputs
   DOM.toggleWizRightPower.checked = appState.devices.wizRight.power;
+  DOM.toggleWizRightPower.setAttribute('aria-checked', appState.devices.wizRight.power ? 'true' : 'false');
   DOM.sliderWizRightBrightness.value = appState.devices.wizRight.brightness;
+  DOM.sliderWizRightBrightness.setAttribute('aria-valuenow', appState.devices.wizRight.brightness);
+  DOM.sliderWizRightBrightness.setAttribute('aria-valuetext', `${appState.devices.wizRight.brightness}% right lamp brightness`);
   DOM.valWizRightBrightness.textContent = `${appState.devices.wizRight.brightness}%`;
   syncRangeProgress(DOM.sliderWizRightBrightness);
 
@@ -911,6 +933,13 @@ function syncAllInputs() {
   syncModeTabs('wiz-right', appState.devices.wizRight.mode);
 
   DOM.btnSyncCorners.classList.toggle('active', appState.syncCorners);
+  DOM.btnSyncCorners.setAttribute('aria-pressed', appState.syncCorners ? 'true' : 'false');
+
+  // Quick Moods active sync
+  document.querySelectorAll('.quick-mood-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.preset === appState.activePreset);
+  });
+
   DOM.toggleCircadianAuto.checked = appState.circadian.autoEnabled;
 
   if (DOM.sliderCircadianTime) {
@@ -2387,6 +2416,14 @@ function bindEvents() {
     DOM.virtualLedStrip.style.cursor = 'pointer';
     DOM.virtualLedStrip.addEventListener('click', () => focusFixtureCard(DOM.cardDesk));
   }
+
+  // Quick Mood Shortcuts
+  document.querySelectorAll('.quick-mood-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      triggerHaptic('light');
+      applyPreset(pill.dataset.preset);
+    });
+  });
 
   // Presets
   document.querySelectorAll('.scene-card').forEach(card => {
