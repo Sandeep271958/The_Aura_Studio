@@ -23,7 +23,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=03.01.000">
+  <link rel="stylesheet" href="style.css?v=03.02.000">
 </head>
 
 <body class="theme-obsidian">
@@ -45,7 +45,7 @@
       </div>
       <div class="brand-text">
         <h1 class="brand-title"><span class="brand-title-text">The Aura Studio</span> <span
-            class="badge-version">v3.1</span></h1>
+            class="badge-version">v3.2</span></h1>
         <p class="brand-subtitle">Spatial Lighting Architecture &bull; Designed by Sandy</p>
       </div>
     </div>
@@ -215,11 +215,14 @@
 
         <!-- Interactive 2.5D Room Viewport -->
         <div id="room-viewport" class="room-viewport">
-          <!-- Room Walls & Corner Auras -->
+          <!-- Room Walls, Perspective Floor & Corner Auras -->
           <div class="room-back-wall"></div>
+          <div class="room-perspective-grid" aria-hidden="true"></div>
           <div id="glow-corner-left" class="corner-aura aura-left"></div>
           <div id="glow-corner-right" class="corner-aura aura-right"></div>
           <div id="glow-desk-bias" class="desk-bias-aura"></div>
+          <div class="fixture-beam fixture-beam-left" aria-hidden="true"></div>
+          <div class="fixture-beam fixture-beam-right" aria-hidden="true"></div>
 
           <!-- Left WiZ Fixture -->
           <div id="fixture-wiz-left" class="room-fixture fixture-left" data-device="wiz-left">
@@ -1848,7 +1851,7 @@
               </div>
               <div class="ota-badges-group">
                 <span class="badge-ota-partition" id="badge-ota-partition">Slot: app0</span>
-                <span class="badge-ota-status" id="badge-firmware-version">v03.01.000</span>
+                <span class="badge-ota-status" id="badge-firmware-version">v03.02.000</span>
               </div>
             </div>
 
@@ -2010,7 +2013,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite" role="status"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=03.01.000"></script>
+  <script src="app.js?v=03.02.000"></script>
 </body>
 
 </html>

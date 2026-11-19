@@ -525,10 +525,11 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent-cyan);
-  box-shadow: 0 0 12px var(--accent-cyan);
-  animation: pulseGlow 2s infinite ease-in-out;
+  background: var(--color-desk, var(--accent-cyan));
+  box-shadow: 0 0 14px var(--color-desk, var(--accent-cyan));
+  animation: pulseGlow 2.4s infinite ease-in-out;
   flex-shrink: 0;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
 .island-info {
@@ -830,6 +831,48 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
     linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: 32px 32px;
   opacity: 0.6;
+}
+
+/* Perspective Studio Floor Grid */
+.room-perspective-grid {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  transform: perspective(600px) rotateX(55deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Volumetric Atmospheric Fixture Beams */
+.fixture-beam {
+  position: absolute;
+  bottom: 40px;
+  width: 160px;
+  height: 240px;
+  pointer-events: none;
+  filter: blur(32px);
+  mix-blend-mode: screen;
+  transition: all var(--lighting-fade-speed) ease;
+}
+
+.fixture-beam-left {
+  left: 2%;
+  background: radial-gradient(ellipse at 50% 100%, var(--color-wiz-left) 0%, transparent 75%);
+  opacity: calc(var(--bright-wiz-left) * 0.65);
+}
+
+.fixture-beam-right {
+  right: 2%;
+  background: radial-gradient(ellipse at 50% 100%, var(--color-wiz-right) 0%, transparent 75%);
+  opacity: calc(var(--bright-wiz-right) * 0.65);
 }
 
 /* Dynamic Live Corner Auras */
@@ -3910,6 +3953,72 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   .app-layout {
     padding: 14px calc(14px + env(safe-area-inset-right)) calc(86px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
     gap: 16px;
+  }
+
+  /* VisionOS Command Island on Mobile (iPhone 16 / PWA Safe) */
+  .dynamic-island-container {
+    margin-bottom: 16px;
+    width: 100%;
+  }
+
+  .island-capsule {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 24px;
+    justify-content: space-between;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .island-leading {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .island-title {
+    font-size: 12px;
+  }
+
+  .island-sub {
+    font-size: 10px;
+  }
+
+  .island-quick-moods {
+    order: 3;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 0;
+  }
+
+  .island-quick-moods::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-mood-pill {
+    padding: 6px 12px;
+    font-size: 11px;
+    flex: 1 1 auto;
+    justify-content: center;
+    min-height: 36px;
+  }
+
+  .island-actions {
+    gap: 8px;
+  }
+
+  .island-pill-stat {
+    display: none;
+  }
+
+  .island-quick-btn {
+    width: 34px;
+    height: 34px;
   }
 
   /* Scalable 2.5D Room Architecture Viewport (Non-colliding with Corner Fixtures) */
