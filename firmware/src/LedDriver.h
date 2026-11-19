@@ -66,4 +66,8 @@ private:
   void effectChromaticPrism(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
   void effectBioluminescentTide(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
   void effectNordicAurora(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectSupernova(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectNebulaDrift(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectSynthwaveGrid(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
+  void effectRainRipples(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity);
 };

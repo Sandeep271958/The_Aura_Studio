@@ -138,6 +138,38 @@ const PRESETS = {
     desk: { power: true, brightness: 85, color: '#fbbf24', effect: 'breathe', speed: 25, intensity: 40 },
     wizLeft: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 },
     wizRight: { power: true, brightness: 80, mode: 'cct', color: '#ffa757', kelvin: 2700 }
+  },
+  'supernova-core': {
+    name: 'Supernova Core',
+    masterBrightness: 95,
+    contrast: 20,
+    desk: { power: true, brightness: 100, color: '#f59e0b', effect: 'supernova', speed: 70, intensity: 90 },
+    wizLeft: { power: true, brightness: 80, mode: 'rgb', color: '#7c3aed', kelvin: 3500 },
+    wizRight: { power: true, brightness: 80, mode: 'rgb', color: '#ef4444', kelvin: 3500 }
+  },
+  'deep-nebula': {
+    name: 'Deep Nebula',
+    masterBrightness: 85,
+    contrast: 10,
+    desk: { power: true, brightness: 90, color: '#d946ef', effect: 'nebula-drift', speed: 50, intensity: 85 },
+    wizLeft: { power: true, brightness: 75, mode: 'rgb', color: '#06b6d4', kelvin: 4000 },
+    wizRight: { power: true, brightness: 75, mode: 'rgb', color: '#3b82f6', kelvin: 4000 }
+  },
+  'synthwave-80s': {
+    name: 'Outrun Synthwave',
+    masterBrightness: 90,
+    contrast: 15,
+    desk: { power: true, brightness: 95, color: '#ec4899', effect: 'synthwave-grid', speed: 65, intensity: 90 },
+    wizLeft: { power: true, brightness: 70, mode: 'rgb', color: '#00f2fe', kelvin: 4000 },
+    wizRight: { power: true, brightness: 70, mode: 'rgb', color: '#8b5cf6', kelvin: 4000 }
+  },
+  'rainy-lofi': {
+    name: 'Rain on Glass',
+    masterBrightness: 65,
+    contrast: -5,
+    desk: { power: true, brightness: 70, color: '#38bdf8', effect: 'rain-ripples', speed: 35, intensity: 75 },
+    wizLeft: { power: true, brightness: 60, mode: 'cct', color: '#ffa757', kelvin: 2400 },
+    wizRight: { power: true, brightness: 60, mode: 'cct', color: '#ffa757', kelvin: 2400 }
   }
 };
 
@@ -255,6 +287,19 @@ const DOM = {
   heroAtmosphereBadge: document.getElementById('hero-atmosphere-badge'),
   deckActiveLabel: document.getElementById('deck-active-label'),
 
+  // Aura Dynamic Island
+  auraDynamicIsland: document.getElementById('aura-dynamic-island'),
+  islandSceneTitle: document.getElementById('island-scene-title'),
+  islandSceneSub: document.getElementById('island-scene-sub'),
+  islandStatText: document.getElementById('island-stat-text'),
+  btnIslandQuickPower: document.getElementById('btn-island-quick-power'),
+
+  // Atmospheric Harmony Matrix
+  btnHarmonyComplementary: document.getElementById('btn-harmony-complementary'),
+  btnHarmonyTriadic: document.getElementById('btn-harmony-triadic'),
+  btnHarmonyAnalogous: document.getElementById('btn-harmony-analogous'),
+  btnHarmonyMonochrome: document.getElementById('btn-harmony-monochrome'),
+
   // Master Sliders
   sliderMasterBrightness: document.getElementById('slider-master-brightness'),
   valMasterBrightness: document.getElementById('val-master-brightness'),
@@ -266,6 +311,8 @@ const DOM = {
   glowCornerRight: document.getElementById('glow-corner-right'),
   glowDeskBias: document.getElementById('glow-desk-bias'),
   virtualLedStrip: document.getElementById('virtual-led-strip'),
+  fixtureWizLeft: document.getElementById('fixture-wiz-left'),
+  fixtureWizRight: document.getElementById('fixture-wiz-right'),
   badgeWizLeftVal: document.getElementById('badge-wiz-left-val'),
   badgeWizRightVal: document.getElementById('badge-wiz-right-val'),
   badgeDeskVal: document.getElementById('badge-desk-val'),
@@ -1020,6 +1067,16 @@ function updateAtmosphereReadouts(match) {
   }
   if (DOM.deckActiveLabel) {
     DOM.deckActiveLabel.textContent = deckStatusText;
+  }
+  if (DOM.islandSceneTitle) {
+    DOM.islandSceneTitle.textContent = match.fullMatchKey ? (PRESETS[match.fullMatchKey]?.name || 'The Aura Studio') : (appState.isMasterOn ? 'The Aura Studio' : 'System Standby');
+  }
+  if (DOM.islandSceneSub) {
+    DOM.islandSceneSub.textContent = deckStatusText;
+  }
+  if (DOM.islandStatText) {
+    const fps = appState.telemetry?.fps || 45;
+    DOM.islandStatText.textContent = `${fps} FPS • ${appState.isMasterOn ? 'Active' : 'Standby'}`;
   }
 }
 
@@ -2228,6 +2285,9 @@ function bindEvents() {
   if (DOM.btnRoomPowerCard) {
     DOM.btnRoomPowerCard.addEventListener('click', toggleRoomPower);
   }
+  if (DOM.btnIslandQuickPower) {
+    DOM.btnIslandQuickPower.addEventListener('click', toggleRoomPower);
+  }
 
   // Master Brightness Slider
   DOM.sliderMasterBrightness.addEventListener('input', (e) => {
@@ -2248,6 +2308,85 @@ function bindEvents() {
     triggerHaptic('light');
     dispatchStateChange({ contrastRatio: appState.contrastRatio });
   });
+
+  // Atmospheric Harmony Matrix
+  const applyColorHarmony = (mode) => {
+    triggerHaptic('medium');
+    const deskHue = hexToHue(appState.devices.desk.color) || 0;
+    if (mode === 'complementary') {
+      const compHue = (deskHue + 180) % 360;
+      const compHex = hslToHex(compHue, 100, 50);
+      appState.devices.wizLeft.mode = 'rgb';
+      appState.devices.wizLeft.color = compHex;
+      appState.devices.wizRight.mode = 'rgb';
+      appState.devices.wizRight.color = compHex;
+    } else if (mode === 'triadic') {
+      const h1 = (deskHue + 120) % 360;
+      const h2 = (deskHue + 240) % 360;
+      appState.devices.wizLeft.mode = 'rgb';
+      appState.devices.wizLeft.color = hslToHex(h1, 100, 50);
+      appState.devices.wizRight.mode = 'rgb';
+      appState.devices.wizRight.color = hslToHex(h2, 100, 50);
+    } else if (mode === 'analogous') {
+      const h1 = (deskHue - 30 + 360) % 360;
+      const h2 = (deskHue + 30) % 360;
+      appState.devices.wizLeft.mode = 'rgb';
+      appState.devices.wizLeft.color = hslToHex(h1, 100, 50);
+      appState.devices.wizRight.mode = 'rgb';
+      appState.devices.wizRight.color = hslToHex(h2, 100, 50);
+    } else if (mode === 'monochrome') {
+      appState.devices.wizLeft.mode = 'rgb';
+      appState.devices.wizLeft.color = hslToHex(deskHue, 75, 42);
+      appState.devices.wizRight.mode = 'rgb';
+      appState.devices.wizRight.color = hslToHex(deskHue, 95, 62);
+    }
+    renderAll();
+    dispatchStateChange({
+      wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+      wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' }
+    });
+    showToast(`Atmospheric Harmony: ${capitalize(mode)} balance active`);
+  };
+
+  if (DOM.btnHarmonyComplementary) {
+    DOM.btnHarmonyComplementary.addEventListener('click', () => applyColorHarmony('complementary'));
+  }
+  if (DOM.btnHarmonyTriadic) {
+    DOM.btnHarmonyTriadic.addEventListener('click', () => applyColorHarmony('triadic'));
+  }
+  if (DOM.btnHarmonyAnalogous) {
+    DOM.btnHarmonyAnalogous.addEventListener('click', () => applyColorHarmony('analogous'));
+  }
+  if (DOM.btnHarmonyMonochrome) {
+    DOM.btnHarmonyMonochrome.addEventListener('click', () => applyColorHarmony('monochrome'));
+  }
+
+  // Interactive 2.5D Room Viewport Tap-to-Focus
+  const focusFixtureCard = (cardElement) => {
+    if (!cardElement) return;
+    triggerHaptic('light');
+    if (typeof cardElement.scrollIntoView === 'function') {
+      cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    if (cardElement.classList) {
+      cardElement.classList.remove('focused-fixture');
+      void cardElement.offsetWidth;
+      cardElement.classList.add('focused-fixture');
+    }
+  };
+
+  if (DOM.fixtureWizLeft) {
+    DOM.fixtureWizLeft.style.cursor = 'pointer';
+    DOM.fixtureWizLeft.addEventListener('click', () => focusFixtureCard(DOM.cardWizLeft));
+  }
+  if (DOM.fixtureWizRight) {
+    DOM.fixtureWizRight.style.cursor = 'pointer';
+    DOM.fixtureWizRight.addEventListener('click', () => focusFixtureCard(DOM.cardWizRight));
+  }
+  if (DOM.virtualLedStrip) {
+    DOM.virtualLedStrip.style.cursor = 'pointer';
+    DOM.virtualLedStrip.addEventListener('click', () => focusFixtureCard(DOM.cardDesk));
+  }
 
   // Presets
   document.querySelectorAll('.scene-card').forEach(card => {

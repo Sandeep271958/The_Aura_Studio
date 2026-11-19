@@ -680,7 +680,8 @@ const testPresets = [
   'cyberpunk', 'warm-minimal', 'deep-focus', 'sunset', 'aurora', 'cinema',
   'zen-sanctuary', 'grand-welcome', 'bio-spa', 'ocean-abyss',
   'nordic-twilight', 'ember-candle', 'tokyo-dusk', 'emerald-rainforest',
-  'maldives-biolum', 'solaris-golden'
+  'maldives-biolum', 'solaris-golden',
+  'supernova-core', 'deep-nebula', 'synthwave-80s', 'rainy-lofi'
 ];
 testPresets.forEach(p => {
   const card = simElementsById.get(`scene-${p}`);

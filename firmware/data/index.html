@@ -23,7 +23,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Satisfy&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=02.00.001">
+  <link rel="stylesheet" href="style.css?v=03.00.000">
 </head>
 
 <body class="theme-obsidian">
@@ -145,6 +145,33 @@
 
   <!-- Main Container -->
   <main class="app-layout">
+
+    <!-- ====================================================================
+         AURA DYNAMIC ISLAND (Apple visionOS & macOS Sequoia Frosted Capsule)
+         ==================================================================== -->
+    <div id="aura-dynamic-island" class="dynamic-island-container" role="region" aria-label="System Dynamic Island">
+      <div class="island-capsule">
+        <div class="island-leading">
+          <span class="island-glow-dot"></span>
+          <div class="island-info">
+            <span id="island-scene-title" class="island-title">The Aura Studio</span>
+            <span id="island-scene-sub" class="island-sub">Spatial Intelligence Active</span>
+          </div>
+        </div>
+        <div class="island-actions">
+          <div class="island-pill-stat" id="island-pill-stat">
+            <span class="island-stat-icon">⚡</span>
+            <span id="island-stat-text" class="island-stat-text">45 FPS &bull; Low Latency</span>
+          </div>
+          <button type="button" id="btn-island-quick-power" class="island-quick-btn" aria-label="Quick Power Toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+              <line x1="12" y1="2" x2="12" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- ====================================================================
          VIEW 1: SPATIAL STUDIO (Primary Architectural Room View)
@@ -299,6 +326,33 @@
             <span id="deck-active-label" class="deck-active-label">Cyberpunk Night &bull; All In Sync</span>
           </div>
         </div>
+
+        <!-- Atmospheric Harmony Matrix (Ketra / Apple Intelligent Spatial Color Balance) -->
+        <div class="harmony-matrix-bar" aria-label="Color Harmony Matrix">
+          <div class="harmony-header">
+            <span class="harmony-badge">COLOR HARMONY</span>
+            <span class="harmony-subtext">Instant chromatic balance across fixtures</span>
+          </div>
+          <div class="harmony-actions">
+            <button type="button" id="btn-harmony-complementary" class="harmony-btn" title="Harmonize with Complementary Colors (180° Contrast)">
+              <span class="harmony-btn-dot dot-comp"></span>
+              <span>Complementary</span>
+            </button>
+            <button type="button" id="btn-harmony-triadic" class="harmony-btn" title="Harmonize with Triadic Colors (120° / 240° Balance)">
+              <span class="harmony-btn-dot dot-triad"></span>
+              <span>Triadic</span>
+            </button>
+            <button type="button" id="btn-harmony-analogous" class="harmony-btn" title="Harmonize with Analogous Colors (±30° Ambient Spread)">
+              <span class="harmony-btn-dot dot-analog"></span>
+              <span>Analogous</span>
+            </button>
+            <button type="button" id="btn-harmony-monochrome" class="harmony-btn" title="Harmonize with Monochromatic Tonal Gradient">
+              <span class="harmony-btn-dot dot-mono"></span>
+              <span>Monochrome</span>
+            </button>
+          </div>
+        </div>
+
         <div class="scenes-grid">
           <!-- Preset 1: Cyberpunk -->
           <button class="scene-card active" data-preset="cyberpunk" id="scene-cyberpunk">
@@ -539,6 +593,66 @@
               </div>
             </div>
           </button>
+
+          <!-- Preset 17: Supernova Core -->
+          <button class="scene-card" data-preset="supernova-core" id="scene-supernova-core">
+            <div class="scene-gradient scene-grad-supernova"></div>
+            <div class="scene-content">
+              <div class="scene-icon">💥</div>
+              <div class="scene-info">
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Supernova Core</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
+                <p class="scene-desc">Relativistic Plasma Flare &bull; Cosmic Amber-Violet Horizon</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 18: Deep Nebula -->
+          <button class="scene-card" data-preset="deep-nebula" id="scene-deep-nebula">
+            <div class="scene-gradient scene-grad-nebula"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🌌</div>
+              <div class="scene-info">
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Deep Nebula</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
+                <p class="scene-desc">Interstellar Dust Currents &bull; Magenta &amp; Cyan Drift</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 19: Outrun Synthwave -->
+          <button class="scene-card" data-preset="synthwave-80s" id="scene-synthwave-80s">
+            <div class="scene-gradient scene-grad-synthwave"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🕹️</div>
+              <div class="scene-info">
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Outrun Synthwave</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
+                <p class="scene-desc">Neon Sunset Pulse &bull; Retro 80s Grid Horizon</p>
+              </div>
+            </div>
+          </button>
+
+          <!-- Preset 20: Rain on Glass -->
+          <button class="scene-card" data-preset="rainy-lofi" id="scene-rainy-lofi">
+            <div class="scene-gradient scene-grad-rain"></div>
+            <div class="scene-content">
+              <div class="scene-icon">🌧️</div>
+              <div class="scene-info">
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Rain on Glass</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
+                <p class="scene-desc">Bilateral Ripple Drops &bull; 2400K Cozy Ambient</p>
+              </div>
+            </div>
+          </button>
         </div>
       </section>
 
@@ -588,6 +702,10 @@
                 <button class="effect-chip" data-effect="chromatic-prism">Prism Refract</button>
                 <button class="effect-chip" data-effect="bioluminescent-tide">Biolum Tide</button>
                 <button class="effect-chip" data-effect="nordic-aurora">Nordic Aurora</button>
+                <button class="effect-chip" data-effect="supernova">Supernova</button>
+                <button class="effect-chip" data-effect="nebula-drift">Nebula Drift</button>
+                <button class="effect-chip" data-effect="synthwave-grid">Synthwave Grid</button>
+                <button class="effect-chip" data-effect="rain-ripples">Rain Ripples</button>
                 <button class="effect-chip" data-effect="test-cycle" style="color:var(--accent-cyan); font-weight:600">⚡
                   Test</button>
               </div>
@@ -1708,7 +1826,7 @@
               </div>
               <div class="ota-badges-group">
                 <span class="badge-ota-partition" id="badge-ota-partition">Slot: app0</span>
-                <span class="badge-ota-status" id="badge-firmware-version">v02.00.001</span>
+                <span class="badge-ota-status" id="badge-firmware-version">v03.00.000</span>
               </div>
             </div>
 
@@ -1870,7 +1988,7 @@
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=01.08.000"></script>
+  <script src="app.js?v=03.00.000"></script>
 </body>
 
 </html>

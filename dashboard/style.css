@@ -447,9 +447,232 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ==========================================================================
-   SPATIAL ROOM VISUALIZER (2.5D Interactive Architecture)
-   ========================================================================== */
+/* Aura Dynamic Island (visionOS & macOS Sequoia Frosted Status Capsule) */
+.dynamic-island-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 50;
+}
+
+.island-capsule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 8px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.island-capsule:hover {
+  background: rgba(20, 30, 55, 0.78);
+  border-color: rgba(0, 242, 254, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 242, 254, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.island-leading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.island-glow-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px var(--accent-cyan);
+  animation: pulseGlow 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+.island-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.island-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.island-sub {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.island-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.island-pill-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.island-stat-icon {
+  font-size: 11px;
+}
+
+.island-quick-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.island-quick-btn:hover {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: #07090e;
+  transform: scale(1.08);
+}
+
+.island-quick-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Atmospheric Harmony Matrix (Apple / Ketra Color Orchestration Bar) */
+.harmony-matrix-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.harmony-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.harmony-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+  background: rgba(0, 242, 254, 0.12);
+  border: 1px solid rgba(0, 242, 254, 0.25);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.harmony-subtext {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.harmony-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.harmony-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.harmony-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.harmony-btn:active {
+  transform: scale(0.97);
+}
+
+.harmony-btn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-comp {
+  background: linear-gradient(135deg, #00f2fe, #f59e0b);
+  box-shadow: 0 0 6px rgba(0, 242, 254, 0.6);
+}
+
+.dot-triad {
+  background: linear-gradient(135deg, #ec4899, #00f2fe, #10b981);
+  box-shadow: 0 0 6px rgba(236, 72, 153, 0.6);
+}
+
+.dot-analog {
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.dot-mono {
+  background: linear-gradient(135deg, #ffffff, #64748b);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+}
+
+/* Interactive Fixture Tap-to-Focus Pulse Animation */
+@keyframes fixtureFocusPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 242, 254, 0); }
+  50% { transform: scale(1.02); box-shadow: 0 0 32px rgba(0, 242, 254, 0.45); border-color: var(--accent-cyan); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(0, 242, 254, 0); }
+}
+
+.focused-fixture {
+  animation: fixtureFocusPulse 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* SPATIAL ROOM VISUALIZER (2.5D Interactive Architecture) */
 .spatial-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-glass);
@@ -771,9 +994,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   color: var(--accent-magenta);
 }
 
-/* ==========================================================================
-   MASTER CONTROLS (Brightness & Layer Contrast Slider)
-   ========================================================================== */
+/* MASTER CONTROLS (Brightness & Layer Contrast Slider) */
 .master-controls-bar {
   padding: 22px 28px;
   display: grid;
@@ -884,9 +1105,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   margin-top: 6px;
 }
 
-/* ==========================================================================
-   ACCESSIBLE RANGE SLIDERS (Modern Web Guidance Compliant)
-   ========================================================================== */
+/* ACCESSIBLE RANGE SLIDERS (Modern Web Guidance Compliant) */
 .slider-wrapper {
   position: relative;
   width: 100%;
@@ -1001,9 +1220,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-/* ==========================================================================
-   SCENES DECK (Curated Aesthetic Mood Presets)
-   ========================================================================== */
+/* SCENES DECK (Curated Aesthetic Mood Presets) */
 .scenes-deck {
   display: flex;
   flex-direction: column;
@@ -1254,6 +1471,22 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   background: linear-gradient(135deg, #fbbf24, #f59e0b, #ea580c);
 }
 
+.scene-grad-supernova {
+  background: linear-gradient(135deg, #f59e0b, #ef4444, #7c3aed);
+}
+
+.scene-grad-nebula {
+  background: linear-gradient(135deg, #06b6d4, #d946ef, #3b82f6);
+}
+
+.scene-grad-synthwave {
+  background: linear-gradient(135deg, #00f2fe, #ec4899, #8b5cf6);
+}
+
+.scene-grad-rain {
+  background: linear-gradient(135deg, #38bdf8, #0284c7, #ffa757);
+}
+
 .scene-content {
   position: relative;
   z-index: 2;
@@ -1280,9 +1513,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   line-height: 1.3;
 }
 
-/* ==========================================================================
-   DEVICE CONTROL MATRIX (3 Channels)
-   ========================================================================== */
+/* DEVICE CONTROL MATRIX (3 Channels) */
 .device-matrix {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1741,9 +1972,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   display: none;
 }
 
-/* ==========================================================================
-   HIGH-END SUITE STYLES (CIRCADIAN, AMBILIGHT, SOUNDSYNC, GRADIENT, RHYTHM)
-   ========================================================================== */
+/* HIGH-END SUITE STYLES (CIRCADIAN, AMBILIGHT, SOUNDSYNC, GRADIENT, RHYTHM) */
 .suite-feature-panel {
   padding: 28px;
   display: flex;
@@ -2378,9 +2607,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   color: var(--accent-amber);
 }
 
-/* ==========================================================================
-   SETTINGS MODAL DIALOG (CLEAN ARCHITECTURAL SUITE)
-   ========================================================================== */
+/* SETTINGS MODAL DIALOG (CLEAN ARCHITECTURAL SUITE) */
 .settings-dialog {
   border: none;
   background: transparent;
@@ -2781,9 +3008,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   box-shadow: 0 4px 16px rgba(0, 242, 254, 0.4);
 }
 
-/* ============================================================================
-   WIRELESS FIRMWARE OTA UPDATE & HARDWARE DIAGNOSTICS (MINIMALIST THEME)
-   ============================================================================ */
+/* WIRELESS FIRMWARE OTA UPDATE & HARDWARE DIAGNOSTICS (MINIMALIST THEME) */
 
 .ota-badges-group {
   display: flex;
@@ -3140,9 +3365,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   }
 }
 
-/* ==========================================================================
-   SIGNATURE FOOTER BRANDING (Designed by Sandy • The Aura Studio)
-   ========================================================================== */
+/* SIGNATURE FOOTER BRANDING (Designed by Sandy • The Aura Studio) */
 .app-footer {
   width: 100%;
   max-width: 1600px;
@@ -3271,9 +3494,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   border-radius: var(--radius-pill);
 }
 
-/* ==========================================================================
-   RESPONSIVE BREAKPOINTS & IPHONE 16 SCALABILITY
-   ========================================================================== */
+/* RESPONSIVE BREAKPOINTS & IPHONE 16 SCALABILITY */
 
 /* Touch Ergonomics on All Touch Devices */
 @media (pointer: coarse) {
@@ -4137,9 +4358,7 @@ input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-bad
   }
 }
 
-/* ==========================================================================
-   BROWSER SECURITY & MEDIA PERMISSIONS MODAL & CARDS
-   ========================================================================== */
+/* BROWSER SECURITY & MEDIA PERMISSIONS MODAL & CARDS */
 .security-mini-card {
   display: flex;
   align-items: center;

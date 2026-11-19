@@ -545,6 +545,14 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
             effectBioluminescentTide(baseColor, targetDim, config.speed, config.intensity);
         } else if (config.effect == "nordic-aurora") {
             effectNordicAurora(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "supernova") {
+            effectSupernova(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "nebula-drift") {
+            effectNebulaDrift(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "synthwave-grid") {
+            effectSynthwaveGrid(baseColor, targetDim, config.speed, config.intensity);
+        } else if (config.effect == "rain-ripples") {
+            effectRainRipples(baseColor, targetDim, config.speed, config.intensity);
         } else {
             fill_solid(leds, NUM_LEDS, baseColor);
         }
@@ -740,6 +748,48 @@ void LedDriver::effectGradientPhysics(const DeviceDesk &config) {
             float shimmer = sinf(normX * 30.0f + phase * 3.0f) * 25.0f * turbNorm;
             base.g = qadd8(base.g, (uint8_t)fmaxf(0.0f, shimmer * 1.2f));
             base.b = qadd8(base.b, (uint8_t)fmaxf(0.0f, shimmer * 0.8f));
+            leds[i] = base;
+        } else if (config.effect == "supernova") {
+            float distCenter = fabsf(normX - 0.5f) * 2.0f;
+            float blastFront = fmodf(phase * 0.45f, 1.0f);
+            float dFront = fabsf(distCenter - blastFront);
+            CRGB base = interpolate4Stops(config.stops, distCenter);
+            if (dFront < 0.14f) {
+                float shock = (1.0f - (dFront / 0.14f)) * 100.0f * turbNorm;
+                base = blend(base, CRGB::White, constrain((int)shock, 0, 100));
+            }
+            uint8_t flare = inoise8(i * 120, (uint16_t)(phase * 350.0f));
+            if (flare > 215) {
+                base += CRGB(map(flare, 215, 255, 0, (uint8_t)(60 * turbNorm)));
+            }
+            leds[i] = base;
+        } else if (config.effect == "nebula-drift") {
+            float drift = sinf(normX * 4.0f - phase * 0.4f) * 0.2f * turbNorm;
+            float sampleT = constrain(normX + drift, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            uint8_t gasNoise = inoise8(i * 70 + (uint16_t)(phase * 50.0f), (uint16_t)(phase * 80.0f));
+            base.r = qadd8(base.r, (uint8_t)(gasNoise * 0.25f * turbNorm));
+            base.b = qadd8(base.b, (uint8_t)(gasNoise * 0.35f * turbNorm));
+            leds[i] = base;
+        } else if (config.effect == "synthwave-grid") {
+            float distCenter = (normX < 0.5f) ? (normX * 2.0f) : ((1.0f - normX) * 2.0f);
+            float laserPos = fmodf(phase * 1.5f, 1.0f);
+            float dLaser = fabsf(distCenter - laserPos);
+            CRGB base = interpolate4Stops(config.stops, distCenter);
+            if (dLaser < 0.12f) {
+                float intensity = (1.0f - (dLaser / 0.12f)) * 95.0f * turbNorm;
+                base = blend(base, CRGB(0, 242, 254), constrain((int)intensity, 0, 100));
+            }
+            leds[i] = base;
+        } else if (config.effect == "rain-ripples") {
+            float wave = sinf(normX * 35.0f - phase * 3.5f) * sinf(phase * 0.8f);
+            float sampleT = constrain(normX + wave * 0.08f * turbNorm, 0.0f, 1.0f);
+            CRGB base = interpolate4Stops(config.stops, sampleT);
+            uint8_t dropNoise = inoise8(i * 150, (uint16_t)(phase * 500.0f));
+            if (dropNoise > 220) {
+                uint8_t splash = map(dropNoise, 220, 255, 0, (uint8_t)(90 * turbNorm));
+                base += CRGB(splash, splash, splash);
+            }
             leds[i] = base;
         } else { // shimmer or fallback
             float sparkle = sinf(normX * 60.0f + phase * 8.0f) * turbNorm * 35.0f;
@@ -1088,5 +1138,116 @@ void LedDriver::effectNordicAurora(CRGB baseColor, uint8_t brightness, uint8_t s
         auroralGrad = blend(auroralGrad, glacialCyan, sin8(i * 4 + drift * 2));
 
         leds[i] = blend(baseColor, auroralGrad, 190);
+    }
+}
+
+void LedDriver::effectSupernova(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint16_t step = animationStep * (speed / 10 + 1);
+    uint8_t turb = map(intensity, 0, 100, 20, 90);
+    uint8_t cycle = step % 256;
+    float blastFront = (float)cycle / 255.0f;
+
+    CRGB plasmaWhite = CRGB(255, 255, 255);
+    CRGB electricCyan = CRGB(0, 242, 254);
+    CRGB cosmicViolet = CRGB(168, 85, 247);
+    CRGB voidNavy = CRGB(7, 9, 14);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        float distFromCenter = fabsf(((float)i - 29.5f) / 29.5f);
+        float dFront = fabsf(distFromCenter - blastFront);
+        CRGB col = blend(voidNavy, cosmicViolet, (uint8_t)(distFromCenter * 160.0f));
+
+        if (dFront < 0.12f) {
+            uint8_t shock = (uint8_t)((1.0f - (dFront / 0.12f)) * 255.0f);
+            col = blend(col, electricCyan, shock);
+            if (dFront < 0.05f) {
+                uint8_t core = (uint8_t)((1.0f - (dFront / 0.05f)) * 255.0f);
+                col = blend(col, plasmaWhite, core);
+            }
+        }
+        uint8_t flare = inoise8(i * 140, step * 4);
+        if (flare > 220) {
+            uint8_t fBoost = map(flare, 220, 255, 0, turb);
+            col += CRGB(fBoost / 2, fBoost, fBoost);
+        }
+        leds[i] = blend(baseColor, col, 210);
+    }
+}
+
+void LedDriver::effectNebulaDrift(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint16_t offset = animationStep * (speed / 16 + 1);
+    uint8_t turb = map(intensity, 0, 100, 20, 80);
+
+    CRGB deepCosmos = CRGB(10, 10, 28);
+    CRGB neonMagenta = CRGB(217, 70, 239);
+    CRGB cyanStarlight = CRGB(6, 182, 212);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t n1 = inoise8(i * 45 - offset, offset / 3);
+        uint8_t n2 = inoise8(i * 90 + offset / 2, offset / 2);
+        uint8_t gas = (n1 * 3 + n2) / 4;
+
+        CRGB neb = blend(deepCosmos, neonMagenta, gas);
+        neb = blend(neb, cyanStarlight, sin8(i * 5 + offset));
+
+        if (gas > 210) {
+            uint8_t flare = map(gas, 210, 255, 0, turb * 2);
+            neb += CRGB(flare / 2, flare, flare);
+        }
+        leds[i] = blend(baseColor, neb, 200);
+    }
+}
+
+void LedDriver::effectSynthwaveGrid(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    uint16_t step = animationStep * (speed / 12 + 1);
+    uint8_t turb = map(intensity, 0, 100, 25, 90);
+
+    CRGB gridFloor = CRGB(20, 5, 30);
+    CRGB hotPink = CRGB(244, 63, 94);
+    CRGB sunsetGold = CRGB(251, 146, 60);
+    CRGB laserCyan = CRGB(0, 242, 254);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        float distFromEnd = (i < 30) ? ((float)i / 29.0f) : (((float)(59 - i)) / 29.0f);
+        uint8_t pulse = sin8((uint8_t)(distFromEnd * 180.0f) - (step * 3));
+
+        CRGB col = blend(gridFloor, hotPink, (uint8_t)(distFromEnd * 160.0f));
+        col = blend(col, sunsetGold, sin8(i * 4 + step));
+
+        if (pulse > 200) {
+            uint8_t laser = map(pulse, 200, 255, 0, turb * 2);
+            col = blend(col, laserCyan, laser);
+        }
+        leds[i] = blend(baseColor, col, 210);
+    }
+}
+
+void LedDriver::effectRainRipples(CRGB baseColor, uint8_t brightness, uint8_t speed, uint8_t intensity) {
+    static uint8_t rippleHeat[NUM_LEDS];
+    uint8_t dropRate = map(intensity, 0, 100, 15, 75);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        rippleHeat[i] = qsub8(rippleHeat[i], map(speed, 0, 100, 4, 18));
+    }
+    for (int i = 1; i < NUM_LEDS - 1; i++) {
+        rippleHeat[i] = (rippleHeat[i - 1] + rippleHeat[i] * 2 + rippleHeat[i + 1]) / 4;
+    }
+
+    if (random8() < dropRate) {
+        int dropPos = random8(NUM_LEDS);
+        rippleHeat[dropPos] = qadd8(rippleHeat[dropPos], random8(180, 255));
+    }
+
+    CRGB deepPuddle = CRGB(4, 12, 24);
+    CRGB splashCyan = CRGB(56, 189, 248);
+    CRGB dropletWhite = CRGB(240, 249, 255);
+
+    for (int i = 0; i < NUM_LEDS; i++) {
+        uint8_t h = rippleHeat[i];
+        CRGB water = blend(deepPuddle, splashCyan, h);
+        if (h > 190) {
+            water = blend(water, dropletWhite, map(h, 190, 255, 0, 200));
+        }
+        leds[i] = blend(baseColor, water, 200);
     }
 }
