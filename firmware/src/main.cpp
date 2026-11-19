@@ -73,7 +73,7 @@ void setup() {
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Firmware: v01.10.000 (Fail-Safe Dual-OTA)");
+    Serial.println("   Firmware: v02.00.000 (Fail-Safe Dual-OTA)");
     Serial.println("==========================================");
 
     // Hardware Reset Reason Audit

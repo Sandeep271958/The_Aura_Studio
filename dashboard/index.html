@@ -240,6 +240,7 @@
               <span class="control-title">Master Room Brightness</span>
             </div>
             <div class="master-header-actions">
+              <span id="hero-atmosphere-badge" class="hero-atmosphere-badge">⚡ Cyberpunk Night</span>
               <span id="val-master-brightness" class="control-val-badge">80%</span>
               <button type="button" id="btn-room-power-card" class="room-power-pill active" title="Toggle Room Power"
                 aria-label="Toggle Room Lighting">
@@ -287,8 +288,14 @@
       <!-- Curated Aesthetic Mood Scenes (One-Tap Presets) -->
       <section class="scenes-deck" aria-label="Aesthetic Lighting Presets">
         <div class="deck-header">
-          <h2 class="section-title">Atmospheric Presets</h2>
-          <span class="deck-subtitle">Curated color harmony & contrast profiles</span>
+          <div class="deck-header-left">
+            <h2 class="section-title">Atmospheric Presets</h2>
+            <span class="deck-subtitle">Curated color harmony &amp; contrast profiles</span>
+          </div>
+          <div id="deck-active-status" class="deck-active-status">
+            <span class="active-status-dot"></span>
+            <span id="deck-active-label" class="deck-active-label">Cyberpunk Night &bull; All In Sync</span>
+          </div>
         </div>
         <div class="scenes-grid">
           <!-- Preset 1: Cyberpunk -->
@@ -297,7 +304,10 @@
             <div class="scene-content">
               <div class="scene-icon">⚡</div>
               <div class="scene-info">
-                <h3 class="scene-name">Cyberpunk Night</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Cyberpunk Night</h3>
+                  <span class="scene-match-badge badge-all">● ALL ACTIVE</span>
+                </div>
                 <p class="scene-desc">Neon Magenta Desk &bull; Deep Cobalt Corners</p>
               </div>
             </div>
@@ -309,7 +319,10 @@
             <div class="scene-content">
               <div class="scene-icon">☕</div>
               <div class="scene-info">
-                <h3 class="scene-name">Warm Minimalist</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Warm Minimalist</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">2400K Candlelight Corners &bull; Soft Amber Desk</p>
               </div>
             </div>
@@ -321,7 +334,10 @@
             <div class="scene-content">
               <div class="scene-icon">🎯</div>
               <div class="scene-info">
-                <h3 class="scene-name">Deep Focus</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Deep Focus</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">4500K Neutral Bias &bull; Dimmed 15% Ambient</p>
               </div>
             </div>
@@ -333,7 +349,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌅</div>
               <div class="scene-info">
-                <h3 class="scene-name">Sunset Horizon</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Sunset Horizon</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Peach & Sunset Wave &bull; Warm Gold Corners</p>
               </div>
             </div>
@@ -345,7 +364,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌌</div>
               <div class="scene-info">
-                <h3 class="scene-name">Aurora Drift</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Aurora Drift</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Emerald &amp; Violet Flow &bull; Jade Ambient</p>
               </div>
             </div>
@@ -357,7 +379,10 @@
             <div class="scene-content">
               <div class="scene-icon">🎬</div>
               <div class="scene-info">
-                <h3 class="scene-name">Midnight Cinema</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Midnight Cinema</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Ultra-dim 1800K Ember &bull; Anti-Glare Bias</p>
               </div>
             </div>
@@ -369,7 +394,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌸</div>
               <div class="scene-info">
-                <h3 class="scene-name">Aman Kyoto Zen</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Aman Kyoto Zen</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">2200K Sakura Glow &bull; Candlelight Corners</p>
               </div>
             </div>
@@ -381,7 +409,10 @@
             <div class="scene-content">
               <div class="scene-icon">🏛️</div>
               <div class="scene-info">
-                <h3 class="scene-name">Grand Welcome</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Grand Welcome</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Lutron Ketra 2800K &bull; Amber Gold Wall Wash</p>
               </div>
             </div>
@@ -393,7 +424,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌿</div>
               <div class="scene-info">
-                <h3 class="scene-name">Deep Sanctuary Spa</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Deep Sanctuary Spa</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Aquamarine Bio-Glow &bull; 2400K Decompression</p>
               </div>
             </div>
@@ -405,7 +439,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌊</div>
               <div class="scene-info">
-                <h3 class="scene-name">Oceanic Abyss</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Oceanic Abyss</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Deep Sea Cyan Pulse &bull; Midnight Navy Corners</p>
               </div>
             </div>
@@ -417,7 +454,10 @@
             <div class="scene-content">
               <div class="scene-icon">🏔️</div>
               <div class="scene-info">
-                <h3 class="scene-name">Nordic Twilight</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Nordic Twilight</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Glacial Cyan Drift &bull; Arctic Indigo &amp; 4000K Corners</p>
               </div>
             </div>
@@ -429,7 +469,10 @@
             <div class="scene-content">
               <div class="scene-icon">🕯️</div>
               <div class="scene-info">
-                <h3 class="scene-name">Hearth &amp; Smoked Oak</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Hearth &amp; Smoked Oak</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Thermodynamic 1800K Embers &bull; 2000K Candle Corners</p>
               </div>
             </div>
@@ -441,7 +484,10 @@
             <div class="scene-content">
               <div class="scene-icon">🗼</div>
               <div class="scene-info">
-                <h3 class="scene-name">Tokyo Neon Horizon</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Tokyo Neon Horizon</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Bilateral Spatial Flow &bull; Cyan to Royal Violet Corners</p>
               </div>
             </div>
@@ -453,7 +499,10 @@
             <div class="scene-content">
               <div class="scene-icon">🎋</div>
               <div class="scene-info">
-                <h3 class="scene-name">Kyoto Bamboo Canopy</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Kyoto Bamboo Canopy</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Deep Jade Wave &bull; 2200K Architectural Teak Warmth</p>
               </div>
             </div>
@@ -465,7 +514,10 @@
             <div class="scene-content">
               <div class="scene-icon">🌊</div>
               <div class="scene-info">
-                <h3 class="scene-name">Maldives Biolum Tide</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Maldives Biolum Tide</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Sapphire Soliton Crests &bull; Deep Trench Navy Corners</p>
               </div>
             </div>
@@ -477,7 +529,10 @@
             <div class="scene-content">
               <div class="scene-icon">☀️</div>
               <div class="scene-info">
-                <h3 class="scene-name">Ketra Solaris 2700K</h3>
+                <div class="scene-title-row">
+                  <h3 class="scene-name">Ketra Solaris 2700K</h3>
+                  <span class="scene-match-badge hidden"></span>
+                </div>
                 <p class="scene-desc">Museum-Grade 2700K Warmth &bull; Perfect Circadian Balance</p>
               </div>
             </div>
@@ -1651,7 +1706,7 @@
               </div>
               <div class="ota-badges-group">
                 <span class="badge-ota-partition" id="badge-ota-partition">Slot: app0</span>
-                <span class="badge-ota-status" id="badge-firmware-version">v01.10.000</span>
+                <span class="badge-ota-status" id="badge-firmware-version">v02.00.000</span>
               </div>
             </div>
 

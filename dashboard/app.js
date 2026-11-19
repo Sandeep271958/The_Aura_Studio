@@ -252,6 +252,8 @@ const DOM = {
   btnMasterPower: document.getElementById('btn-master-power'),
   btnRoomPowerCard: document.getElementById('btn-room-power-card'),
   labelRoomPowerCard: document.getElementById('label-room-power-card'),
+  heroAtmosphereBadge: document.getElementById('hero-atmosphere-badge'),
+  deckActiveLabel: document.getElementById('deck-active-label'),
 
   // Master Sliders
   sliderMasterBrightness: document.getElementById('slider-master-brightness'),
@@ -921,11 +923,157 @@ function renderDeviceCards() {
   DOM.cardDesk.classList.toggle('powered-off', !appState.devices.desk.power || !appState.isMasterOn);
   DOM.cardWizLeft.classList.toggle('powered-off', !appState.devices.wizLeft.power || !appState.isMasterOn);
   DOM.cardWizRight.classList.toggle('powered-off', !appState.devices.wizRight.power || !appState.isMasterOn);
+  DOM.cardWizRight.classList.toggle('linked-corner', appState.syncCorners);
+}
+
+function colorsMatch(c1, c2) {
+  if (!c1 || !c2) return false;
+  return c1.trim().toLowerCase() === c2.trim().toLowerCase();
+}
+
+function kelvinsMatch(k1, k2) {
+  return Math.abs((Number(k1) || 0) - (Number(k2) || 0)) <= 100;
+}
+
+function matchesPresetDesk(p) {
+  const desk = appState.devices.desk;
+  if (!appState.isMasterOn || !desk.power) return false;
+  return desk.effect === p.desk.effect && colorsMatch(desk.color, p.desk.color);
+}
+
+function matchesPresetLamp(lamp, pLamp) {
+  if (!appState.isMasterOn || !lamp.power) return false;
+  if (lamp.mode !== pLamp.mode) return false;
+  if (lamp.mode === 'rgb') {
+    return colorsMatch(lamp.color, pLamp.color);
+  } else {
+    return kelvinsMatch(lamp.kelvin, pLamp.kelvin);
+  }
+}
+
+function matchesPresetBothLamps(p) {
+  return matchesPresetLamp(appState.devices.wizLeft, p.wizLeft) &&
+         matchesPresetLamp(appState.devices.wizRight, p.wizRight);
+}
+
+function getPresetMatchingState() {
+  let fullMatchKey = null;
+  let deskMatchKey = null;
+  let lampsMatchKey = null;
+  let leftMatchKey = null;
+  let rightMatchKey = null;
+
+  for (const [key, preset] of Object.entries(PRESETS)) {
+    const dMatch = matchesPresetDesk(preset);
+    const lLeft = matchesPresetLamp(appState.devices.wizLeft, preset.wizLeft);
+    const lRight = matchesPresetLamp(appState.devices.wizRight, preset.wizRight);
+    const lBoth = lLeft && lRight;
+
+    if (dMatch && lBoth && !fullMatchKey) {
+      fullMatchKey = key;
+    }
+    if (dMatch && !deskMatchKey) {
+      deskMatchKey = key;
+    }
+    if (lBoth && !lampsMatchKey) {
+      lampsMatchKey = key;
+    }
+    if (lLeft && !leftMatchKey) {
+      leftMatchKey = key;
+    }
+    if (lRight && !rightMatchKey) {
+      rightMatchKey = key;
+    }
+  }
+
+  return { fullMatchKey, deskMatchKey, lampsMatchKey, leftMatchKey, rightMatchKey };
+}
+
+function updateAtmosphereReadouts(match) {
+  let atmosphereText = 'Custom Ambience';
+  let deckStatusText = 'Custom Tuning';
+
+  if (!appState.isMasterOn) {
+    atmosphereText = 'Power Standby';
+    deckStatusText = 'Power Off';
+  } else if (match.fullMatchKey) {
+    const pName = PRESETS[match.fullMatchKey]?.name || 'Active Preset';
+    atmosphereText = `⚡ ${pName}`;
+    deckStatusText = `${pName} • All In Sync`;
+  } else if (match.deskMatchKey && match.lampsMatchKey) {
+    const dName = PRESETS[match.deskMatchKey]?.name || 'Strip';
+    const lName = PRESETS[match.lampsMatchKey]?.name || 'Lamps';
+    atmosphereText = `⚡ Split: ${dName} / ${lName}`;
+    deckStatusText = `Strip: ${dName} | Lamps: ${lName}`;
+  } else if (match.deskMatchKey) {
+    const dName = PRESETS[match.deskMatchKey]?.name || 'Strip';
+    atmosphereText = `⚡ Strip: ${dName}`;
+    deckStatusText = `Strip: ${dName} (Custom Lamps)`;
+  } else if (match.lampsMatchKey) {
+    const lName = PRESETS[match.lampsMatchKey]?.name || 'Lamps';
+    atmosphereText = `⚡ Lamps: ${lName}`;
+    deckStatusText = `Lamps: ${lName} (Custom Strip)`;
+  }
+
+  if (DOM.heroAtmosphereBadge) {
+    DOM.heroAtmosphereBadge.textContent = atmosphereText;
+  }
+  if (DOM.deckActiveLabel) {
+    DOM.deckActiveLabel.textContent = deckStatusText;
+  }
 }
 
 function renderScenesDeck() {
+  const match = getPresetMatchingState();
+  updateAtmosphereReadouts(match);
+
   document.querySelectorAll('.scene-card').forEach(card => {
-    card.classList.toggle('active', card.dataset.preset === appState.activePreset);
+    const key = card.dataset.preset;
+    const badge = typeof card.querySelector === 'function' ? card.querySelector('.scene-match-badge') : null;
+
+    // Reset state classes
+    card.classList.remove('active', 'active-strip-only', 'active-lamps-only', 'active-left-only', 'active-right-only');
+
+    if (badge) {
+      badge.className = 'scene-match-badge hidden';
+      badge.textContent = '';
+    }
+
+    if (!appState.isMasterOn) {
+      return; // Do not highlight presets when powered off
+    }
+
+    if (match.fullMatchKey === key) {
+      card.classList.add('active');
+      if (badge) {
+        badge.className = 'scene-match-badge badge-all';
+        badge.textContent = '● ALL ACTIVE';
+      }
+    } else if (match.deskMatchKey === key && match.lampsMatchKey !== key) {
+      card.classList.add('active-strip-only');
+      if (badge) {
+        badge.className = 'scene-match-badge badge-strip';
+        badge.textContent = '● STRIP';
+      }
+    } else if (match.lampsMatchKey === key && match.deskMatchKey !== key) {
+      card.classList.add('active-lamps-only');
+      if (badge) {
+        badge.className = 'scene-match-badge badge-lamps';
+        badge.textContent = '● LAMPS';
+      }
+    } else if (match.leftMatchKey === key && !match.lampsMatchKey) {
+      card.classList.add('active-left-only');
+      if (badge) {
+        badge.className = 'scene-match-badge badge-lamps';
+        badge.textContent = '● LEFT';
+      }
+    } else if (match.rightMatchKey === key && !match.lampsMatchKey) {
+      card.classList.add('active-right-only');
+      if (badge) {
+        badge.className = 'scene-match-badge badge-lamps';
+        badge.textContent = '● RIGHT';
+      }
+    }
   });
 }
 
@@ -3496,9 +3644,16 @@ function hexToHue(hex) {
 function syncActiveSwatches(container, activeColor) {
   if (!container) return;
   const target = (activeColor || '').toLowerCase();
+  let hasMatch = false;
   container.querySelectorAll('.swatch-dot').forEach(dot => {
-    dot.classList.toggle('active', (dot.dataset.color || '').toLowerCase() === target);
+    const isMatch = Boolean(target) && (dot.dataset.color || '').toLowerCase() === target;
+    dot.classList.toggle('active', isMatch);
+    if (isMatch) hasMatch = true;
   });
+  const customCell = container.parentElement ? container.parentElement.querySelector('.custom-picker-cell') : null;
+  if (customCell) {
+    customCell.classList.toggle('active', !hasMatch && Boolean(target));
+  }
 }
 
 function capitalize(str) {
