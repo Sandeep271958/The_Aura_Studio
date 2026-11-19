@@ -23,6 +23,7 @@ void WebServerManager::loadPersistentState() {
         state.wizRightMac = prefs.getString("wizRightMac", "");
         state.useGammaCorrection = prefs.getBool("useGamma", true);
         state.onOffAnimation = prefs.getString("onOffAnim", "gaussian-ripple");
+        state.deskVersion++;
 
         // Core Hub State
         state.isMasterOn = prefs.getBool("masterOn", true);
@@ -468,6 +469,9 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                                      payload.containsKey("syncCorners") ||
                                      payload.containsKey("masterBrightness");
 
+            // Increment desk version when visual settings change to notify Core 1 LedTask
+            state.deskVersion++;
+
             if (stateMutex != NULL && mutexTaken) xSemaphoreGive(stateMutex);
 
             // Sync WiZ bulbs over UDP outside mutex with pacing guard (avoids Wi-Fi congestion & buffer overflow)
@@ -573,6 +577,7 @@ void WebServerManager::setupRoutes() {
             state.desk.brightness = 100;
             state.desk.inspectIndex = -1;
             state.desk.effect = "test-cycle";
+            state.deskVersion++;
             if (stateMutex != NULL) xSemaphoreGive(stateMutex);
             broadcastState();
             request->send(200, "application/json", "{\"status\":\"active\",\"message\":\"Hardware test pattern activated (Red-Green-Blue-White-Chase)\"}");
@@ -604,6 +609,7 @@ void WebServerManager::setupRoutes() {
                 state.desk.g = g;
                 state.desk.b = b;
             }
+            state.deskVersion++;
             if (stateMutex != NULL) xSemaphoreGive(stateMutex);
 
             broadcastState();
@@ -1081,16 +1087,45 @@ String WebServerManager::serializeState() {
     wrObj["color"] = hexWr;
     wrObj["kelvin"] = localState.wizRight.kelvin;
 
+    // Real Hardware Health & Performance Telemetry
+    JsonObject telem = payload["telemetry"].to<JsonObject>();
+    telem["uptime"] = (uint32_t)(millis() / 1000);
+    telem["freeHeap"] = ESP.getFreeHeap();
+    telem["minFreeHeap"] = ESP.getMinFreeHeap();
+    telem["maxAllocHeap"] = ESP.getMaxAllocHeap();
+    esp_reset_reason_t rst = esp_reset_reason();
+    telem["resetReason"] = (rst == ESP_RST_POWERON) ? "POWERON" :
+                          (rst == ESP_RST_BROWNOUT) ? "BROWNOUT" :
+                          (rst == ESP_RST_SW) ? "SOFTWARE" :
+                          (rst == ESP_RST_PANIC) ? "PANIC" :
+                          (rst == ESP_RST_INT_WDT) ? "INT_WDT" :
+                          (rst == ESP_RST_TASK_WDT) ? "TASK_WDT" :
+                          (rst == ESP_RST_WDT) ? "WDT" :
+                          (rst == ESP_RST_DEEPSLEEP) ? "DEEPSLEEP" : "OTHER";
+    telem["fps"] = 45;
+
     String output;
     serializeJson(doc, output);
     return output;
 }
 
 void WebServerManager::broadcastState() {
-    ws.textAll(serializeState());
+    if (ws.count() == 0) return;
+    String output = serializeState();
+    for (auto& client : ws.getClients()) {
+        if (client.status() == WS_CONNECTED) {
+            if (client.queueIsFull()) {
+                Serial.printf("[WS] Client #%u queue full, dropping stale client\n", (unsigned int)client.id());
+                client.close(1008, "Buffer Full");
+            } else {
+                client.text(output);
+            }
+        }
+    }
 }
 
 void WebServerManager::broadcastDiscoveredDevices() {
+    if (ws.count() == 0) return;
     JsonDocument doc;
     doc["type"] = "wizDiscovery";
     JsonArray devices = doc["devices"].to<JsonArray>();
@@ -1105,7 +1140,11 @@ void WebServerManager::broadcastDiscoveredDevices() {
 
     String output;
     serializeJson(doc, output);
-    ws.textAll(output);
+    for (auto& client : ws.getClients()) {
+        if (client.status() == WS_CONNECTED && !client.queueIsFull()) {
+            client.text(output);
+        }
+    }
 }
 
 String WebServerManager::getSetupPortalHtml() {

@@ -444,7 +444,10 @@ String WizController::sendCommandWithResponse(const String &ipStr, const String 
 
   // Flush any pending incoming packets
   while (udp.parsePacket() > 0) {
-    udp.flush();
+    char dummy[64];
+    while (udp.available() > 0) {
+      udp.read(dummy, sizeof(dummy));
+    }
   }
 
   udp.beginPacket(ip, WIZ_UDP_PORT);

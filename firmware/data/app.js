@@ -390,6 +390,11 @@ const DOM = {
   ipDisplayWizLeft: document.getElementById('ip-display-wiz-left'),
   ipDisplayWizRight: document.getElementById('ip-display-wiz-right'),
   telemHubIp: document.getElementById('telem-hub-ip'),
+  telemHubRssi: document.getElementById('telem-hub-rssi'),
+  telemHubUptime: document.getElementById('telem-hub-uptime'),
+  telemHubFps: document.getElementById('telem-hub-fps'),
+  telemHubHeap: document.getElementById('telem-hub-heap'),
+  telemHubReset: document.getElementById('telem-hub-reset'),
   toggleGamma: document.getElementById('toggle-gamma'),
 
   // Wireless OTA Firmware Update
@@ -718,6 +723,36 @@ function syncAllInputs() {
   }
   if (DOM.telemHubIp && appState.network && appState.network.hubIp) {
     DOM.telemHubIp.textContent = appState.network.hubIp;
+  }
+  if (DOM.telemHubRssi && appState.network) {
+    const rssi = appState.network.wifiRssi;
+    if (rssi) {
+      let qual = 'Good';
+      if (rssi >= -55) qual = 'Excellent';
+      else if (rssi <= -75) qual = 'Fair';
+      DOM.telemHubRssi.textContent = `${rssi} dBm (${qual})`;
+    } else {
+      DOM.telemHubRssi.textContent = appState.network.isSetupMode ? 'SoftAP Active' : '--';
+    }
+  }
+  if (appState.telemetry) {
+    if (DOM.telemHubUptime && appState.telemetry.uptime !== undefined) {
+      const upSec = appState.telemetry.uptime;
+      const hours = Math.floor(upSec / 3600);
+      const mins = Math.floor((upSec % 3600) / 60);
+      const secs = upSec % 60;
+      DOM.telemHubUptime.textContent = hours > 0 ? `${hours}h ${mins}m` : `${mins}m ${secs}s`;
+    }
+    if (DOM.telemHubFps && appState.telemetry.fps !== undefined) {
+      DOM.telemHubFps.textContent = `${appState.telemetry.fps} FPS`;
+    }
+    if (DOM.telemHubHeap && appState.telemetry.freeHeap !== undefined) {
+      const freeKb = Math.round(appState.telemetry.freeHeap / 1024);
+      DOM.telemHubHeap.textContent = `${freeKb} KB`;
+    }
+    if (DOM.telemHubReset && appState.telemetry.resetReason) {
+      DOM.telemHubReset.textContent = appState.telemetry.resetReason;
+    }
   }
   if (DOM.wifiCurrentSsid && appState.network) {
     DOM.wifiCurrentSsid.textContent = appState.network.wifiSsid || 'Setup Mode (SoftAP)';

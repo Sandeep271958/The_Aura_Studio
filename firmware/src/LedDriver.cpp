@@ -80,7 +80,7 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
     struct RawColor { float r, g, b; };
     RawColor rawFrame[NUM_LEDS];
 
-    FastLED.setMaxPowerInVoltsAndMilliamps(5, 450); // Safe inrush current limiter (450mA peak) prevents USB brownouts
+    FastLED.setMaxPowerInVoltsAndMilliamps(5, 300); // Ultra-safe inrush current limiter (300mA peak) prevents USB voltage sag & brownouts
     uint32_t bootStart = millis();
 
     while (millis() - bootStart < durationMs) {
@@ -156,9 +156,9 @@ void LedDriver::playSiriBootupAnimation(uint32_t durationMs) {
             if (rawSpec > 1.0f) rawSpec = 1.0f;
             float specular = powf(rawSpec, 1.35f) * (1.0f - 0.70f * settleFactor);
 
-            // Additive light amplitude synthesis with soft-start peak luminance guard (<220mA total draw)
+            // Additive light amplitude synthesis with soft-start peak luminance guard (<180mA total draw)
             float amp = (0.70f + 0.35f * (s1 + s2)) * mask;
-            float bootLumaScale = 0.40f;
+            float bootLumaScale = 0.30f;
 
             float r = (baseR * amp + specular * (255.0f - baseR) * mask) * bootLumaScale;
             float g = (baseG * amp + specular * (255.0f - baseG) * mask) * bootLumaScale;
@@ -479,7 +479,7 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
     if (config.effect == "solid") {
         bool changed = inTransition || (baseColor != lastSolidColor || targetDim != lastDeskDim || 
                         useGammaCorrection != lastUseGamma ||
-                        !lastMasterOn || !lastDeskPower || lastEffect != "solid" || 
+                        !lastMasterOn || !lastDeskPower || strcmp(lastEffect, "solid") != 0 || 
                         now - lastSolidPush > 3000);
         if (!changed) {
             return;
@@ -489,24 +489,20 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
         lastUseGamma = useGammaCorrection;
         lastMasterOn = masterOn;
         lastDeskPower = config.power;
-        lastEffect = "solid";
+        strncpy(lastEffect, "solid", sizeof(lastEffect) - 1);
+        lastEffect[sizeof(lastEffect) - 1] = '\0';
         lastSolidPush = now;
         fill_solid(leds, NUM_LEDS, baseColor);
         // Falls through into unified post-processing pass below!
     } else {
-        lastEffect = config.effect;
+        if (strcmp(lastEffect, config.effect.c_str()) != 0) {
+            strncpy(lastEffect, config.effect.c_str(), sizeof(lastEffect) - 1);
+            lastEffect[sizeof(lastEffect) - 1] = '\0';
+        }
         lastUseGamma = useGammaCorrection;
         lastDeskDim = targetDim;
         lastMasterOn = masterOn;
         lastDeskPower = config.power;
-
-        // Periodic heartbeat to Serial to confirm Core 1 rendering
-        static uint32_t lastHeartbeat = 0;
-        if (now - lastHeartbeat > 3000) {
-            lastHeartbeat = now;
-            Serial.printf("[LED Task] Dynamic Rendering Active | Effect: %s | Dim: %d/255 | Step: %u\n", 
-                          config.effect.c_str(), targetDim, animationStep);
-        }
 
         // Dynamic Animation Rendering into leds[i] in natural sRGB space
         if (config.hasGradient) {

@@ -35,7 +35,7 @@ private:
   bool lastDeskPower = false;
   uint8_t lastDeskDim = 0;
   CRGB lastSolidColor = CRGB::Black;
-  String lastEffect = "";
+  char lastEffect[32] = "";
   int lastInspectIndex = -2;
   uint32_t lastSolidPush = 0;
   CRGB lastLed36 = CRGB::Black;

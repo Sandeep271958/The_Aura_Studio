@@ -5,6 +5,8 @@
 #include <ArduinoOTA.h>
 #include <Preferences.h>
 #include <esp_ota_ops.h>
+#include <soc/soc.h>
+#include <soc/rtc_cntl_reg.h>
 #include "Config.h"
 #include "WizController.h"
 #include "LedDriver.h"
@@ -33,23 +35,28 @@ SemaphoreHandle_t stateMutex = NULL;
 TaskHandle_t LedTaskHandle = NULL;
 
 void LedTask(void *pvParameters) {
-    Serial.printf("[Core 1] LED Task pinned to core %d\n", xPortGetCoreID());
+    Serial.printf("[Core 1] LED Task pinned to core %d (Zero-Allocation Render Engine)\n", xPortGetCoreID());
     DeviceDesk localDesk;
     bool localMasterOn = true;
     uint8_t localMasterBrightness = 80;
     int8_t localContrastRatio = 0;
     bool localUseGammaCorrection = true;
     String localOnOffAnimation = "gaussian-ripple";
+    uint32_t localVersion = 0xFFFFFFFF;
 
     for (;;) {
-        if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
-            localDesk = hubState.desk;
-            localMasterOn = hubState.isMasterOn;
-            localMasterBrightness = hubState.masterBrightness;
-            localContrastRatio = hubState.contrastRatio;
-            localUseGammaCorrection = hubState.useGammaCorrection;
-            localOnOffAnimation = hubState.onOffAnimation;
-            xSemaphoreGive(stateMutex);
+        // Zero-allocation & zero-mutex guard: only lock and copy when state version changes!
+        if (hubState.deskVersion != localVersion) {
+            if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+                localDesk = hubState.desk;
+                localMasterOn = hubState.isMasterOn;
+                localMasterBrightness = hubState.masterBrightness;
+                localContrastRatio = hubState.contrastRatio;
+                localUseGammaCorrection = hubState.useGammaCorrection;
+                localOnOffAnimation = hubState.onOffAnimation;
+                localVersion = hubState.deskVersion;
+                xSemaphoreGive(stateMutex);
+            }
         }
         ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio, localUseGammaCorrection, localOnOffAnimation);
         vTaskDelay(pdMS_TO_TICKS(22)); // Fluid 45 FPS cinema-smooth animation loop (relieves bus contention & voltage sag)
@@ -57,13 +64,16 @@ void LedTask(void *pvParameters) {
 }
 
 void setup() {
+    // Disable software-triggered brownout detector to prevent microsecond voltage dip resets on USB power
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
     Serial.begin(115200);
     delay(500); // 500ms power supply voltage stabilization delay
 
     Serial.println("\n==========================================");
     Serial.println("   THE AURA STUDIO // ESP32 SMART LIGHT HUB");
     Serial.println("   Designed by Sandy                        ");
-    Serial.println("   Firmware: v01.08.000 (Fail-Safe Dual-OTA)");
+    Serial.println("   Firmware: v01.10.000 (Fail-Safe Dual-OTA)");
     Serial.println("==========================================");
 
     // Hardware Reset Reason Audit
@@ -321,7 +331,7 @@ void loop() {
 
     // Autonomous Background Wi-Fi Reconnection Engine (Self-heals after router power outage)
     static uint32_t lastStaRetryMs = 0;
-    if (hubState.isSetupMode && activeSsid.length() > 0 && (millis() - lastStaRetryMs >= 5000)) {
+    if (hubState.isSetupMode && activeSsid.length() > 0 && (millis() - lastStaRetryMs >= 15000)) {
         lastStaRetryMs = millis();
         if (WiFi.status() == WL_CONNECTED) {
             Serial.println("\n[WiFi Auto-Recovery] Home network detected and connected in background!");

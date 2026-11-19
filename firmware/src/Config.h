@@ -10,9 +10,9 @@ extern SemaphoreHandle_t stateMutex;
 // ============================================================================
 // FIRMWARE NOMENCLATURE & REVISION (Industry Standard XX.YY.ZZZ)
 // ============================================================================
-#define FIRMWARE_VERSION "01.09.000"
-#define FIRMWARE_NAME "firmware_01.09.000.bin"
-#define FIRMWARE_BUILD "2026-11-18"
+#define FIRMWARE_VERSION "01.10.000"
+#define FIRMWARE_NAME "firmware_01.10.000.bin"
+#define FIRMWARE_BUILD "2026-11-19"
 
 // ============================================================================
 // WI-FI & NETWORK CONFIGURATION
@@ -20,7 +20,8 @@ extern SemaphoreHandle_t stateMutex;
 #define DEFAULT_WIFI_SSID "1201_2.4G"
 #define DEFAULT_WIFI_PASSWORD "V@08101999g"
 #define SOFTAP_SSID "Aura-Studio-Setup"
-#define SOFTAP_PASS "" // Open setup hotspot for seamless captive portal onboarding
+#define SOFTAP_PASS                                                            \
+  "" // Open setup hotspot for seamless captive portal onboarding
 #define HOSTNAME "aura-hub" // Accessible at http://aura-hub.local
 
 // ============================================================================
@@ -38,7 +39,7 @@ extern SemaphoreHandle_t stateMutex;
 // Physical Hardware Spatial Orientation:
 // - LED 1  [Index 0]  is located near the Left LED Lamp (wizLeft)
 // - LED 60 [Index 59] is located near the Right LED Lamp (wizRight)
-#define STRIP_LEFT_INDEX  0  // Left Corner Lamp Edge (Index 0)
+#define STRIP_LEFT_INDEX 0   // Left Corner Lamp Edge (Index 0)
 #define STRIP_RIGHT_INDEX 59 // Right Corner Lamp Edge (Index 59)
 
 // ============================================================================
@@ -107,6 +108,9 @@ struct HubState {
   String activePartition = "app0"; // "app0" (ota_0) or "app1" (ota_1)
   bool otaRollbackOccurred = false;
   bool otaPendingVerify = false;
+
+  // Zero-Allocation Rendering Generation Counter
+  uint32_t deskVersion = 0;
 
   DeviceDesk desk;
   DeviceWiz wizLeft;
