@@ -83,17 +83,35 @@
   padding: 0;
 }
 
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-base);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   line-height: 1.5;
   position: relative;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection only where needed */
+input, textarea, select, code, pre, .mono-stat, .fixture-value, .control-val-badge {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Dynamic Ambient Glow Field Behind Whole App */
@@ -3393,39 +3411,58 @@ body {
 
 /* Mobile Devices & iPhone 16 (Portrait) */
 @media (max-width: 768px) {
+  /* iOS Input Zoom Prevention: All inputs and selects at least 16px */
+  input, select, textarea, .custom-input, .select-input {
+    font-size: 16px !important;
+  }
+
   /* Header: Slim, Dynamic Island Safe, Uncluttered */
   .app-header {
-    padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) 10px calc(14px + env(safe-area-inset-left));
+    padding: max(calc(8px + env(safe-area-inset-top)), 16px) max(calc(12px + env(safe-area-inset-right)), 12px) 8px max(calc(12px + env(safe-area-inset-left)), 12px);
     gap: 8px;
     justify-content: space-between;
+    align-items: center;
     flex-wrap: nowrap;
+    background: rgba(7, 9, 14, 0.94);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-bottom: 1px solid var(--border-glass);
+    z-index: 900;
   }
 
   .brand {
-    gap: 10px;
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
   }
 
   .logo-mark {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
   }
 
   .logo-mark svg {
-    width: 20px;
-    height: 20px;
+    width: 17px;
+    height: 17px;
   }
 
   .brand-title {
-    gap: 6px;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .brand-title-text {
-    font-size: 1.35rem;
+    font-size: clamp(1rem, 4.4vw, 1.25rem);
+    white-space: nowrap;
+    letter-spacing: -0.01em;
   }
 
   .badge-version {
     font-size: 0.58rem;
     padding: 2px 6px;
+    display: none !important;
   }
 
   .brand-subtitle {
@@ -3433,9 +3470,11 @@ body {
   }
 
   .header-status-panel {
-    gap: 8px;
+    gap: 6px;
     margin-left: auto;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
   }
 
   .transition-pill-wrap {
@@ -3443,9 +3482,12 @@ body {
   }
 
   .status-chip {
-    padding: 5px 8px;
-    min-width: 32px;
+    padding: 6px 8px;
+    min-width: 30px;
+    height: 34px;
+    border-radius: var(--radius-pill);
     justify-content: center;
+    box-sizing: border-box;
   }
 
   .status-chip #connection-text {
@@ -3453,9 +3495,33 @@ body {
   }
 
   .master-power-btn {
-    padding: 8px 14px;
-    font-size: 0.78rem;
+    padding: 7px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    justify-content: center;
+    align-items: center;
     display: inline-flex !important;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+
+  .master-power-btn .power-label {
+    display: none;
+  }
+
+  .master-power-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .icon-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
 
@@ -3475,15 +3541,13 @@ body {
     background: rgba(10, 14, 23, 0.94);
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
-    padding: 6px 6px calc(6px + env(safe-area-inset-bottom)) 6px;
+    padding: 6px 4px max(calc(6px + env(safe-area-inset-bottom)), 20px) 4px;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
     gap: 2px;
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.75);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow-x: hidden;
   }
 
   .suite-nav::-webkit-scrollbar {
@@ -3493,21 +3557,23 @@ body {
   .suite-tab {
     flex-direction: column;
     gap: 3px;
-    padding: 6px 4px;
-    min-width: 50px;
-    max-width: 68px;
-    height: 52px;
+    padding: 5px 2px;
+    min-width: 0;
+    flex: 1 1 0;
+    height: 50px;
     border-radius: var(--radius-sm);
-    flex: 1;
     justify-content: center;
     align-items: center;
     border: 1px solid transparent;
     transition: all 0.2s var(--ease-spring);
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .suite-tab svg {
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
   }
 
   .tab-label-full {
@@ -3516,14 +3582,15 @@ body {
 
   .tab-label-short {
     display: block;
-    font-size: 0.62rem;
+    font-size: 0.58rem;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 58px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .suite-tab.active {
@@ -3535,13 +3602,13 @@ body {
 
   /* Main Container Safe Margins */
   .app-layout {
-    padding: 14px calc(14px + env(safe-area-inset-right)) calc(92px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
-    gap: 20px;
+    padding: 14px calc(14px + env(safe-area-inset-right)) calc(86px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    gap: 16px;
   }
 
-  /* Scalable 2.5D Room Architecture Viewport */
+  /* Scalable 2.5D Room Architecture Viewport (Non-colliding with Corner Fixtures) */
   .spatial-card {
-    padding: 16px;
+    padding: 16px 14px;
     border-radius: var(--radius-lg);
   }
 
@@ -3549,46 +3616,47 @@ body {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
 
   .spatial-telemetry {
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     gap: 8px;
   }
 
   .room-viewport {
-    height: clamp(190px, 28vh, 250px);
+    height: clamp(180px, 26vh, 230px);
     border-radius: var(--radius-md);
   }
 
   .fixture-left {
-    left: clamp(10px, 3.5vw, 22px);
-    top: 16px;
+    left: clamp(8px, 2.5vw, 16px);
+    top: 14px;
   }
 
   .fixture-right {
-    right: clamp(10px, 3.5vw, 22px);
-    top: 16px;
+    right: clamp(8px, 2.5vw, 16px);
+    top: 14px;
   }
 
   .fixture-icon {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
   }
 
   .fixture-icon svg {
-    width: 19px;
-    height: 19px;
+    width: 17px;
+    height: 17px;
   }
 
   .fixture-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
+    font-weight: 700;
   }
 
   .fixture-value {
-    font-size: 0.62rem;
-    padding: 2px 6px;
+    font-size: 0.58rem;
+    padding: 1px 5px;
   }
 
   .room-desk-station {
@@ -3596,80 +3664,201 @@ body {
   }
 
   .monitor-frame {
-    width: clamp(140px, 44vw, 190px);
-    height: clamp(75px, 22vw, 105px);
+    width: clamp(96px, 28vw, 125px);
+    height: clamp(52px, 15vw, 68px);
   }
 
   .virtual-led-strip {
-    width: clamp(180px, 60vw, 240px);
+    width: clamp(130px, 40vw, 175px);
   }
 
   .desk-surface {
-    width: clamp(200px, 68vw, 290px);
+    width: clamp(145px, 44vw, 190px);
+    height: 10px;
+  }
+
+  .desk-bias-aura {
+    width: clamp(160px, 50vw, 220px);
+    height: 110px;
+    bottom: 35px;
   }
 
   .tag-title {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
   }
 
-  /* Master Controls Bar */
+  /* Master Controls Bar: Balanced Wrap on Handsets */
   .master-controls-bar {
     grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 16px;
+    gap: 14px;
+    padding: 16px 14px;
     border-radius: var(--radius-lg);
   }
 
-  .control-title {
-    font-size: 0.88rem;
+  .control-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
   }
 
-  /* Atmospheric Presets Grid (2 Columns) */
+  .control-label-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .control-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+  }
+
+  .master-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .hero-atmosphere-badge {
+    font-size: 0.68rem;
+    padding: 4px 9px;
+    max-width: calc(100% - 145px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-shrink: 1;
+  }
+
+  .control-val-badge {
+    font-size: 0.76rem;
+    padding: 2px 8px;
+    flex-shrink: 0;
+  }
+
+  .room-power-pill {
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  /* Atmospheric Presets Deck Header & Grid */
+  .deck-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .deck-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .deck-active-status {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 4px 10px;
+    font-size: 0.68rem;
+    gap: 6px;
+  }
+
+  .deck-active-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+  }
+
   .scenes-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 
   .scene-card {
-    padding: 10px 12px;
-    min-height: 74px;
+    padding: 10px;
+    min-height: 80px;
   }
 
   .scene-icon {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
+  }
+
+  .scene-title-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    width: 100%;
   }
 
   .scene-name {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: normal;
+  }
+
+  .scene-match-badge {
+    font-size: 0.54rem;
+    padding: 1px 6px;
+    line-height: 1.2;
+    letter-spacing: 0.5px;
   }
 
   .scene-desc {
-    font-size: 0.62rem;
-    line-height: 1.25;
+    font-size: 0.6rem;
+    line-height: 1.2;
+    margin-top: 2px;
+    color: var(--text-dim);
   }
 
   /* 3-Channel Device Matrix */
   .device-matrix {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 14px;
   }
 
-  .fixture-control-card {
-    padding: 16px;
-    border-radius: var(--radius-lg);
+  .device-card {
+    padding: 16px 14px;
   }
 
-  .swatches-row {
+  .color-matrix-panel {
+    padding: 8px 10px;
     gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .custom-picker-cell {
+    padding-right: 8px;
+    gap: 3px;
+  }
+
+  .native-color-picker {
+    width: 32px;
+    height: 32px;
+  }
+
+  .picker-custom-label {
+    font-size: 0.54rem;
+  }
+
+  .top-colors-grid {
+    gap: 6px;
   }
 
   .swatch-dot {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
   }
 
   .cct-chips,
@@ -3677,22 +3866,28 @@ body {
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 4px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .cct-chips::-webkit-scrollbar,
+  .segmented-effects::-webkit-scrollbar {
+    display: none;
   }
 
   .cct-chip,
   .effect-chip {
     flex-shrink: 0;
-    padding: 6px 12px;
-    font-size: 0.72rem;
-    min-height: 36px;
+    padding: 5px 10px;
+    font-size: 0.7rem;
+    min-height: 32px;
     display: inline-flex;
     align-items: center;
   }
 
   /* Circadian HCL Mobile Adjustments */
   .circadian-arc-card {
-    padding: 16px;
+    padding: 16px 14px;
   }
 
   .time-readout .clock-display {
@@ -3829,18 +4024,21 @@ body {
 
   /* Settings Modal Dialog */
   .settings-dialog {
-    width: 95%;
-    max-height: 90dvh;
+    width: min(95%, 440px);
+    max-height: 88dvh;
+    border-radius: 20px;
   }
 
   .dialog-content {
     padding: 16px;
-    max-height: 90dvh;
+    max-height: 88dvh;
     gap: 12px;
   }
 
   .dialog-body {
-    max-height: calc(90dvh - 165px);
+    max-height: calc(88dvh - 160px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .settings-tab-btn {
@@ -3862,9 +4060,9 @@ body {
     gap: 8px;
   }
 
-  /* Toast Notification Inset */
+  /* Toast Notification Inset (Safely Above Bottom Dock & Home Bar) */
   .toast-container {
-    bottom: calc(76px + env(safe-area-inset-bottom));
+    bottom: max(calc(80px + env(safe-area-inset-bottom)), 96px);
     left: 16px;
     right: 16px;
     align-items: center;
@@ -3894,74 +4092,19 @@ body {
 
 /* iPhone 13 / 14 / 15 / 16 Standard & Narrow Handsets (<= 430px) */
 @media (max-width: 430px) {
-  .app-header {
-    padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right)) 8px calc(10px + env(safe-area-inset-left));
+  .name-with-link {
+    flex-wrap: wrap;
     gap: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    box-sizing: border-box;
   }
 
-  .brand {
-    gap: 6px;
-    flex-shrink: 1;
-    min-width: 0;
-  }
-
-  .logo-mark {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-  }
-
-  .logo-mark svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .brand-title {
-    gap: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  .brand-title-text {
-    font-size: 1.14rem;
-    white-space: nowrap;
-  }
-
-  .badge-version {
-    display: none !important;
-  }
-
-  .transition-pill-wrap {
-    display: none !important;
-  }
-
-  .header-status-panel {
-    gap: 6px;
-    flex-shrink: 0;
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-  }
-
-  .master-power-btn {
-    padding: 7px 12px;
-    font-size: 0.76rem;
-    display: inline-flex !important;
-    flex-shrink: 0;
+  .link-btn {
+    padding: 3px 8px;
+    font-size: 0.65rem;
   }
 }
 
 /* Ultra-Compact Handset Screens (e.g. iPhone SE / 13 mini / < 380px) */
 @media (max-width: 380px) {
-  .brand-title-text {
-    font-size: 1.12rem;
-  }
-
   .scenes-grid {
     grid-template-columns: 1fr;
   }
@@ -3975,7 +4118,7 @@ body {
   }
 
   .tab-label-short {
-    font-size: 0.56rem;
+    font-size: 0.54rem;
   }
 }
 
