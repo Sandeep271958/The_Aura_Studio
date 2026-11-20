@@ -830,6 +830,7 @@ function syncAllInputs() {
     }
   }
   if (DOM.btnIslandQuickPower) {
+    DOM.btnIslandQuickPower.classList.toggle('active', appState.isMasterOn);
     DOM.btnIslandQuickPower.setAttribute('aria-checked', appState.isMasterOn ? 'true' : 'false');
   }
 
