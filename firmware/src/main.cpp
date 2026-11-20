@@ -194,8 +194,8 @@ void setup() {
     // 1. Initialize Mutex
     stateMutex = xSemaphoreCreateMutex();
 
-    // 2. Initialize LittleFS
-    if (!LittleFS.begin(true)) {
+    // 2. Initialize LittleFS with 16 max open files to prevent exhaustion under parallel iOS asset requests
+    if (!LittleFS.begin(true, "/littlefs", 16, "spiffs")) {
         Serial.println("[FS] LittleFS Mount Failed. Formatting...");
     } else {
         Serial.println("[FS] LittleFS Mounted Successfully.");

@@ -6,6 +6,43 @@
 
 'use strict';
 
+// Fail-safe storage wrapper (resilient against iOS Safari Private Browsing & QuotaExceededError)
+const safeStorage = {
+  getItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key);
+      }
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        return localStorage.getItem(key);
+      }
+    } catch (_) {}
+    return null;
+  },
+  setItem: (key, val) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, String(val));
+        return;
+      }
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.setItem(key, String(val));
+      }
+    } catch (_) {}
+  },
+  removeItem: (key) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key);
+        return;
+      }
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.removeItem(key);
+      }
+    } catch (_) {}
+  }
+};
+
 // ============================================================================
 // 1. STATE & GLOBAL CONFIGURATION
 // ============================================================================
@@ -236,10 +273,10 @@ const appState = {
 
   network: {
     hubIp: '192.168.1.99',
-    wizLeftIp: localStorage.getItem('aura_wiz_left_ip') || '192.168.1.101',
-    wizLeftMac: localStorage.getItem('aura_wiz_left_mac') || '',
-    wizRightIp: localStorage.getItem('aura_wiz_right_ip') || '192.168.1.102',
-    wizRightMac: localStorage.getItem('aura_wiz_right_mac') || ''
+    wizLeftIp: safeStorage.getItem('aura_wiz_left_ip') || '192.168.1.101',
+    wizLeftMac: safeStorage.getItem('aura_wiz_left_mac') || '',
+    wizRightIp: safeStorage.getItem('aura_wiz_right_ip') || '192.168.1.102',
+    wizRightMac: safeStorage.getItem('aura_wiz_right_mac') || ''
   },
 
   devices: {
@@ -516,9 +553,31 @@ let socketReconnectTimer = null;
 function getTargetHubHost() {
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isLocalhost) {
-    return localStorage.getItem('aura_hub_host') || 'aura-hub.local';
+    return safeStorage.getItem('aura_hub_host') || 'aura-hub.local';
   }
   return window.location.host;
+}
+
+function fetchInitialState() {
+  if (typeof fetch === 'function' && typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+    const targetHost = getTargetHubHost();
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const stateUrl = isLocalhost ? `http://${targetHost}/api/state` : '/api/state';
+    fetch(stateUrl, { cache: 'no-cache' })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        if (data && data.payload) {
+          handleIncomingMessage(data);
+          renderAll();
+        }
+      })
+      .catch(() => {
+        // WebSocket connection will synchronize state
+      });
+  }
 }
 
 function initCommunications() {
@@ -527,6 +586,7 @@ function initCommunications() {
     return;
   }
 
+  fetchInitialState();
   connectWebSocket();
 }
 
@@ -680,24 +740,24 @@ function handleIncomingMessage(msg) {
     if (msg.payload && msg.payload.network) {
       if (msg.payload.network.wizLeftMac) {
         appState.network.wizLeftMac = msg.payload.network.wizLeftMac;
-        localStorage.setItem('aura_wiz_left_mac', appState.network.wizLeftMac);
+        safeStorage.setItem('aura_wiz_left_mac', appState.network.wizLeftMac);
       }
       if (msg.payload.network.wizRightMac) {
         appState.network.wizRightMac = msg.payload.network.wizRightMac;
-        localStorage.setItem('aura_wiz_right_mac', appState.network.wizRightMac);
+        safeStorage.setItem('aura_wiz_right_mac', appState.network.wizRightMac);
       }
     }
     // Preserve user assigned WiZ bulb IPs if ESP32 returns unconfigured factory defaults
-    const savedLeft = localStorage.getItem('aura_wiz_left_ip');
-    const savedRight = localStorage.getItem('aura_wiz_right_ip');
+    const savedLeft = safeStorage.getItem('aura_wiz_left_ip');
+    const savedRight = safeStorage.getItem('aura_wiz_right_ip');
     if (savedLeft && appState.network.wizLeftIp === '192.168.1.101') {
       appState.network.wizLeftIp = savedLeft;
     }
     if (savedRight && appState.network.wizRightIp === '192.168.1.102') {
       appState.network.wizRightIp = savedRight;
     }
-    const savedLeftMac = localStorage.getItem('aura_wiz_left_mac');
-    const savedRightMac = localStorage.getItem('aura_wiz_right_mac');
+    const savedLeftMac = safeStorage.getItem('aura_wiz_left_mac');
+    const savedRightMac = safeStorage.getItem('aura_wiz_right_mac');
     if (savedLeftMac && !appState.network.wizLeftMac) {
       appState.network.wizLeftMac = savedLeftMac;
     }
@@ -2444,7 +2504,7 @@ function bindEvents() {
   DOM.selectTransitionSpeed.addEventListener('change', (e) => {
     triggerHaptic('light');
     appState.transitionDuration = parseInt(e.target.value, 10);
-    localStorage.setItem('aura_transition_duration', appState.transitionDuration);
+    safeStorage.setItem('aura_transition_duration', appState.transitionDuration);
     document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
     showToast(`Fade transition set to ${e.target.options[e.target.selectedIndex].text}`);
     dispatchStateChange({ transitionDuration: appState.transitionDuration });
@@ -3180,7 +3240,7 @@ function bindEvents() {
     DOM.inputWizLeftIp.value = appState.network.wizLeftIp;
     DOM.inputWizRightIp.value = appState.network.wizRightIp;
     if (DOM.inputHubHost) {
-      DOM.inputHubHost.value = localStorage.getItem('aura_hub_host') || 
+      DOM.inputHubHost.value = safeStorage.getItem('aura_hub_host') || 
         ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'aura-hub.local' : window.location.host);
     }
     updateSecurityContextUI();
@@ -3291,15 +3351,15 @@ function bindEvents() {
     }
     appState.network.wizLeftIp = leftIp;
     appState.network.wizRightIp = rightIp;
-    localStorage.setItem('aura_wiz_left_ip', appState.network.wizLeftIp);
-    localStorage.setItem('aura_wiz_right_ip', appState.network.wizRightIp);
+    safeStorage.setItem('aura_wiz_left_ip', appState.network.wizLeftIp);
+    safeStorage.setItem('aura_wiz_right_ip', appState.network.wizRightIp);
     DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
     DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
 
     if (DOM.inputHubHost) {
       const hubVal = DOM.inputHubHost.value.trim() || 'aura-hub.local';
-      const prevHub = localStorage.getItem('aura_hub_host');
-      localStorage.setItem('aura_hub_host', hubVal);
+      const prevHub = safeStorage.getItem('aura_hub_host');
+      safeStorage.setItem('aura_hub_host', hubVal);
       if (prevHub !== hubVal && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
         if (socket) socket.close();
         connectWebSocket();
@@ -3314,7 +3374,7 @@ function bindEvents() {
   DOM.toggleGamma.addEventListener('change', (e) => {
     triggerHaptic('light');
     appState.useGammaCorrection = e.target.checked;
-    localStorage.setItem('aura_gamma_correction', appState.useGammaCorrection);
+    safeStorage.setItem('aura_gamma_correction', appState.useGammaCorrection);
     renderAll();
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
   });
@@ -3555,13 +3615,13 @@ function bindEvents() {
   }
 
   if (DOM.selectOnOffAnim) {
-    const savedAnim = localStorage.getItem('aura_onoff_anim');
+    const savedAnim = safeStorage.getItem('aura_onoff_anim');
     if (savedAnim) appState.onOffAnimation = savedAnim;
     DOM.selectOnOffAnim.value = appState.onOffAnimation || 'gaussian-ripple';
     DOM.selectOnOffAnim.addEventListener('change', (e) => {
       triggerHaptic('medium');
       appState.onOffAnimation = e.target.value;
-      localStorage.setItem('aura_onoff_anim', appState.onOffAnimation);
+      safeStorage.setItem('aura_onoff_anim', appState.onOffAnimation);
       dispatchStateChange({ onOffAnimation: appState.onOffAnimation });
       const opt = e.target.options && e.target.selectedIndex >= 0 ? e.target.options[e.target.selectedIndex] : null;
       const optName = opt ? opt.text : e.target.value;
@@ -3942,8 +4002,8 @@ function renderDiscoveredDevices(devices) {
           appState.devices.wizLeft.brightness = 80;
           DOM.inputWizLeftIp.value = targetIp;
           if (DOM.ipDisplayWizLeft) DOM.ipDisplayWizLeft.textContent = targetIp;
-          localStorage.setItem('aura_wiz_left_ip', targetIp);
-          if (targetMac) localStorage.setItem('aura_wiz_left_mac', targetMac);
+          safeStorage.setItem('aura_wiz_left_ip', targetIp);
+          if (targetMac) safeStorage.setItem('aura_wiz_left_mac', targetMac);
           dispatchStateChange({
             network: {
               wizLeftIp: targetIp,
@@ -3962,8 +4022,8 @@ function renderDiscoveredDevices(devices) {
           appState.devices.wizRight.brightness = 80;
           DOM.inputWizRightIp.value = targetIp;
           if (DOM.ipDisplayWizRight) DOM.ipDisplayWizRight.textContent = targetIp;
-          localStorage.setItem('aura_wiz_right_ip', targetIp);
-          if (targetMac) localStorage.setItem('aura_wiz_right_mac', targetMac);
+          safeStorage.setItem('aura_wiz_right_ip', targetIp);
+          if (targetMac) safeStorage.setItem('aura_wiz_right_mac', targetMac);
           dispatchStateChange({
             network: {
               wizLeftIp: appState.network.wizLeftIp,
@@ -4095,32 +4155,47 @@ function showToast(message) {
 // 11. INITIALIZATION & RECURRING TIMER
 // ============================================================================
 
-window.addEventListener('DOMContentLoaded', () => {
-  const savedGamma = localStorage.getItem('aura_gamma_correction');
-  if (savedGamma !== null) {
-    appState.useGammaCorrection = savedGamma === 'true';
-  }
-  const savedTransition = localStorage.getItem('aura_transition_duration');
-  if (savedTransition !== null) {
-    appState.transitionDuration = parseInt(savedTransition, 10);
-    document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
-  }
+let appInitialized = false;
+function initApp() {
+  if (appInitialized) return;
+  appInitialized = true;
 
-  DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
-  DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
-
-  bindEvents();
-  initCommunications();
-  updateSecurityContextUI();
-  renderAll();
-  startGradientFluidSimulation();
-
-  // Background ticker for Circadian HCL auto-update
-  setInterval(() => {
-    if (appState.circadian.autoEnabled) {
-      const now = new Date();
-      appState.circadian.simulatedMinutes = now.getHours() * 60 + now.getMinutes();
-      applyCircadianToRoom();
+  try {
+    const savedGamma = safeStorage.getItem('aura_gamma_correction');
+    if (savedGamma !== null) {
+      appState.useGammaCorrection = savedGamma === 'true';
     }
-  }, 30000);
-});
+    const savedTransition = safeStorage.getItem('aura_transition_duration');
+    if (savedTransition !== null) {
+      appState.transitionDuration = parseInt(savedTransition, 10);
+      if (document.documentElement && document.documentElement.style) {
+        document.documentElement.style.setProperty('--lighting-fade-speed', `${appState.transitionDuration / 1000}s`);
+      }
+    }
+
+    if (DOM.ipDisplayWizLeft) DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
+    if (DOM.ipDisplayWizRight) DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
+
+    bindEvents();
+    initCommunications();
+    updateSecurityContextUI();
+    renderAll();
+    startGradientFluidSimulation();
+
+    // Background ticker for Circadian HCL auto-update
+    setInterval(() => {
+      if (appState.circadian.autoEnabled) {
+        const now = new Date();
+        appState.circadian.simulatedMinutes = now.getHours() * 60 + now.getMinutes();
+        applyCircadianToRoom();
+      }
+    }, 30000);
+  } catch (err) {
+    console.error('[Aura Init] Non-fatal initialization warning:', err);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', initApp);
+if (typeof document !== 'undefined' && document.readyState && document.readyState !== 'loading') {
+  initApp();
+}

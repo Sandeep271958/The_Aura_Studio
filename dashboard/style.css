@@ -53,8 +53,8 @@
   --bright-wiz-right: 0.75;
 
   /* Typography Families */
-  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-main: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Plus Jakarta Sans', 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, 'JetBrains Mono', monospace;
   --font-signature: 'Satisfy', cursive;
 
   /* Architectural Curvatures & Squircles */
@@ -132,7 +132,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: contain;
   -webkit-user-select: none;
   user-select: none;
   overflow-wrap: break-word;
@@ -2762,6 +2762,10 @@ dialog::backdrop {
 /* ==========================================================================
    SYSTEM SETTINGS & MODAL DIALOGS
    ========================================================================== */
+dialog:not([open]) {
+  display: none !important;
+}
+
 .settings-dialog {
   border: none;
   background: transparent;

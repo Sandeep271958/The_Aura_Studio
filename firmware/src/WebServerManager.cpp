@@ -547,8 +547,18 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
 }
 
 void WebServerManager::setupRoutes() {
-    // Serve static files from LittleFS with Cache-Control to prevent stale client caching
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
+    // Cross-origin and security headers for local LAN & mobile PWA
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
+
+    // Serve static files from LittleFS with Cache-Control enabling ETag validation (304 Not Modified)
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache");
+
+    // Direct handler for /favicon.ico to prevent 404 socket churn on iOS Safari
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(LittleFS, "/icon-192.png", "image/png");
+    });
 
     // REST API - Get current state
     server.on("/api/state", HTTP_GET, [this](AsyncWebServerRequest *request) {
@@ -990,10 +1000,19 @@ void WebServerManager::setupRoutes() {
         }, "ota_reboot", 2048, NULL, 1, NULL);
     });
 
-    // 404 Handler with automatic captive redirect and rescue page
+    // 404 Handler with automatic captive redirect, Apple touch icon fallback, and rescue page
     server.onNotFound([this](AsyncWebServerRequest *request) {
         if (captiveActive) {
             request->redirect("http://192.168.4.1/setup");
+            return;
+        }
+        String url = request->url();
+        if (url.startsWith("/apple-touch-icon")) {
+            if (url.indexOf("precomposed") >= 0) {
+                request->send(LittleFS, "/apple-touch-icon-precomposed.png", "image/png");
+            } else {
+                request->send(LittleFS, "/apple-touch-icon.png", "image/png");
+            }
             return;
         }
         if (!LittleFS.exists("/index.html")) {
