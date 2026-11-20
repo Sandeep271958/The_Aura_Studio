@@ -701,12 +701,19 @@ function commitThrottledDispatch(key, payload) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && (!socket || socket.readyState !== WebSocket.OPEN)) {
-    if (window.location.protocol.startsWith('http') &&
-        window.location.hostname !== 'localhost' &&
-        window.location.hostname !== '127.0.0.1') {
-      connectWebSocket();
+  if (document.visibilityState === 'visible') {
+    if (appState.activeTab === 'gradients') {
+      startGradientFluidSimulation();
     }
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      if (window.location.protocol.startsWith('http') &&
+          window.location.hostname !== 'localhost' &&
+          window.location.hostname !== '127.0.0.1') {
+        connectWebSocket();
+      }
+    }
+  } else {
+    pauseGradientFluidSimulation();
   }
 });
 
@@ -854,9 +861,10 @@ function renderVisualizer() {
 
   // 1:1 Dynamic Hardware Visualization Sync (Matches real WS2812B desk strip & WiZ lamps)
   if (DOM.virtualLedStrip) {
-    const beads = typeof DOM.virtualLedStrip.querySelectorAll === 'function'
-      ? DOM.virtualLedStrip.querySelectorAll('.vled-bead')
-      : [];
+    if (!DOM.virtualLedBeads && typeof DOM.virtualLedStrip.querySelectorAll === 'function') {
+      DOM.virtualLedBeads = DOM.virtualLedStrip.querySelectorAll('.vled-bead');
+    }
+    const beads = DOM.virtualLedBeads || [];
     const beadCount = beads ? beads.length : 0;
 
     if (!appState.isMasterOn || !appState.devices.desk.power || effBrightDesk <= 0) {
@@ -2197,15 +2205,46 @@ function sampleFluidPhysicsColor(motion, normX, phase, turbNorm, rgbStops) {
   }
 }
 
+function pauseGradientFluidSimulation() {
+  if (appState.gradient.animFrameId) {
+    cancelAnimationFrame(appState.gradient.animFrameId);
+    appState.gradient.animFrameId = null;
+  }
+}
+
 function startGradientFluidSimulation() {
   if (!DOM.gradientFluidCanvas) return;
   const canvas = DOM.gradientFluidCanvas;
+  // Guard: If tab is not gradients or canvas is hidden, do NOT start loop
+  if (appState.activeTab !== 'gradients' || canvas.offsetParent === null) {
+    pauseGradientFluidSimulation();
+    return;
+  }
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
+  if (appState.gradient.animFrameId) {
+    cancelAnimationFrame(appState.gradient.animFrameId);
+    appState.gradient.animFrameId = null;
+  }
+
   let lastTime = performance.now();
+  let lastFrameTime = 0;
 
   function renderLoop(now) {
+    // Immediate pause if tab switched or element hidden
+    if (appState.activeTab !== 'gradients' || (typeof document !== 'undefined' && document.hidden) || canvas.offsetParent === null) {
+      appState.gradient.animFrameId = null;
+      return;
+    }
+
+    // Steady 30 FPS pacing to eliminate mobile GPU thermal/memory pressure
+    if (now - lastFrameTime < 32) {
+      appState.gradient.animFrameId = requestAnimationFrame(renderLoop);
+      return;
+    }
+    lastFrameTime = now;
+
     const dt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
@@ -2223,7 +2262,7 @@ function startGradientFluidSimulation() {
     const phase = appState.gradient.phase;
 
     const ribbonHeight = height * 0.62;
-    const colStep = 4;
+    const colStep = 6;
 
     // 1. Draw ultra-smooth fluid plasma wave ribbon
     for (let x = 0; x < width; x += colStep) {
@@ -2255,9 +2294,6 @@ function startGradientFluidSimulation() {
     appState.gradient.animFrameId = requestAnimationFrame(renderLoop);
   }
 
-  if (appState.gradient.animFrameId) {
-    cancelAnimationFrame(appState.gradient.animFrameId);
-  }
   appState.gradient.animFrameId = requestAnimationFrame(renderLoop);
 }
 
@@ -2497,6 +2533,11 @@ function bindEvents() {
       appState.activeTab = target;
       DOM.suiteTabs.forEach(t => t.classList.toggle('active', t === tab));
       DOM.tabViews.forEach(v => v.classList.toggle('active', v.id === `view-${target}`));
+      if (target === 'gradients') {
+        startGradientFluidSimulation();
+      } else {
+        pauseGradientFluidSimulation();
+      }
     });
   });
 
@@ -4180,7 +4221,9 @@ function initApp() {
     initCommunications();
     updateSecurityContextUI();
     renderAll();
-    startGradientFluidSimulation();
+    if (appState.activeTab === 'gradients') {
+      startGradientFluidSimulation();
+    }
 
     // Background ticker for Circadian HCL auto-update
     setInterval(() => {
