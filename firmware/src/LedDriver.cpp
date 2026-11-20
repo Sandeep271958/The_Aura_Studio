@@ -361,8 +361,8 @@ void LedDriver::renderOffAnimation(float t, const String &mode, bool useGammaCor
 void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBrightness,
                        int8_t contrastRatio, bool useGammaCorrection, const String &onOffAnimation) {
     uint32_t now = millis();
-    // 60 FPS update rate guard (approx 16ms interval, relaxed to 10ms for jitter-free scheduler)
-    if (now - lastUpdate < 10) return;
+    // 60 FPS update rate guard (16.6ms interval, relaxed to 8ms for jitter-free FreeRTOS tick timing)
+    if (now - lastUpdate < 8) return;
     lastUpdate = now;
     animationStep++;
 

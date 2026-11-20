@@ -44,6 +44,12 @@ void LedTask(void *pvParameters) {
     String localOnOffAnimation = "gaussian-ripple";
     uint32_t localVersion = 0xFFFFFFFF;
 
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    const TickType_t xFrequency = pdMS_TO_TICKS(16); // Strict 60Hz loop cadence (16.6ms frame pacing)
+
+    uint32_t fpsTimer = millis();
+    uint16_t frameCount = 0;
+
     for (;;) {
         // Zero-allocation & zero-mutex guard: only lock and copy when state version changes!
         if (hubState.deskVersion != localVersion) {
@@ -59,7 +65,16 @@ void LedTask(void *pvParameters) {
             }
         }
         ledCtrl.update(localDesk, localMasterOn, localMasterBrightness, localContrastRatio, localUseGammaCorrection, localOnOffAnimation);
-        vTaskDelay(pdMS_TO_TICKS(22)); // Fluid 45 FPS cinema-smooth animation loop (relieves bus contention & voltage sag)
+        frameCount++;
+
+        uint32_t now = millis();
+        if (now - fpsTimer >= 1000) {
+            hubState.measuredFps = (uint8_t)frameCount;
+            frameCount = 0;
+            fpsTimer = now;
+        }
+
+        vTaskDelayUntil(&xLastWakeTime, xFrequency); // Jitter-free 60Hz timing
     }
 }
 

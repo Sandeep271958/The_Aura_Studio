@@ -1112,6 +1112,44 @@ dialog::backdrop {
   transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
+/* Smooth & Soothing 60Hz/120Hz Ambient Fluid Animations */
+@keyframes aura-strip-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes aura-soothing-breathe {
+  0%, 100% {
+    opacity: calc(0.18 + 0.52 * var(--bright-desk));
+    filter: drop-shadow(0 0 calc(10px * var(--bright-desk)) var(--color-desk));
+  }
+  50% {
+    opacity: calc(0.32 + 0.68 * var(--bright-desk));
+    filter: drop-shadow(0 0 calc(28px * var(--bright-desk)) var(--color-desk));
+  }
+}
+
+.virtual-led-strip.anim-breathe {
+  animation: aura-soothing-breathe 4.5s ease-in-out infinite;
+}
+
+.virtual-led-strip.anim-gradient {
+  background-size: 200% 200%;
+  animation: aura-strip-flow 6.5s ease-in-out infinite;
+}
+
+.virtual-led-strip.anim-wave {
+  background-size: 250% 100%;
+  animation: aura-strip-flow 4.2s linear infinite;
+}
+
 .desk-surface {
   width: 320px;
   height: 14px;

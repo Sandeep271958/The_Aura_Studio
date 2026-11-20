@@ -1102,7 +1102,7 @@ String WebServerManager::serializeState() {
                           (rst == ESP_RST_TASK_WDT) ? "TASK_WDT" :
                           (rst == ESP_RST_WDT) ? "WDT" :
                           (rst == ESP_RST_DEEPSLEEP) ? "DEEPSLEEP" : "OTHER";
-    telem["fps"] = 45;
+    telem["fps"] = state.measuredFps > 0 ? state.measuredFps : TARGET_FPS;
 
     String output;
     serializeJson(doc, output);

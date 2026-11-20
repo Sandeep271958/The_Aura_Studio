@@ -111,6 +111,7 @@ struct HubState {
 
   // Zero-Allocation Rendering Generation Counter
   uint32_t deskVersion = 0;
+  uint8_t measuredFps = TARGET_FPS; // Live hardware rendering frame rate (60Hz)
 
   DeviceDesk desk;
   DeviceWiz wizLeft;

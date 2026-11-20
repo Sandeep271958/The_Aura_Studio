@@ -853,6 +853,10 @@ function renderVisualizer() {
           beads[i].style.transform = 'none';
         }
       }
+
+      DOM.virtualLedStrip.classList.toggle('anim-breathe', appState.devices.desk.effect === 'breathe');
+      DOM.virtualLedStrip.classList.toggle('anim-gradient', !!appState.devices.desk.hasGradient);
+      DOM.virtualLedStrip.classList.toggle('anim-wave', !appState.devices.desk.hasGradient && ['wave', 'cyberpulse', 'synthwave-grid', 'aurora', 'sunset-wave'].includes(appState.devices.desk.effect));
     }
   }
 
