@@ -1086,12 +1086,30 @@ dialog::backdrop {
 
 .virtual-led-strip {
   width: 240px;
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
   background: var(--color-desk);
-  box-shadow: 0 0 20px var(--color-desk), 0 0 35px var(--color-desk);
+  box-shadow: 0 0 calc(20px * var(--bright-desk)) var(--color-desk), 0 0 calc(35px * var(--bright-desk)) var(--color-desk);
+  opacity: calc(0.12 + 0.88 * var(--bright-desk));
   margin-top: 4px;
-  transition: all 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  transition: opacity 0.25s ease, box-shadow 0.25s ease;
+}
+
+.virtual-led-strip .vled-bead {
+  flex: 0 0 2px;
+  height: 4px;
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
 .desk-surface {
@@ -3621,6 +3639,11 @@ button:active .spin-on-scan {
 
   .virtual-led-strip {
     width: min(160px, 45vw);
+  }
+
+  .virtual-led-strip .vled-bead {
+    flex: 0 0 1.5px;
+    height: 3px;
   }
 
   .control-row-grid {

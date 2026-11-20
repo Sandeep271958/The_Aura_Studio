@@ -583,6 +583,10 @@ const simDocument = {
     }
     return simElements.filter(el => matchesSelector(el, selector));
   },
+  querySelector: (selector) => {
+    const list = simDocument.querySelectorAll(selector);
+    return list && list.length > 0 ? list[0] : null;
+  },
   createElement: (tag) => {
     const el = new MockElement(tag, '');
     simElements.push(el);

@@ -604,6 +604,42 @@ function dispatchStateChange(payload) {
   }
 }
 
+// High-frequency responsive throttle for fluid slider scrubbing (zero latency leading edge + 35ms pacing)
+const throttledDispatchTimers = new Map();
+function throttledDispatch(key, payloadSupplier, intervalMs = 35) {
+  const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  let record = throttledDispatchTimers.get(key);
+  if (!record) {
+    record = { lastSent: 0, timer: null };
+    throttledDispatchTimers.set(key, record);
+  }
+
+  const elapsed = now - record.lastSent;
+  if (elapsed >= intervalMs) {
+    if (record.timer) {
+      clearTimeout(record.timer);
+      record.timer = null;
+    }
+    record.lastSent = now;
+    dispatchStateChange(payloadSupplier());
+  } else if (!record.timer) {
+    record.timer = setTimeout(() => {
+      record.lastSent = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      record.timer = null;
+      dispatchStateChange(payloadSupplier());
+    }, intervalMs - elapsed);
+  }
+}
+
+function commitThrottledDispatch(key, payload) {
+  const record = throttledDispatchTimers.get(key);
+  if (record && record.timer) {
+    clearTimeout(record.timer);
+    record.timer = null;
+  }
+  dispatchStateChange(payload);
+}
+
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && (!socket || socket.readyState !== WebSocket.OPEN)) {
     if (window.location.protocol.startsWith('http') &&
@@ -755,6 +791,114 @@ function renderVisualizer() {
   DOM.telemetryContrast.innerHTML = ratioDisplay === 'OFF'
     ? 'CONTRAST RATIO: <strong>OFF</strong>'
     : `CONTRAST RATIO: <strong>${ratioDisplay}</strong>`;
+
+  // 1:1 Dynamic Hardware Visualization Sync (Matches real WS2812B desk strip & WiZ lamps)
+  if (DOM.virtualLedStrip) {
+    const beads = typeof DOM.virtualLedStrip.querySelectorAll === 'function'
+      ? DOM.virtualLedStrip.querySelectorAll('.vled-bead')
+      : [];
+    const beadCount = beads ? beads.length : 0;
+
+    if (!appState.isMasterOn || !appState.devices.desk.power || effBrightDesk <= 0) {
+      DOM.virtualLedStrip.style.opacity = '0.12';
+      DOM.virtualLedStrip.style.boxShadow = 'none';
+      DOM.virtualLedStrip.style.background = '#111622';
+      for (let i = 0; i < beadCount; i++) {
+        beads[i].style.opacity = '0.05';
+        beads[i].style.background = '#1e2638';
+        beads[i].style.boxShadow = 'none';
+        beads[i].style.transform = 'none';
+      }
+    } else {
+      DOM.virtualLedStrip.style.opacity = (0.2 + 0.8 * effBrightDesk).toFixed(2);
+      const glowRad = Math.round(20 * effBrightDesk);
+      const glowSpread = Math.round(35 * effBrightDesk);
+      DOM.virtualLedStrip.style.boxShadow = `0 0 ${glowRad}px ${deskColor}, 0 0 ${glowSpread}px ${deskColor}`;
+
+      const inspectIdx = appState.devices.desk.inspectIndex;
+      if (inspectIdx !== undefined && inspectIdx >= 0 && inspectIdx < 60) {
+        // Solitary Diagnostic Pixel Mode (Hardware Inspection)
+        const pct = ((inspectIdx + 0.5) / 60 * 100).toFixed(1);
+        DOM.virtualLedStrip.style.background = `radial-gradient(circle at ${pct}% 50%, #ffffff 0%, ${deskColor} 4%, #0b0f19 9%)`;
+        for (let i = 0; i < beadCount; i++) {
+          if (i === inspectIdx) {
+            beads[i].style.opacity = '1';
+            beads[i].style.background = '#ffffff';
+            beads[i].style.boxShadow = '0 0 6px #ffffff, 0 0 12px #00f2fe';
+            beads[i].style.transform = 'scaleY(1.5)';
+          } else {
+            beads[i].style.opacity = '0.06';
+            beads[i].style.background = '#1a2233';
+            beads[i].style.boxShadow = 'none';
+            beads[i].style.transform = 'none';
+          }
+        }
+      } else if (appState.devices.desk.hasGradient && appState.devices.desk.gradientStops && appState.devices.desk.gradientStops.length >= 2) {
+        // Multi-Stop Fluid Gradient Palette Mode
+        const stops = appState.devices.desk.gradientStops;
+        DOM.virtualLedStrip.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+        for (let i = 0; i < beadCount; i++) {
+          beads[i].style.opacity = (0.5 + 0.5 * effBrightDesk).toFixed(2);
+          beads[i].style.background = 'rgba(255, 255, 255, 0.85)';
+          beads[i].style.boxShadow = '0 0 3px rgba(255, 255, 255, 0.9)';
+          beads[i].style.transform = 'none';
+        }
+      } else {
+        // Solid or Single-Hue Animation Mode
+        DOM.virtualLedStrip.style.background = deskColor;
+        for (let i = 0; i < beadCount; i++) {
+          beads[i].style.opacity = (0.4 + 0.6 * effBrightDesk).toFixed(2);
+          beads[i].style.background = 'rgba(255, 255, 255, 0.8)';
+          beads[i].style.boxShadow = '0 0 2px rgba(255, 255, 255, 0.7)';
+          beads[i].style.transform = 'none';
+        }
+      }
+    }
+  }
+
+  const monitorFrame = typeof document.querySelector === 'function' ? document.querySelector('.monitor-frame') : null;
+  if (monitorFrame) {
+    if (!appState.isMasterOn || !appState.devices.desk.power || effBrightDesk <= 0) {
+      monitorFrame.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.8), 0 0 0px transparent';
+    } else {
+      const glow = Math.round(40 * effBrightDesk);
+      monitorFrame.style.boxShadow = `0 12px 28px rgba(0, 0, 0, 0.8), 0 0 ${glow}px ${deskColor}`;
+    }
+  }
+
+  const deskSurface = typeof document.querySelector === 'function' ? document.querySelector('.desk-surface') : null;
+  if (deskSurface) {
+    if (!appState.isMasterOn || !appState.devices.desk.power || effBrightDesk <= 0) {
+      deskSurface.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.7)';
+    } else {
+      const deskGlow = Math.round(25 * effBrightDesk);
+      deskSurface.style.boxShadow = `0 8px 24px rgba(0, 0, 0, 0.7), 0 0 ${deskGlow}px ${deskColor}`;
+    }
+  }
+
+  const glowLeftEl = typeof document.querySelector === 'function' ? document.querySelector('.fixture-left .fixture-glow-source') : null;
+  if (glowLeftEl) {
+    if (!appState.isMasterOn || !appState.devices.wizLeft.power || effBrightWizLeft <= 0) {
+      glowLeftEl.style.opacity = '0.22';
+      glowLeftEl.style.boxShadow = 'none';
+    } else {
+      glowLeftEl.style.opacity = (0.25 + 0.75 * effBrightWizLeft).toFixed(2);
+      const glowRadius = Math.round(36 * effBrightWizLeft);
+      glowLeftEl.style.boxShadow = `0 0 ${glowRadius}px ${wizLeftColor}`;
+    }
+  }
+
+  const glowRightEl = typeof document.querySelector === 'function' ? document.querySelector('.fixture-right .fixture-glow-source') : null;
+  if (glowRightEl) {
+    if (!appState.isMasterOn || !appState.devices.wizRight.power || effBrightWizRight <= 0) {
+      glowRightEl.style.opacity = '0.22';
+      glowRightEl.style.boxShadow = 'none';
+    } else {
+      glowRightEl.style.opacity = (0.25 + 0.75 * effBrightWizRight).toFixed(2);
+      const glowRadius = Math.round(36 * effBrightWizRight);
+      glowRightEl.style.boxShadow = `0 0 ${glowRadius}px ${wizRightColor}`;
+    }
+  }
 }
 
 function syncAllInputs() {
@@ -2325,20 +2469,22 @@ function bindEvents() {
   DOM.sliderMasterBrightness.addEventListener('input', (e) => {
     appState.masterBrightness = parseInt(e.target.value, 10);
     renderAll();
+    throttledDispatch('masterBri', () => ({ masterBrightness: appState.masterBrightness }));
   });
   DOM.sliderMasterBrightness.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ masterBrightness: appState.masterBrightness });
+    commitThrottledDispatch('masterBri', { masterBrightness: appState.masterBrightness });
   });
 
   // Contrast Slider
   DOM.sliderMasterContrast.addEventListener('input', (e) => {
     appState.contrastRatio = parseInt(e.target.value, 10);
     renderAll();
+    throttledDispatch('contrast', () => ({ contrastRatio: appState.contrastRatio }));
   });
   DOM.sliderMasterContrast.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ contrastRatio: appState.contrastRatio });
+    commitThrottledDispatch('contrast', { contrastRatio: appState.contrastRatio });
   });
 
   // Atmospheric Harmony Matrix
@@ -2463,19 +2609,21 @@ function bindEvents() {
   DOM.sliderDeskBrightness.addEventListener('input', (e) => {
     appState.devices.desk.brightness = parseInt(e.target.value, 10);
     renderAll();
+    throttledDispatch('deskBri', () => ({ desk: { brightness: appState.devices.desk.brightness } }));
   });
   DOM.sliderDeskBrightness.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ desk: { brightness: appState.devices.desk.brightness } });
+    commitThrottledDispatch('deskBri', { desk: { brightness: appState.devices.desk.brightness } });
   });
 
   DOM.pickerDeskColor.addEventListener('input', (e) => {
     appState.devices.desk.color = e.target.value;
     renderAll();
+    throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color } }));
   });
   DOM.pickerDeskColor.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ desk: { color: appState.devices.desk.color } });
+    commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color } });
   });
 
   if (DOM.sliderDeskHue) {
@@ -2484,10 +2632,11 @@ function bindEvents() {
       const hex = hslToHex(hue, 100, 50);
       appState.devices.desk.color = hex;
       renderAll();
+      throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color } }));
     });
     DOM.sliderDeskHue.addEventListener('change', () => {
       triggerHaptic('light');
-      dispatchStateChange({ desk: { color: appState.devices.desk.color } });
+      commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color } });
     });
   }
 
@@ -2513,19 +2662,21 @@ function bindEvents() {
   DOM.sliderDeskSpeed.addEventListener('input', (e) => {
     appState.devices.desk.speed = parseInt(e.target.value, 10);
     renderAll();
+    throttledDispatch('deskSpeed', () => ({ desk: { speed: appState.devices.desk.speed } }));
   });
   DOM.sliderDeskSpeed.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ desk: { speed: appState.devices.desk.speed } });
+    commitThrottledDispatch('deskSpeed', { desk: { speed: appState.devices.desk.speed } });
   });
 
   DOM.sliderDeskIntensity.addEventListener('input', (e) => {
     appState.devices.desk.intensity = parseInt(e.target.value, 10);
     renderAll();
+    throttledDispatch('deskIntens', () => ({ desk: { intensity: appState.devices.desk.intensity } }));
   });
   DOM.sliderDeskIntensity.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({ desk: { intensity: appState.devices.desk.intensity } });
+    commitThrottledDispatch('deskIntens', { desk: { intensity: appState.devices.desk.intensity } });
   });
 
   // WiZ Left Controls
@@ -2544,10 +2695,14 @@ function bindEvents() {
     appState.devices.wizLeft.brightness = parseInt(e.target.value, 10);
     if (appState.syncCorners) appState.devices.wizRight.brightness = appState.devices.wizLeft.brightness;
     renderAll();
+    throttledDispatch('wlBri', () => ({
+      wizLeft: { brightness: appState.devices.wizLeft.brightness },
+      ...(appState.syncCorners ? { wizRight: { brightness: appState.devices.wizRight.brightness } } : {})
+    }));
   });
   DOM.sliderWizLeftBrightness.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wlBri', {
       wizLeft: { brightness: appState.devices.wizLeft.brightness },
       ...(appState.syncCorners ? { wizRight: { brightness: appState.devices.wizRight.brightness } } : {})
     });
@@ -2561,10 +2716,14 @@ function bindEvents() {
       appState.devices.wizRight.mode = 'rgb';
     }
     renderAll();
+    throttledDispatch('wlColor', () => ({
+      wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+      ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
+    }));
   });
   DOM.pickerWizLeftColor.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wlColor', {
       wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
       ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
     });
@@ -2581,10 +2740,14 @@ function bindEvents() {
         appState.devices.wizRight.mode = 'rgb';
       }
       renderAll();
+      throttledDispatch('wlColor', () => ({
+        wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
+        ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
+      }));
     });
     DOM.sliderWizLeftHue.addEventListener('change', () => {
       triggerHaptic('light');
-      dispatchStateChange({
+      commitThrottledDispatch('wlColor', {
         wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' },
         ...(appState.syncCorners ? { wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' } } : {})
       });
@@ -2599,10 +2762,14 @@ function bindEvents() {
       appState.devices.wizRight.mode = 'cct';
     }
     renderAll();
+    throttledDispatch('wlKelvin', () => ({
+      wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' },
+      ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' } } : {})
+    }));
   });
   DOM.sliderWizLeftKelvin.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wlKelvin', {
       wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' },
       ...(appState.syncCorners ? { wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' } } : {})
     });
@@ -2624,10 +2791,14 @@ function bindEvents() {
     appState.devices.wizRight.brightness = parseInt(e.target.value, 10);
     if (appState.syncCorners) appState.devices.wizLeft.brightness = appState.devices.wizRight.brightness;
     renderAll();
+    throttledDispatch('wrBri', () => ({
+      wizRight: { brightness: appState.devices.wizRight.brightness },
+      ...(appState.syncCorners ? { wizLeft: { brightness: appState.devices.wizLeft.brightness } } : {})
+    }));
   });
   DOM.sliderWizRightBrightness.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wrBri', {
       wizRight: { brightness: appState.devices.wizRight.brightness },
       ...(appState.syncCorners ? { wizLeft: { brightness: appState.devices.wizLeft.brightness } } : {})
     });
@@ -2641,10 +2812,14 @@ function bindEvents() {
       appState.devices.wizLeft.mode = 'rgb';
     }
     renderAll();
+    throttledDispatch('wrColor', () => ({
+      wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
+      ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
+    }));
   });
   DOM.pickerWizRightColor.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wrColor', {
       wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
       ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
     });
@@ -2661,10 +2836,14 @@ function bindEvents() {
         appState.devices.wizLeft.mode = 'rgb';
       }
       renderAll();
+      throttledDispatch('wrColor', () => ({
+        wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
+        ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
+      }));
     });
     DOM.sliderWizRightHue.addEventListener('change', () => {
       triggerHaptic('light');
-      dispatchStateChange({
+      commitThrottledDispatch('wrColor', {
         wizRight: { color: appState.devices.wizRight.color, mode: 'rgb' },
         ...(appState.syncCorners ? { wizLeft: { color: appState.devices.wizLeft.color, mode: 'rgb' } } : {})
       });
@@ -2679,10 +2858,14 @@ function bindEvents() {
       appState.devices.wizLeft.mode = 'cct';
     }
     renderAll();
+    throttledDispatch('wrKelvin', () => ({
+      wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' },
+      ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' } } : {})
+    }));
   });
   DOM.sliderWizRightKelvin.addEventListener('change', () => {
     triggerHaptic('light');
-    dispatchStateChange({
+    commitThrottledDispatch('wrKelvin', {
       wizRight: { kelvin: appState.devices.wizRight.kelvin, mode: 'cct' },
       ...(appState.syncCorners ? { wizLeft: { kelvin: appState.devices.wizLeft.kelvin, mode: 'cct' } } : {})
     });
@@ -2861,9 +3044,11 @@ function bindEvents() {
       else if (val > 65) label = `${val}% (High Flow)`;
       if (DOM.valGradientSpeed) DOM.valGradientSpeed.textContent = label;
       syncRangeProgress(DOM.sliderGradientSpeed);
+      throttledDispatch('gradSpeed', () => ({ desk: { speed: appState.gradient.speed } }));
     });
     DOM.sliderGradientSpeed.addEventListener('change', () => {
       triggerHaptic('light');
+      commitThrottledDispatch('gradSpeed', { desk: { speed: appState.gradient.speed } });
       applyCustomGradientToDesk();
     });
   }
@@ -2878,9 +3063,11 @@ function bindEvents() {
       else if (val > 70) label = `${val}% (Vortex Plasma)`;
       if (DOM.valGradientTurbulence) DOM.valGradientTurbulence.textContent = label;
       syncRangeProgress(DOM.sliderGradientTurbulence);
+      throttledDispatch('gradTurb', () => ({ desk: { intensity: appState.gradient.turbulence } }));
     });
     DOM.sliderGradientTurbulence.addEventListener('change', () => {
       triggerHaptic('light');
+      commitThrottledDispatch('gradTurb', { desk: { intensity: appState.gradient.turbulence } });
       applyCustomGradientToDesk();
     });
   }
@@ -3340,6 +3527,8 @@ function bindEvents() {
   if (DOM.sliderPixelDiag) {
     DOM.sliderPixelDiag.addEventListener('input', (e) => {
       const val = parseInt(e.target.value, 10);
+      appState.devices.desk.inspectIndex = val;
+      renderVisualizer();
       if (DOM.valPixelDiag) {
         DOM.valPixelDiag.textContent = val === -1 ? 'None (Normal Mode)' : `LED #${val}`;
         if (val >= 0) {
@@ -3355,6 +3544,8 @@ function bindEvents() {
     DOM.sliderPixelDiag.addEventListener('change', (e) => {
       triggerHaptic('light');
       const val = parseInt(e.target.value, 10);
+      appState.devices.desk.inspectIndex = val;
+      renderVisualizer();
       sendPixelInspect(val, 255, 255, 255);
     });
   }
@@ -3379,6 +3570,8 @@ function bindEvents() {
       triggerHaptic('medium');
       if (DOM.sliderPixelDiag) DOM.sliderPixelDiag.value = '-1';
       if (DOM.valPixelDiag) DOM.valPixelDiag.textContent = 'None (Normal Mode)';
+      appState.devices.desk.inspectIndex = -1;
+      renderVisualizer();
       sendPixelInspect(-1);
     });
   }
