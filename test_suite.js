@@ -516,6 +516,11 @@ class MockElement {
     return simElements.filter(el => matchesSelector(el, sel));
   }
 
+  querySelector(sel) {
+    const list = this.querySelectorAll(sel);
+    return list && list.length > 0 ? list[0] : null;
+  }
+
   showModal() { this.open = true; }
   close() { this.open = false; }
   getContext() {

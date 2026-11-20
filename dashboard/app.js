@@ -1189,6 +1189,8 @@ function syncRangeProgress(slider) {
   slider.style.setProperty('--attr-min', min);
   slider.style.setProperty('--attr-max', max);
   slider.style.setProperty('--control-value', val);
+  const pct = max > min ? Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100)) : 0;
+  slider.style.setProperty('--slider-fill-pct', `${pct}%`);
 }
 
 // ============================================================================
@@ -2407,15 +2409,31 @@ function bindEvents() {
 
   if (DOM.fixtureWizLeft) {
     DOM.fixtureWizLeft.style.cursor = 'pointer';
-    DOM.fixtureWizLeft.addEventListener('click', () => focusFixtureCard(DOM.cardWizLeft));
+    DOM.fixtureWizLeft.addEventListener('click', (e) => {
+      if (e.target.closest('.fixture-glow-source')) return;
+      focusFixtureCard(DOM.cardWizLeft);
+    });
   }
   if (DOM.fixtureWizRight) {
     DOM.fixtureWizRight.style.cursor = 'pointer';
-    DOM.fixtureWizRight.addEventListener('click', () => focusFixtureCard(DOM.cardWizRight));
+    DOM.fixtureWizRight.addEventListener('click', (e) => {
+      if (e.target.closest('.fixture-glow-source')) return;
+      focusFixtureCard(DOM.cardWizRight);
+    });
   }
   if (DOM.virtualLedStrip) {
     DOM.virtualLedStrip.style.cursor = 'pointer';
-    DOM.virtualLedStrip.addEventListener('click', () => focusFixtureCard(DOM.cardDesk));
+    DOM.virtualLedStrip.addEventListener('click', (e) => {
+      focusFixtureCard(DOM.cardDesk);
+    });
+  }
+  const fixtureDeskStation = document.getElementById('fixture-desk');
+  if (fixtureDeskStation) {
+    fixtureDeskStation.style.cursor = 'pointer';
+    fixtureDeskStation.addEventListener('click', (e) => {
+      if (e.target.closest('.monitor-frame')) return;
+      focusFixtureCard(DOM.cardDesk);
+    });
   }
 
   // Quick Mood Shortcuts
@@ -3531,13 +3549,28 @@ function bindEvents() {
     });
   }
 
-  // Interactive 2.5D Room Viewport Fixture Click Toggles
+  // Helper to query child safely across browsers and testing environments
+  const queryChild = (el, sel) => {
+    if (!el) return null;
+    if (typeof el.querySelector === 'function') return el.querySelector(sel);
+    if (typeof el.querySelectorAll === 'function') {
+      const nodes = el.querySelectorAll(sel);
+      return nodes && nodes.length > 0 ? nodes[0] : null;
+    }
+    return null;
+  };
+
+  // Interactive 2.5D Room Viewport Fixture Click Toggles (glow source / monitor toggles power)
   const fixtureLeft = document.getElementById('fixture-wiz-left');
   const fixtureRight = document.getElementById('fixture-wiz-right');
   const fixtureDesk = document.getElementById('fixture-desk');
 
-  if (fixtureLeft) {
-    fixtureLeft.addEventListener('click', () => {
+  const glowLeft = queryChild(fixtureLeft, '.fixture-glow-source');
+  if (glowLeft) {
+    glowLeft.style.cursor = 'pointer';
+    glowLeft.setAttribute('title', 'Click bulb to toggle left power');
+    glowLeft.addEventListener('click', (e) => {
+      e.stopPropagation();
       triggerHaptic('medium');
       appState.devices.wizLeft.power = !appState.devices.wizLeft.power;
       if (appState.syncCorners) appState.devices.wizRight.power = appState.devices.wizLeft.power;
@@ -3550,8 +3583,12 @@ function bindEvents() {
     });
   }
 
-  if (fixtureRight) {
-    fixtureRight.addEventListener('click', () => {
+  const glowRight = queryChild(fixtureRight, '.fixture-glow-source');
+  if (glowRight) {
+    glowRight.style.cursor = 'pointer';
+    glowRight.setAttribute('title', 'Click bulb to toggle right power');
+    glowRight.addEventListener('click', (e) => {
+      e.stopPropagation();
       triggerHaptic('medium');
       appState.devices.wizRight.power = !appState.devices.wizRight.power;
       if (appState.syncCorners) appState.devices.wizLeft.power = appState.devices.wizRight.power;
@@ -3564,8 +3601,12 @@ function bindEvents() {
     });
   }
 
-  if (fixtureDesk) {
-    fixtureDesk.addEventListener('click', () => {
+  const monitorFrame = queryChild(fixtureDesk, '.monitor-frame');
+  if (monitorFrame) {
+    monitorFrame.style.cursor = 'pointer';
+    monitorFrame.setAttribute('title', 'Click monitor to toggle desk strip power');
+    monitorFrame.addEventListener('click', (e) => {
+      e.stopPropagation();
       triggerHaptic('medium');
       appState.devices.desk.power = !appState.devices.desk.power;
       renderAll();
