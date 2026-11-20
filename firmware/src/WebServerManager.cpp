@@ -552,13 +552,49 @@ void WebServerManager::setupRoutes() {
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "*");
 
-    // Serve static files from LittleFS with Cache-Control enabling ETag validation (304 Not Modified)
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html").setCacheControl("no-cache");
+    // Fast routes for / and /index.html with ETag & 304 Not Modified validation for instant mobile loading
+    auto handleIndex = [](AsyncWebServerRequest *request) {
+        if (LittleFS.exists("/index.html")) {
+            File f = LittleFS.open("/index.html", "r");
+            if (f) {
+                time_t lastWrite = f.getLastWrite();
+                size_t fSize = f.size();
+                f.close();
+                String etag = String((unsigned long)(lastWrite ^ fSize));
+                if (request->hasHeader("If-None-Match")) {
+                    String reqEtag = request->getHeader("If-None-Match")->value();
+                    reqEtag.replace("\"", "");
+                    if (reqEtag == etag) {
+                        AsyncWebServerResponse *res = request->beginResponse(304);
+                        res->addHeader("ETag", String("\"") + etag + "\"");
+                        res->addHeader("Cache-Control", "no-cache, must-revalidate");
+                        request->send(res);
+                        return;
+                    }
+                }
+                AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/index.html", "text/html");
+                response->addHeader("ETag", String("\"") + etag + "\"");
+                response->addHeader("Cache-Control", "no-cache, must-revalidate");
+                request->send(response);
+                return;
+            }
+        }
+        request->send(404, "text/plain", "Not Found");
+    };
 
-    // Direct handler for /favicon.ico to prevent 404 socket churn on iOS Safari
+    server.on("/", HTTP_GET | HTTP_HEAD, handleIndex);
+    server.on("/index.html", HTTP_GET | HTTP_HEAD, handleIndex);
+
+    // Direct handler for /favicon.ico with high-performance immutable caching to prevent 404 socket churn on iOS Safari
     server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(LittleFS, "/icon-192.png", "image/png");
+        AsyncWebServerResponse *response = request->beginResponse(LittleFS, "/icon-192.png", "image/png");
+        response->addHeader("Cache-Control", "public, max-age=604800, immutable");
+        request->send(response);
     });
+
+    // High-performance immutable caching for versioned static assets (CSS, JS, Fonts, PNGs)
+    // Mobile browsers serve directly from local flash storage in 0ms without hitting the ESP32 Wi-Fi stack
+    server.serveStatic("/", LittleFS, "/").setCacheControl("public, max-age=604800, immutable");
 
     // REST API - Get current state
     server.on("/api/state", HTTP_GET, [this](AsyncWebServerRequest *request) {

@@ -549,6 +549,7 @@ const DOM = {
 let socket = null;
 let isSimulatedMode = false;
 let socketReconnectTimer = null;
+let wsFastPathAttempted = false;
 
 function getTargetHubHost() {
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -560,9 +561,13 @@ function getTargetHubHost() {
 
 function fetchInitialState() {
   if (typeof fetch === 'function' && typeof window !== 'undefined' && window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
-    const targetHost = getTargetHubHost();
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const stateUrl = isLocalhost ? `http://${targetHost}/api/state` : '/api/state';
+    const cachedIp = safeStorage.getItem('aura_last_hub_ip');
+    let targetHost = getTargetHubHost();
+    if (!isLocalhost && window.location.hostname.endsWith('.local') && cachedIp) {
+      targetHost = cachedIp;
+    }
+    const stateUrl = isLocalhost ? `http://${targetHost}/api/state` : `http://${targetHost}/api/state`;
     fetch(stateUrl, { cache: 'no-cache' })
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -575,7 +580,17 @@ function fetchInitialState() {
         }
       })
       .catch(() => {
-        // WebSocket connection will synchronize state
+        if (targetHost !== window.location.host && !isLocalhost) {
+          fetch('/api/state', { cache: 'no-cache' })
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.payload) {
+                handleIncomingMessage(data);
+                renderAll();
+              }
+            })
+            .catch(() => {});
+        }
       });
   }
 }
@@ -599,13 +614,31 @@ function activateSimulatedMode() {
 
 let wsRetryCount = 0;
 function connectWebSocket() {
-  const targetHost = getTargetHubHost();
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const cachedIp = safeStorage.getItem('aura_last_hub_ip');
+
+  // Fast-path: When accessed via aura-hub.local on iOS/macOS, bypass 2-5s mDNS lookup by connecting directly to the known IP
+  let targetHost = getTargetHubHost();
+  if (!isLocalhost && window.location.hostname.endsWith('.local') && cachedIp && !wsFastPathAttempted) {
+    targetHost = cachedIp;
+  }
+
   const wsUrl = `ws://${targetHost}/ws`;
   try {
     socket = new WebSocket(wsUrl);
 
+    let connectTimeout = setTimeout(() => {
+      // If direct IP connection didn't open within 1800ms (e.g. IP changed), abort and fallback to hostname
+      if (socket && socket.readyState === WebSocket.CONNECTING && targetHost === cachedIp) {
+        wsFastPathAttempted = true;
+        try { socket.close(); } catch (_) {}
+      }
+    }, 1800);
+
     socket.onopen = () => {
+      clearTimeout(connectTimeout);
       wsRetryCount = 0;
+      wsFastPathAttempted = false;
       isSimulatedMode = false;
       DOM.connectionBadge.className = 'status-chip connected';
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -625,6 +658,7 @@ function connectWebSocket() {
     };
 
     socket.onclose = () => {
+      clearTimeout(connectTimeout);
       wsRetryCount++;
       DOM.connectionBadge.className = 'status-chip simulated';
       DOM.connectionText.textContent = 'RECONNECTING...';
@@ -632,10 +666,16 @@ function connectWebSocket() {
       if (isLocalhost && wsRetryCount > 2) {
         DOM.connectionText.textContent = 'SIMULATOR / RETRYING';
       }
+      if (targetHost === cachedIp) {
+        wsFastPathAttempted = true;
+        connectWebSocket();
+        return;
+      }
       socketReconnectTimer = setTimeout(connectWebSocket, 3000);
     };
 
     socket.onerror = () => {
+      clearTimeout(connectTimeout);
       if (socket) socket.close();
     };
   } catch (err) {
@@ -771,6 +811,19 @@ function handleIncomingMessage(msg) {
     if (savedRightMac && !appState.network.wizRightMac) {
       appState.network.wizRightMac = savedRightMac;
     }
+
+    // Persist last known state and hub IP for instant 0ms restoration on next launch
+    if (msg.payload && msg.payload.network && msg.payload.network.hubIp) {
+      safeStorage.setItem('aura_last_hub_ip', msg.payload.network.hubIp);
+    }
+    safeStorage.setItem('aura_last_known_state', JSON.stringify({
+      isMasterOn: appState.isMasterOn,
+      masterBrightness: appState.masterBrightness,
+      contrastRatio: appState.contrastRatio,
+      activePreset: appState.activePreset,
+      devices: appState.devices
+    }));
+
     renderAll();
   } else if (msg.type === 'wizDiscovery') {
     renderDiscoveredDevices(msg.devices);
@@ -4216,6 +4269,25 @@ function initApp() {
 
     if (DOM.ipDisplayWizLeft) DOM.ipDisplayWizLeft.textContent = appState.network.wizLeftIp;
     if (DOM.ipDisplayWizRight) DOM.ipDisplayWizRight.textContent = appState.network.wizRightIp;
+
+    // Zero-latency state hydration from last known persisted session
+    const cachedStateJson = safeStorage.getItem('aura_last_known_state');
+    if (cachedStateJson) {
+      try {
+        const cached = JSON.parse(cachedStateJson);
+        if (cached && typeof cached === 'object') {
+          if (typeof cached.isMasterOn === 'boolean') appState.isMasterOn = cached.isMasterOn;
+          if (typeof cached.masterBrightness === 'number') appState.masterBrightness = cached.masterBrightness;
+          if (typeof cached.contrastRatio === 'number') appState.contrastRatio = cached.contrastRatio;
+          if (cached.activePreset) appState.activePreset = cached.activePreset;
+          if (cached.devices && typeof cached.devices === 'object') {
+            if (cached.devices.desk) appState.devices.desk = { ...appState.devices.desk, ...cached.devices.desk };
+            if (cached.devices.wizLeft) appState.devices.wizLeft = { ...appState.devices.wizLeft, ...cached.devices.wizLeft };
+            if (cached.devices.wizRight) appState.devices.wizRight = { ...appState.devices.wizRight, ...cached.devices.wizRight };
+          }
+        }
+      } catch (_) {}
+    }
 
     bindEvents();
     initCommunications();

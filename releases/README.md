@@ -24,7 +24,7 @@ Where:
 
 | Release Artifact | Version | Release Date | Flash Size | Partition Target | SHA-256 Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`firmware_03.02.000.bin`** | `v03.02.000` | 2026-11-20 | 1,450,752 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `9df73b1fc6077ff3d66dc111de2c0b62e2a9941983c2de1d5392790be7e53c2b` |
+| **`firmware_03.02.000.bin`** | `v03.02.000` | 2026-11-20 | 1,451,648 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `c3ea0a2c680233e0b3ace19cfb0d99bbe1c1d4cab091f550b0a087636423963f` |
 | **`firmware_03.01.000.bin`** | `v03.01.000` | 2026-11-20 | 1,448,784 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `449370c2459524c5e0edd9e0491edd369a1c0a8fa92e5f87f8ed991c55cf48ef` |
 | **`firmware_03.00.000.bin`** | `v03.00.000` | 2026-11-20 | 1,448,784 B (1.38 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `263ccde1bb8d4273704affab7b461d4a28af026439bc9689cf1bb679663dc8fb` |
 | **`firmware_02.00.001.bin`** | `v02.00.001` | 2026-11-19 | 1,505,712 B (1.44 MB) | Dual OTA (`ota_0` / `ota_1`, 1.44 MB) | `4c1b4cead9d812100873a08aab6ca4aa2e952e05525b94d697b2ae56a812c4c3` |
