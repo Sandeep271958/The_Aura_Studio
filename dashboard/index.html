@@ -58,15 +58,15 @@
 
     <!-- Center Navigation Tabs for High-End Suites -->
     <nav class="suite-nav" aria-label="Feature Suites">
-      <button class="suite-tab active" data-tab="studio">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab active" data-tab="studio" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
         </svg>
         <span class="tab-label-full">Spatial Studio</span>
         <span class="tab-label-short">Studio</span>
       </button>
-      <button class="suite-tab" data-tab="circadian">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab" data-tab="circadian">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
           <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -74,8 +74,8 @@
         <span class="tab-label-full">Circadian Solar</span>
         <span class="tab-label-short">Circadian</span>
       </button>
-      <button class="suite-tab" data-tab="ambilight">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab" data-tab="ambilight">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
           <line x1="8" y1="21" x2="16" y2="21"></line>
           <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -83,8 +83,8 @@
         <span class="tab-label-full">Ambilight Sync</span>
         <span class="tab-label-short">Ambilight</span>
       </button>
-      <button class="suite-tab" data-tab="soundsync">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab" data-tab="soundsync">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path d="M9 18V5l12-2v13"></path>
           <circle cx="6" cy="18" r="3"></circle>
           <circle cx="18" cy="16" r="3"></circle>
@@ -92,16 +92,16 @@
         <span class="tab-label-full">SoundSync</span>
         <span class="tab-label-short">Sound</span>
       </button>
-      <button class="suite-tab" data-tab="gradients">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab" data-tab="gradients">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="12" cy="12" r="10"></circle>
           <path d="M12 2a14.5 14.5 0 0 0 0 20 10 10 0 0 0 0-20"></path>
         </svg>
         <span class="tab-label-full">Gradient Lab</span>
         <span class="tab-label-short">Gradients</span>
       </button>
-      <button class="suite-tab" data-tab="rhythm">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <button type="button" class="suite-tab" data-tab="rhythm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
@@ -114,7 +114,7 @@
       <!-- Transition Timing Preset -->
       <div class="transition-pill-wrap" title="Lutron Ketra-style Smooth Transition Duration">
         <span class="pill-label">FADE:</span>
-        <select id="select-transition-speed" class="pill-select">
+        <select id="select-transition-speed" class="pill-select" aria-label="Lighting fade transition speed">
           <option value="0">Instant (0s)</option>
           <option value="400">Snappy (0.4s)</option>
           <option value="800" selected>Smooth (0.8s)</option>
@@ -125,14 +125,14 @@
 
       <!-- Connection Status Badge -->
       <div id="connection-badge" class="status-chip connected" title="ESP32 Hub Connection">
-        <span class="status-dot"></span>
+        <span class="status-dot" aria-hidden="true"></span>
         <span id="connection-text" class="status-label">ESP32 ONLINE</span>
       </div>
 
       <!-- Settings / WiZ Scanner Button -->
-      <button id="btn-open-settings" class="icon-btn" aria-label="Open WiZ Discovery and Network Settings">
+      <button type="button" id="btn-open-settings" class="icon-btn" aria-label="Open WiZ Discovery and Network Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
-          stroke-linejoin="round">
+          stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3"></circle>
           <path
             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
@@ -141,7 +141,7 @@
       </button>
 
       <!-- Master Power Button -->
-      <button id="btn-master-power" class="master-power-btn active" aria-label="Toggle All Lights" role="switch" aria-checked="true">
+      <button type="button" id="btn-master-power" class="master-power-btn active" aria-label="Toggle All Lights" role="switch" aria-checked="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
           stroke-linejoin="round" aria-hidden="true">
           <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
@@ -1645,15 +1645,15 @@
       </div>
 
       <!-- Settings Category Segmented Tab Bar -->
-      <nav class="settings-tabs-bar" role="tablist" aria-label="Settings Categories">
-        <button type="button" class="settings-tab-btn active" role="tab" id="tab-settings-network" aria-selected="true" aria-controls="settings-panel-network" data-settings-tab="network">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+      <div class="settings-tabs-bar" role="tablist" aria-label="Settings Categories">
+        <button type="button" class="settings-tab-btn active" role="tab" id="tab-settings-network" aria-selected="true" aria-controls="settings-panel-network" data-settings-tab="network" tabindex="0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon" aria-hidden="true">
             <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01" />
           </svg>
           <span>Network &amp; WiZ</span>
         </button>
-        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-optics" aria-selected="false" aria-controls="settings-panel-optics" data-settings-tab="optics">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-optics" aria-selected="false" aria-controls="settings-panel-optics" data-settings-tab="optics" tabindex="-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon" aria-hidden="true">
             <circle cx="12" cy="12" r="5" />
             <line x1="12" y1="1" x2="12" y2="3" />
             <line x1="12" y1="21" x2="12" y2="23" />
@@ -1666,21 +1666,21 @@
           </svg>
           <span>Lighting &amp; Optics</span>
         </button>
-        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-diagnostics" aria-selected="false" aria-controls="settings-panel-diagnostics" data-settings-tab="diagnostics">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-diagnostics" aria-selected="false" aria-controls="settings-panel-diagnostics" data-settings-tab="diagnostics" tabindex="-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon" aria-hidden="true">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
           </svg>
           <span>Diagnostics</span>
         </button>
-        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-firmware" aria-selected="false" aria-controls="settings-panel-firmware" data-settings-tab="firmware">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+        <button type="button" class="settings-tab-btn" role="tab" id="tab-settings-firmware" aria-selected="false" aria-controls="settings-panel-firmware" data-settings-tab="firmware" tabindex="-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
           <span>Firmware OTA</span>
         </button>
-      </nav>
+      </div>
 
       <div class="dialog-body">
         <!-- TAB 1: Network & WiZ Provisioning -->
@@ -1712,41 +1712,41 @@
             </div>
 
             <!-- Expandable Network Change Form (collapsed by default) -->
-            <div id="wifi-change-panel" class="hidden" style="margin-top:12px; padding:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:14px">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
-                <span style="font-size:0.75rem; font-weight:700; letter-spacing:1px; color:var(--accent-cyan); text-transform:uppercase">Scan &amp; Reconfigure Wi-Fi</span>
+            <div id="wifi-change-panel" class="wifi-panel hidden">
+              <div class="wifi-panel-header">
+                <span class="wifi-panel-title">Scan &amp; Reconfigure Wi-Fi</span>
                 <button type="button" id="btn-scan-wifi" class="action-btn-sm">
                   <span>⚡ Scan Nearby Networks</span>
                 </button>
               </div>
 
-              <div class="form-group" style="margin-bottom:12px">
+              <div class="form-group">
                 <label for="select-wifi-networks">Discovered 2.4GHz Networks</label>
                 <select id="select-wifi-networks" class="custom-select mono">
                   <option value="">Select a network or enter below...</option>
                 </select>
               </div>
 
-              <div class="ip-form-grid" style="margin-bottom:12px">
+              <div class="ip-form-grid">
                 <div class="form-group">
                   <label for="input-wifi-ssid">Network Name (SSID)</label>
                   <input type="text" id="input-wifi-ssid" class="custom-input mono" placeholder="Wi-Fi SSID">
                 </div>
                 <div class="form-group">
                   <label for="input-wifi-pass">Wi-Fi Password</label>
-                  <div style="position:relative">
+                  <div class="password-input-wrap">
                     <input type="password" id="input-wifi-pass" class="custom-input mono" placeholder="Password">
-                    <button type="button" id="btn-toggle-wifi-pass-visibility" class="action-btn-sm" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); padding:4px 8px; font-size:11px" title="Toggle password visibility">👁</button>
+                    <button type="button" id="btn-toggle-wifi-pass-visibility" class="action-btn-sm password-toggle-btn" aria-label="Toggle password visibility" title="Toggle password visibility">👁</button>
                   </div>
                 </div>
               </div>
 
-              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px">
+              <div class="wifi-actions-row">
                 <button type="button" id="btn-submit-wifi-change" class="primary-btn" style="flex:1">Save &amp; Connect</button>
-                <button type="button" id="btn-reset-wifi" class="action-btn" style="color:#ef4444; border-color:rgba(239,68,68,0.3)" title="Clears Wi-Fi credentials and launches Aura-Studio-Setup hotspot">Reset to Setup Hotspot</button>
+                <button type="button" id="btn-reset-wifi" class="action-btn btn-danger-outline" title="Clears Wi-Fi credentials and launches Aura-Studio-Setup hotspot">Reset to Setup Hotspot</button>
               </div>
 
-              <div id="wifi-status-feedback" class="section-note" style="margin-top:10px; display:none"></div>
+              <div id="wifi-status-feedback" class="section-note wifi-feedback-box hidden"></div>
             </div>
           </div>
 
@@ -1783,7 +1783,7 @@
                 <input type="text" id="input-wiz-right-ip" class="custom-input mono" placeholder="192.168.1.102"
                   value="192.168.1.102">
               </div>
-              <div class="form-group" style="grid-column: span 2">
+              <div class="form-group form-group-full">
                 <label for="input-hub-host">Smart Light Hub Address (mDNS or IP)</label>
                 <input type="text" id="input-hub-host" class="custom-input mono" placeholder="aura-hub.local"
                   value="aura-hub.local">
@@ -1801,7 +1801,7 @@
             <h4>Optical Dimming &amp; Perceptual Gamma</h4>
             <div class="section-inline-header">
               <div>
-                <strong style="font-size:0.84rem; color:#fff">Perceptual CIE 1931 Gamma Curve ($Y = X^{2.2}$)</strong>
+                <strong style="font-size:0.84rem; color:#fff">Perceptual CIE 1931 Gamma Curve (<i>Y</i> = <i>X</i><sup>2.2</sup>)</strong>
                 <p class="section-note" style="margin-top:4px">Applies human eye logarithmic luminance curve for ultra-smooth dimming and rich, banding-free shadows.</p>
               </div>
               <label class="toggle-switch">

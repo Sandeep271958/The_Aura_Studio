@@ -253,7 +253,12 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
         } else if (msgType == "scanWiz") {
             wiz.broadcastDiscovery();
         } else if (msgType == "dismissRollback") {
-            state.otaRollbackOccurred = false;
+            if (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+                state.otaRollbackOccurred = false;
+                xSemaphoreGive(stateMutex);
+            } else {
+                state.otaRollbackOccurred = false;
+            }
             Preferences otaPrefs;
             otaPrefs.begin("aura_ota", false);
             otaPrefs.remove("rollback");
@@ -361,16 +366,15 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                 }
                 if (d.containsKey("effect")) {
                     state.desk.effect = d["effect"].as<String>();
-                    if (state.desk.effect == "solid" || state.desk.effect == "cyberpulse" ||
-                        state.desk.effect == "sunset-wave" || state.desk.effect == "aurora" ||
-                        state.desk.effect == "fire" || state.desk.effect == "test-cycle") {
-                        state.desk.hasGradient = false;
+                    if (!d.containsKey("inspectIndex")) {
+                        state.desk.inspectIndex = -1;
                     }
                 }
                 if (d.containsKey("speed")) state.desk.speed = d["speed"];
                 if (d.containsKey("intensity")) state.desk.intensity = d["intensity"];
                 if (d.containsKey("turbulence")) state.desk.intensity = d["turbulence"];
 
+                bool hasExplicitGradientStops = false;
                 if (d.containsKey("gradientStops") && d["gradientStops"].is<JsonArray>()) {
                     JsonArray stopsArr = d["gradientStops"].as<JsonArray>();
                     int stopIdx = 0;
@@ -388,6 +392,14 @@ void WebServerManager::handleWsMessage(void *arg, uint8_t *data, size_t len) {
                     }
                     if (stopIdx == 4) {
                         state.desk.hasGradient = true;
+                        hasExplicitGradientStops = true;
+                    }
+                }
+                if (!hasExplicitGradientStops) {
+                    if (d.containsKey("hasGradient")) {
+                        state.desk.hasGradient = d["hasGradient"].as<bool>();
+                    } else if (d.containsKey("effect") || d.containsKey("color")) {
+                        state.desk.hasGradient = false;
                     }
                 }
             }
@@ -1112,6 +1124,8 @@ String WebServerManager::serializeState() {
     deskObj["speed"] = localState.desk.speed;
     deskObj["intensity"] = localState.desk.intensity;
     deskObj["turbulence"] = localState.desk.intensity;
+    deskObj["hasGradient"] = localState.desk.hasGradient;
+    deskObj["inspectIndex"] = localState.desk.inspectIndex;
     if (localState.desk.hasGradient) {
         JsonArray stops = deskObj["gradientStops"].to<JsonArray>();
         for (int i = 0; i < 4; i++) {
@@ -1157,7 +1171,7 @@ String WebServerManager::serializeState() {
                           (rst == ESP_RST_TASK_WDT) ? "TASK_WDT" :
                           (rst == ESP_RST_WDT) ? "WDT" :
                           (rst == ESP_RST_DEEPSLEEP) ? "DEEPSLEEP" : "OTHER";
-    telem["fps"] = state.measuredFps > 0 ? state.measuredFps : TARGET_FPS;
+    telem["fps"] = localState.measuredFps > 0 ? localState.measuredFps : TARGET_FPS;
 
     String output;
     serializeJson(doc, output);

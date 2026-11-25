@@ -253,9 +253,19 @@ void WizController::updateDiscovery() {
   // Phase 3: Immediate Auto-Sync on Bulb Arrival / Cold Boot
   // -------------------------------------------------------------
   if (packetValid && hubState != nullptr) {
+    String leftIpCopy, leftMacCopy, rightIpCopy, rightMacCopy;
+    bool mutexTaken = (stateMutex != NULL && xSemaphoreTake(stateMutex, pdMS_TO_TICKS(50)) == pdTRUE);
+    if (mutexTaken || stateMutex == NULL) {
+      leftIpCopy = hubState->wizLeftIp;
+      leftMacCopy = hubState->wizLeftMac;
+      rightIpCopy = hubState->wizRightIp;
+      rightMacCopy = hubState->wizRightMac;
+      if (mutexTaken) xSemaphoreGive(stateMutex);
+    }
+
     String cleanMac = (discoveredMac.length() >= 6) ? normalizeMac(discoveredMac) : "";
-    bool isLeft = (hubState->wizLeftIp == discoveredIp) || (cleanMac.length() >= 6 && hubState->wizLeftMac.length() >= 6 && normalizeMac(hubState->wizLeftMac) == cleanMac);
-    bool isRight = (hubState->wizRightIp == discoveredIp) || (cleanMac.length() >= 6 && hubState->wizRightMac.length() >= 6 && normalizeMac(hubState->wizRightMac) == cleanMac);
+    bool isLeft = (leftIpCopy == discoveredIp) || (cleanMac.length() >= 6 && leftMacCopy.length() >= 6 && normalizeMac(leftMacCopy) == cleanMac);
+    bool isRight = (rightIpCopy == discoveredIp) || (cleanMac.length() >= 6 && rightMacCopy.length() >= 6 && normalizeMac(rightMacCopy) == cleanMac);
     bool isFirstBeat = (packetMethod == "firstBeat");
 
     if (isLeft) {
@@ -466,12 +476,13 @@ String WizController::sendCommandWithResponse(const String &ipStr, const String 
   while (millis() - start < timeoutMs) {
     int size = udp.parsePacket();
     if (size > 0) {
+      IPAddress srcIp = udp.remoteIP();
       char buf[512];
       int len = udp.read(buf, sizeof(buf) - 1);
-      if (len > 0) {
+      if (srcIp == ip && len > 0) {
         buf[len] = '\0';
         response = String(buf);
-        Serial.printf("[WiZ Test RX] <- %s:38899 | %s\n", udp.remoteIP().toString().c_str(), buf);
+        Serial.printf("[WiZ Test RX] <- %s:38899 | %s\n", srcIp.toString().c_str(), buf);
         break;
       }
     }

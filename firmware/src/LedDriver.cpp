@@ -411,6 +411,7 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
         }
         return;
     }
+    bool exitedInspect = (lastInspectIndex >= 0);
     lastInspectIndex = -1;
 
     // Power Transition State Machine Management (1000ms On / 1000ms Off Synchronized to Lamps)
@@ -475,9 +476,9 @@ void LedDriver::update(const DeviceDesk& config, bool masterOn, uint8_t masterBr
 
     bool inTransition = (pwrState == PWR_TURNING_ON);
 
-    // 2. Static Solid Color Mode: Update ONLY on change, transition, or 3s keepalive
+    // 2. Static Solid Color Mode: Update ONLY on change, transition, exit from Pixel Inspect, or 3s keepalive
     if (config.effect == "solid") {
-        bool changed = inTransition || (baseColor != lastSolidColor || targetDim != lastDeskDim || 
+        bool changed = exitedInspect || inTransition || (baseColor != lastSolidColor || targetDim != lastDeskDim || 
                         useGammaCorrection != lastUseGamma ||
                         !lastMasterOn || !lastDeskPower || strcmp(lastEffect, "solid") != 0 || 
                         now - lastSolidPush > 3000);

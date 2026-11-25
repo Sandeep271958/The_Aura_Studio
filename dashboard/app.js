@@ -614,6 +614,11 @@ function activateSimulatedMode() {
 
 let wsRetryCount = 0;
 function connectWebSocket() {
+  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  clearTimeout(socketReconnectTimer);
+
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const cachedIp = safeStorage.getItem('aura_last_hub_ip');
 
@@ -659,6 +664,7 @@ function connectWebSocket() {
 
     socket.onclose = () => {
       clearTimeout(connectTimeout);
+      socket = null;
       wsRetryCount++;
       DOM.connectionBadge.className = 'status-chip simulated';
       DOM.connectionText.textContent = 'RECONNECTING...';
@@ -745,7 +751,7 @@ document.addEventListener('visibilitychange', () => {
     if (appState.activeTab === 'gradients') {
       startGradientFluidSimulation();
     }
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
+    if (!socket || (socket.readyState !== WebSocket.OPEN && socket.readyState !== WebSocket.CONNECTING)) {
       if (window.location.protocol.startsWith('http') &&
           window.location.hostname !== 'localhost' &&
           window.location.hostname !== '127.0.0.1') {
@@ -759,7 +765,22 @@ document.addEventListener('visibilitychange', () => {
 
 function handleIncomingMessage(msg) {
   if (msg.type === 'state') {
-    Object.assign(appState, msg.payload);
+    const incoming = msg.payload || {};
+    const mergedDevices = incoming.devices ? {
+      desk: { ...appState.devices.desk, ...(incoming.devices.desk || {}) },
+      wizLeft: { ...appState.devices.wizLeft, ...(incoming.devices.wizLeft || {}) },
+      wizRight: { ...appState.devices.wizRight, ...(incoming.devices.wizRight || {}) }
+    } : appState.devices;
+    const mergedNetwork = incoming.network ? { ...appState.network, ...incoming.network } : appState.network;
+    Object.assign(appState, incoming);
+    appState.devices = mergedDevices;
+    appState.network = mergedNetwork;
+    if (incoming.devices && incoming.devices.desk && typeof incoming.devices.desk.hasGradient === 'boolean') {
+      appState.devices.desk.hasGradient = incoming.devices.desk.hasGradient;
+      if (!appState.devices.desk.hasGradient) {
+        delete appState.devices.desk.gradientStops;
+      }
+    }
     if (msg.payload && msg.payload.firmwareVersion && DOM.badgeFirmwareVersion) {
       DOM.badgeFirmwareVersion.textContent = `v${msg.payload.firmwareVersion}`;
     }
@@ -820,6 +841,7 @@ function handleIncomingMessage(msg) {
       isMasterOn: appState.isMasterOn,
       masterBrightness: appState.masterBrightness,
       contrastRatio: appState.contrastRatio,
+      syncCorners: appState.syncCorners,
       activePreset: appState.activePreset,
       devices: appState.devices
     }));
@@ -1270,6 +1292,8 @@ function renderDeviceCards() {
   DOM.cardWizLeft.classList.toggle('powered-off', !appState.devices.wizLeft.power || !appState.isMasterOn);
   DOM.cardWizRight.classList.toggle('powered-off', !appState.devices.wizRight.power || !appState.isMasterOn);
   DOM.cardWizRight.classList.toggle('linked-corner', appState.syncCorners);
+  if (DOM.fixtureWizLeft) DOM.fixtureWizLeft.classList.toggle('powered-off', !appState.devices.wizLeft.power || !appState.isMasterOn);
+  if (DOM.fixtureWizRight) DOM.fixtureWizRight.classList.toggle('powered-off', !appState.devices.wizRight.power || !appState.isMasterOn);
 }
 
 function colorsMatch(c1, c2) {
@@ -1284,7 +1308,7 @@ function kelvinsMatch(k1, k2) {
 function matchesPresetDesk(p) {
   const desk = appState.devices.desk;
   if (!appState.isMasterOn || !desk.power) return false;
-  return desk.effect === p.desk.effect && colorsMatch(desk.color, p.desk.color);
+  return !desk.hasGradient && desk.effect === p.desk.effect && colorsMatch(desk.color, p.desk.color);
 }
 
 function matchesPresetLamp(lamp, pLamp) {
@@ -1540,6 +1564,8 @@ function applyCircadianToRoom() {
   // Set desk strip to complementary soft white
   appState.devices.desk.color = kelvinToRgbHex(targetKelvin);
   appState.devices.desk.effect = 'breathe';
+  appState.devices.desk.hasGradient = false;
+  delete appState.devices.desk.gradientStops;
   renderAll();
   dispatchStateChange({ state: appState });
 }
@@ -1741,7 +1767,10 @@ async function toggleAmbilight() {
 function startAmbilight(stream) {
   appState.ambilight.active = true;
   appState.ambilight.stream = stream;
+  appState.devices.desk.hasGradient = false;
+  delete appState.devices.desk.gradientStops;
   DOM.ambilightVideo.srcObject = stream;
+  DOM.ambilightVideo.classList.add('active');
   DOM.ambilightPlaceholder.classList.add('hidden');
   DOM.ambilightBtnLabel.textContent = 'Stop Screen Sync';
   DOM.btnToggleAmbilight.classList.add('active');
@@ -1797,6 +1826,7 @@ function startAmbilight(stream) {
       appState.devices.wizLeft.color = hexLeft;
       appState.devices.desk.color = hexCenter;
       appState.devices.desk.effect = 'solid';
+      appState.devices.desk.hasGradient = false;
       appState.devices.wizRight.mode = 'rgb';
       appState.devices.wizRight.color = hexRight;
 
@@ -1804,7 +1834,7 @@ function startAmbilight(stream) {
       if (nowMs - lastAmbiDispatch >= 60) {
         lastAmbiDispatch = nowMs;
         dispatchStateChange({
-          desk: { color: hexCenter, effect: 'solid' },
+          desk: { color: hexCenter, effect: 'solid', hasGradient: false },
           wizLeft: { color: hexLeft, mode: 'rgb' },
           wizRight: { color: hexRight, mode: 'rgb' }
         });
@@ -1835,6 +1865,7 @@ function stopAmbilight() {
     appState.ambilight.stream.getTracks().forEach(t => t.stop());
     appState.ambilight.stream = null;
   }
+  DOM.ambilightVideo.classList.remove('active');
   DOM.ambilightVideo.srcObject = null;
   DOM.ambilightPlaceholder.classList.remove('hidden');
   DOM.ambilightBtnLabel.textContent = 'Start Screen Sync';
@@ -1917,6 +1948,8 @@ async function toggleSoundSync() {
 function startSoundSync(stream) {
   appState.soundsync.active = true;
   appState.soundsync.micStream = stream;
+  appState.devices.desk.hasGradient = false;
+  delete appState.devices.desk.gradientStops;
   appState.soundsync.savedState = {
     desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color },
     wizLeft: { brightness: appState.devices.wizLeft.brightness, color: appState.devices.wizLeft.color, mode: appState.devices.wizLeft.mode },
@@ -2061,7 +2094,7 @@ function startSoundSync(stream) {
     if (nowAudio - lastSoundSyncDispatch >= 65) {
       lastSoundSyncDispatch = nowAudio;
       dispatchStateChange({
-        desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color },
+        desk: { brightness: appState.devices.desk.brightness, color: appState.devices.desk.color, hasGradient: false },
         wizLeft: { brightness: appState.devices.wizLeft.brightness, color: appState.devices.wizLeft.color, mode: appState.devices.wizLeft.mode },
         wizRight: { brightness: appState.devices.wizRight.brightness, color: appState.devices.wizRight.color, mode: appState.devices.wizRight.mode }
       });
@@ -2092,7 +2125,9 @@ function stopSoundSync() {
     appState.soundsync.micStream = null;
   }
   if (appState.soundsync.audioCtx) {
-    appState.soundsync.audioCtx.close();
+    if (appState.soundsync.audioCtx.state !== 'closed') {
+      appState.soundsync.audioCtx.close().catch(() => {});
+    }
     appState.soundsync.audioCtx = null;
   }
   if (appState.soundsync.savedState) {
@@ -2357,6 +2392,7 @@ function applyCustomGradientToDesk() {
   appState.devices.desk.color = c2;
   appState.devices.desk.effect = appState.gradient.motionMode;
   appState.devices.desk.intensity = appState.gradient.turbulence;
+  appState.devices.desk.hasGradient = true;
   appState.devices.desk.gradientStops = [c1, c2, c3, c4];
 
   const payload = {
@@ -2366,6 +2402,7 @@ function applyCustomGradientToDesk() {
       speed: appState.gradient.speed,
       intensity: appState.gradient.turbulence,
       turbulence: appState.gradient.turbulence,
+      hasGradient: true,
       gradientStops: [c1, c2, c3, c4]
     }
   };
@@ -2489,11 +2526,14 @@ function startPomodoroPhase(phase) {
     if (DOM.pomoTimerRing) {
       DOM.pomoTimerRing.classList.remove('ring-break');
       DOM.pomoTimerRing.classList.add('ring-focus');
+      DOM.pomoTimerRing.style.setProperty('--pomo-progress', '100%');
     }
     // Apply Focus Lighting Profile
     appState.devices.desk.color = '#00f2fe';
     appState.devices.desk.brightness = 95;
     appState.devices.desk.effect = 'solid';
+    appState.devices.desk.hasGradient = false;
+    delete appState.devices.desk.gradientStops;
     appState.devices.wizLeft.brightness = 15;
     appState.devices.wizLeft.mode = 'cct';
     appState.devices.wizLeft.kelvin = 4500;
@@ -2512,11 +2552,14 @@ function startPomodoroPhase(phase) {
     if (DOM.pomoTimerRing) {
       DOM.pomoTimerRing.classList.remove('ring-focus');
       DOM.pomoTimerRing.classList.add('ring-break');
+      DOM.pomoTimerRing.style.setProperty('--pomo-progress', '100%');
     }
     // Apply Break Relax Lighting Profile
     appState.devices.desk.color = '#f59e0b';
     appState.devices.desk.brightness = 60;
     appState.devices.desk.effect = 'breathe';
+    appState.devices.desk.hasGradient = false;
+    delete appState.devices.desk.gradientStops;
     appState.devices.wizLeft.brightness = 75;
     appState.devices.wizLeft.mode = 'cct';
     appState.devices.wizLeft.kelvin = 2400;
@@ -2526,6 +2569,7 @@ function startPomodoroPhase(phase) {
     playChime(523, 0.5); // Warm restorative chime
     showToast('Time for a 5m break! Ambient relaxation bloom activated.');
   }
+  updatePomodoroDisplay();
   renderAll();
   dispatchStateChange({ state: appState });
 }
@@ -2534,6 +2578,11 @@ function updatePomodoroDisplay() {
   const m = Math.floor(appState.pomodoro.secondsRemaining / 60).toString().padStart(2, '0');
   const s = (appState.pomodoro.secondsRemaining % 60).toString().padStart(2, '0');
   DOM.pomoTimeLeft.textContent = `${m}:${s}`;
+  if (DOM.pomoTimerRing) {
+    const totalSec = appState.pomodoro.phase === 'break' ? 5 * 60 : 25 * 60;
+    const pct = Math.max(0, Math.min(100, (appState.pomodoro.secondsRemaining / totalSec) * 100));
+    DOM.pomoTimerRing.style.setProperty('--pomo-progress', `${pct.toFixed(1)}%`);
+  }
 }
 
 function resetPomodoro() {
@@ -2556,6 +2605,7 @@ function resetPomodoro() {
   if (DOM.pomoTimerRing) {
     DOM.pomoTimerRing.classList.remove('ring-break');
     DOM.pomoTimerRing.classList.add('ring-focus');
+    DOM.pomoTimerRing.style.setProperty('--pomo-progress', '100%');
   }
   if (DOM.pomoTimeLeft) DOM.pomoTimeLeft.textContent = '25:00';
   renderAll();
@@ -2584,7 +2634,15 @@ function bindEvents() {
       triggerHaptic('light');
       const target = tab.dataset.tab;
       appState.activeTab = target;
-      DOM.suiteTabs.forEach(t => t.classList.toggle('active', t === tab));
+      DOM.suiteTabs.forEach(t => {
+        const active = t === tab;
+        t.classList.toggle('active', active);
+        if (active) {
+          t.setAttribute('aria-current', 'page');
+        } else {
+          t.removeAttribute('aria-current');
+        }
+      });
       DOM.tabViews.forEach(v => v.classList.toggle('active', v.id === `view-${target}`));
       if (target === 'gradients') {
         startGradientFluidSimulation();
@@ -2776,12 +2834,14 @@ function bindEvents() {
 
   DOM.pickerDeskColor.addEventListener('input', (e) => {
     appState.devices.desk.color = e.target.value;
+    appState.devices.desk.hasGradient = false;
+    delete appState.devices.desk.gradientStops;
     renderAll();
-    throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color } }));
+    throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color, hasGradient: false } }));
   });
   DOM.pickerDeskColor.addEventListener('change', () => {
     triggerHaptic('light');
-    commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color } });
+    commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color, hasGradient: false } });
   });
 
   if (DOM.sliderDeskHue) {
@@ -2789,12 +2849,14 @@ function bindEvents() {
       const hue = parseInt(e.target.value, 10);
       const hex = hslToHex(hue, 100, 50);
       appState.devices.desk.color = hex;
+      appState.devices.desk.hasGradient = false;
+      delete appState.devices.desk.gradientStops;
       renderAll();
-      throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color } }));
+      throttledDispatch('deskColor', () => ({ desk: { color: appState.devices.desk.color, hasGradient: false } }));
     });
     DOM.sliderDeskHue.addEventListener('change', () => {
       triggerHaptic('light');
-      commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color } });
+      commitThrottledDispatch('deskColor', { desk: { color: appState.devices.desk.color, hasGradient: false } });
     });
   }
 
@@ -2802,8 +2864,10 @@ function bindEvents() {
     chip.addEventListener('click', () => {
       triggerHaptic('light');
       appState.devices.desk.effect = chip.dataset.effect;
+      appState.devices.desk.hasGradient = false;
+      delete appState.devices.desk.gradientStops;
       renderAll();
-      dispatchStateChange({ desk: { effect: appState.devices.desk.effect } });
+      dispatchStateChange({ desk: { effect: appState.devices.desk.effect, hasGradient: false } });
     });
   });
 
@@ -2812,8 +2876,10 @@ function bindEvents() {
     if (dot) {
       triggerHaptic('light');
       appState.devices.desk.color = dot.dataset.color;
+      appState.devices.desk.hasGradient = false;
+      delete appState.devices.desk.gradientStops;
       renderAll();
-      dispatchStateChange({ desk: { color: appState.devices.desk.color } });
+      dispatchStateChange({ desk: { color: appState.devices.desk.color, hasGradient: false } });
     }
   });
 
@@ -3098,6 +3164,8 @@ function bindEvents() {
     appState.devices.wizRight.kelvin = targetKelvin;
     appState.devices.desk.color = kelvinToRgbHex(targetKelvin);
     appState.devices.desk.effect = 'breathe';
+    appState.devices.desk.hasGradient = false;
+    delete appState.devices.desk.gradientStops;
     renderAll();
   });
   DOM.sliderCircadianTime.addEventListener('change', () => {
@@ -3348,6 +3416,7 @@ function bindEvents() {
       const isMatch = (b.dataset.settingsTab === target);
       b.classList.toggle('active', isMatch);
       b.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+      b.setAttribute('tabindex', isMatch ? '0' : '-1');
     });
     settingsTabPanels.forEach(panel => {
       const isMatch = (panel.id === `settings-panel-${target}`);
@@ -3359,10 +3428,23 @@ function bindEvents() {
       }
     });
   }
-  settingsTabBtns.forEach(btn => {
+  const tabBtnsArr = Array.from(settingsTabBtns);
+  tabBtnsArr.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
       triggerHaptic('light');
       switchSettingsTab(btn.dataset.settingsTab);
+    });
+    btn.addEventListener('keydown', (e) => {
+      let nextIdx = -1;
+      if (e.key === 'ArrowRight') nextIdx = (idx + 1) % tabBtnsArr.length;
+      else if (e.key === 'ArrowLeft') nextIdx = (idx - 1 + tabBtnsArr.length) % tabBtnsArr.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = tabBtnsArr.length - 1;
+      if (nextIdx >= 0 && tabBtnsArr[nextIdx]) {
+        e.preventDefault();
+        switchSettingsTab(tabBtnsArr[nextIdx].dataset.settingsTab);
+        tabBtnsArr[nextIdx].focus();
+      }
     });
   });
 
@@ -3470,6 +3552,7 @@ function bindEvents() {
     appState.useGammaCorrection = e.target.checked;
     safeStorage.setItem('aura_gamma_correction', appState.useGammaCorrection);
     renderAll();
+    dispatchStateChange({ useGammaCorrection: appState.useGammaCorrection });
     showToast(appState.useGammaCorrection ? 'CIE 1931 Perceptual Gamma enabled.' : 'Linear dimming active.');
   });
 
@@ -3652,7 +3735,14 @@ function bindEvents() {
     DOM.btnDismissRollback.addEventListener('click', () => {
       triggerHaptic('light');
       if (DOM.otaRollbackBanner) DOM.otaRollbackBanner.classList.add('hidden');
-      sendWsAction({ action: 'dismissRollback' });
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'dismissRollback' }));
+      }
+      const host = getTargetHubHost();
+      const dismissUrl = (window.location.protocol === 'file:') ? '/api/ota/dismiss-rollback' : `http://${host}/api/ota/dismiss-rollback`;
+      if (typeof fetch === 'function') {
+        fetch(dismissUrl, { method: 'POST' }).catch(() => {});
+      }
     });
   }
 
@@ -3757,6 +3847,7 @@ function bindEvents() {
     DOM.btnScanWifi.disabled = true;
     DOM.btnScanWifi.innerHTML = '<span>Scanning airwaves...</span>';
     if (DOM.wifiStatusFeedback) {
+      DOM.wifiStatusFeedback.classList.remove('hidden');
       DOM.wifiStatusFeedback.style.display = 'block';
       DOM.wifiStatusFeedback.style.color = 'var(--accent-cyan)';
       DOM.wifiStatusFeedback.textContent = 'Scanning 2.4GHz channels for nearby networks...';
@@ -3836,6 +3927,7 @@ function bindEvents() {
 
       DOM.btnSubmitWifiChange.disabled = true;
       if (DOM.wifiStatusFeedback) {
+        DOM.wifiStatusFeedback.classList.remove('hidden');
         DOM.wifiStatusFeedback.style.display = 'block';
         DOM.wifiStatusFeedback.style.color = 'var(--accent-cyan)';
         DOM.wifiStatusFeedback.textContent = `Saving credentials for "${ssid}" & rebooting hub...`;
@@ -3881,6 +3973,7 @@ function bindEvents() {
 
       DOM.btnResetWifi.disabled = true;
       if (DOM.wifiStatusFeedback) {
+        DOM.wifiStatusFeedback.classList.remove('hidden');
         DOM.wifiStatusFeedback.style.display = 'block';
         DOM.wifiStatusFeedback.style.color = 'var(--accent-coral)';
         DOM.wifiStatusFeedback.textContent = 'Clearing Wi-Fi NVS and launching Aura-Studio-Setup hotspot...';
@@ -4004,6 +4097,8 @@ function applyPreset(presetKey) {
   appState.isMasterOn = true;
 
   Object.assign(appState.devices.desk, preset.desk);
+  appState.devices.desk.hasGradient = false;
+  delete appState.devices.desk.gradientStops;
   Object.assign(appState.devices.wizLeft, preset.wizLeft);
   Object.assign(appState.devices.wizRight, preset.wizRight);
 
@@ -4279,6 +4374,7 @@ function initApp() {
           if (typeof cached.isMasterOn === 'boolean') appState.isMasterOn = cached.isMasterOn;
           if (typeof cached.masterBrightness === 'number') appState.masterBrightness = cached.masterBrightness;
           if (typeof cached.contrastRatio === 'number') appState.contrastRatio = cached.contrastRatio;
+          if (typeof cached.syncCorners === 'boolean') appState.syncCorners = cached.syncCorners;
           if (cached.activePreset) appState.activePreset = cached.activePreset;
           if (cached.devices && typeof cached.devices === 'object') {
             if (cached.devices.desk) appState.devices.desk = { ...appState.devices.desk, ...cached.devices.desk };

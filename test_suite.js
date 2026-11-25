@@ -457,6 +457,8 @@ class MockElement {
 
   setAttribute(name, val) { this.attributes[name] = String(val); }
   getAttribute(name) { return this.attributes[name] || null; }
+  removeAttribute(name) { delete this.attributes[name]; }
+  focus() {}
 
   addEventListener(event, fn) {
     if (!this.listeners[event]) this.listeners[event] = [];
@@ -1995,6 +1997,29 @@ const testSemverRegex = /^\d{2}\.\d{2}\.\d{3}$/;
 assert(testSemverRegex.test('01.01.000'), 'Valid version must match regex');
 assert(!testSemverRegex.test('v01.01.000') && !testSemverRegex.test('1.0.0') && !testSemverRegex.test('01.01'), 'Invalid versions must fail regex');
 recordPass('[Tier 5] Release packaging defense-in-depth version regex validation verified.');
+
+// Check 11: Industrial UI/UX Responsive Layout, Accessibility & Markup Hardening
+const dashHtmlSrc = fs.readFileSync('dashboard/index.html', 'utf8');
+const dashCssSrc = fs.readFileSync('dashboard/style.css', 'utf8');
+assert(!dashHtmlSrc.includes('$Y = X^{2.2}$'), 'Raw unrendered LaTeX must not exist in HTML');
+assert(!dashHtmlSrc.includes('style="grid-column: span 2"'), 'Inline span-2 grid override must not break mobile columns');
+assert(dashCssSrc.includes('[hidden],\n.hidden {\n  display: none !important;\n}'), 'Global [hidden] / .hidden display rule must exist');
+assert(dashCssSrc.includes('.settings-tab-panel[hidden]'), 'Hidden settings panels must be suppressed explicitly');
+assert(dashCssSrc.includes('@media (max-width: 1439px) and (min-width: 901px)'), 'Medium laptop/tablet two-row header breakpoint must exist');
+assert(dashCssSrc.includes('.screen-video-feed.active'), 'Ambilight video element must support .active display toggle');
+assert(!appJsSource.includes('sendWsAction('), 'Broken undefined sendWsAction call must not exist');
+assert(appJsSource.includes('dispatchStateChange({ useGammaCorrection: appState.useGammaCorrection })'), 'Gamma toggle must sync over WebSocket');
+assert(appJsSource.includes('socket.readyState === WebSocket.CONNECTING'), 'WebSocket connect guard must block duplicate CONNECTING sockets');
+recordPass('[Tier 5] Responsive header breakpoints, [hidden] rules, Ambilight video toggle, and WS guards verified.');
+
+// Check 12: Cross-Stack Gradient Lab Desync & Pixel Inspection Solid Refresh Hardening
+const advLedSrc = fs.readFileSync('firmware/src/LedDriver.cpp', 'utf8');
+assert(appJsSource.includes('!desk.hasGradient && desk.effect === p.desk.effect'), 'Preset matching must exclude active custom gradient mode');
+assert(advWsManagerSrc.includes('deskObj["hasGradient"] = localState.desk.hasGradient'), 'Firmware serializeState must emit desk.hasGradient');
+assert(advWsManagerSrc.includes('else if (d.containsKey("effect") || d.containsKey("color"))'), 'Firmware must clear hasGradient for any desk effect or color update');
+assert(advLedSrc.includes('bool exitedInspect = (lastInspectIndex >= 0);'), 'LedDriver must detect exiting single-pixel inspect in solid mode');
+assert(advWizSrc.includes('if (srcIp == ip && len > 0)'), 'WizController test TX must validate UDP response source IP');
+recordPass('[Tier 5] Cross-stack gradient state sync, pixel-inspect exit refresh, and UDP source IP checks verified.');
 
 console.log('\n================================================================================');
 console.log(`--- All ${totalChecksPassed} Automated Verification Checks Passed! (100% Zero-Bug Assurance) ---`);

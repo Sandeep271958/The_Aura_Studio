@@ -262,6 +262,7 @@ void setup() {
 
         // Setup mDNS (http://aura-hub.local)
         if (MDNS.begin(HOSTNAME)) {
+            MDNS.setInstanceName("The Aura Studio Smart Hub");
             Serial.printf("[mDNS] Responder started at http://%s.local\n", HOSTNAME);
             MDNS.addService("http", "tcp", 80);
         }
@@ -367,6 +368,7 @@ void loop() {
 
             // Start mDNS and OTA
             if (MDNS.begin(HOSTNAME)) {
+                MDNS.setInstanceName("The Aura Studio Smart Hub");
                 Serial.printf("[mDNS] Responder started at http://%s.local\n", HOSTNAME);
                 MDNS.addService("http", "tcp", 80);
             }
